@@ -7,6 +7,10 @@ const { requirePermission } = require('../middleware/permissions');
 
 // Apply common middleware to all teacher routes
 router.use(protect);
+// KEPT deliberately. teacherAssignmentGuard SKIPS its class/subject check for any role
+// other than 'teacher', so removing this lock would give a custom role unrestricted
+// access to every class. Generalising that guard is Phase 4 work; until then the role
+// lock is what makes the assignment check meaningful.
 router.use(authorize('teacher'));
 router.use(requireScope('branch'));
 router.use(tenantGuard);

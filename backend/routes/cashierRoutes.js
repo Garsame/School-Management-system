@@ -20,6 +20,9 @@ const { requirePermission } = require('../middleware/permissions');
 // 4. Tenant Valid
 // 5. Branch Valid
 router.use(protect);
+// KEPT for now. All 9 routes are permission-gated, so this could be removed, but cash
+// handling deserves its own review before a school can hand it to an arbitrary role.
+// Revisit in Phase 6 alongside the segregation-of-duties warnings.
 router.use(authorize('cashier')); 
 router.use(requireScope('branch'));
 router.use(tenantGuard);

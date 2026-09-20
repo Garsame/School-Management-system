@@ -16,15 +16,18 @@ const {
 } = require('../controllers/branchAdminController');
 const timetableController = require('../controllers/timetableController');
 
-const { protect, authorize, requireScope, tenantGuard, branchGuard } = require('../middleware/auth');
-const { requirePermission } = require('../middleware/permissions');
+const { protect, requireScope, tenantGuard, branchGuard } = require('../middleware/auth');
+const { requireAnyPermission, requirePermission } = require('../middleware/permissions');
 const { enforcePlanLimit } = require('../services/planLimitService');
 const { getTerms } = require('../controllers/academicPolicyController');
 
 // Apply Global Middleware for Branch Admin
 // Must be: Authenticated -> Branch Admin Role -> Branch Scope -> Tenant Valid -> Branch Valid
 router.use(protect);
-router.use(authorize('branch_admin'));
+// Phase 3: the blanket role gate is gone. Every route below carries its own
+// requirePermission, which is the real check — the role gate only stopped a school
+// from giving these capabilities to a role it defined itself, such as an Admission
+// Manager who manages classes. Scope and tenant isolation still apply.
 router.use(requireScope('branch'));
 router.use(tenantGuard);
 router.use(branchGuard);
@@ -48,8 +51,16 @@ router.get('/class-subjects', requirePermission('branch.classes.view'), require(
 router.post('/class-subjects', requirePermission('branch.subjects.manage'), require('../controllers/branchAdminController').createClassSubject);
 router.delete('/class-subjects/:id', requirePermission('branch.subjects.manage'), require('../controllers/branchAdminController').deleteClassSubject);
 
-router.get('/academic-years/current', getCurrentAcademicYear);
-router.get('/academic-years', getAcademicYears);
+// Academic years are shared reference data, but they still need a gate: without the
+// blanket role check below, any branch-scoped account could read them. Anyone doing
+// academic work in the branch holds at least one of these.
+const requireAcademicContext = requireAnyPermission([
+    'branch.classes.view',
+    'students.view',
+    'branch.exams.view'
+]);
+router.get('/academic-years/current', requireAcademicContext, getCurrentAcademicYear);
+router.get('/academic-years', requireAcademicContext, getAcademicYears);
 router.get('/academic-years/:yearId/terms', requirePermission('branch.exams.view'), getTerms);
 
 // --- B.1) Timetable Management ---

@@ -6617,9 +6617,20 @@ test('compensation approval routes and one-open-request index are declared', () 
     const submitRoute = hrRoutes.stack.find((layer) => layer.route?.path === '/employees/:id/compensation' && layer.route.methods.put);
     const listRoute = financeRoutes.stack.find((layer) => layer.route?.path === '/compensation-requests' && layer.route.methods.get);
     const reviewRoute = financeRoutes.stack.find((layer) => layer.route?.path === '/compensation-requests/:id/review' && layer.route.methods.put);
-    assert.ok(submitRoute && submitRoute.route.stack.length > 2);
-    assert.ok(listRoute && listRoute.route.stack.length > 1);
-    assert.ok(reviewRoute && reviewRoute.route.stack.length > 1);
+    assert.ok(submitRoute, 'compensation submit route is mounted');
+    assert.ok(listRoute, 'compensation list route is mounted');
+    assert.ok(reviewRoute, 'compensation review route is mounted');
+
+    // Assert the permission gate itself rather than counting middleware. Phase 3 removed the
+    // redundant authorize() from these routes, which changed the middleware count without
+    // weakening anything: requirePermission is what actually guards them.
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const hrSource = fs.readFileSync(path.join(__dirname, '..', 'routes', 'hrRoutes.js'), 'utf8');
+    const financeSource = fs.readFileSync(path.join(__dirname, '..', 'routes', 'tenantFinanceRoutes.js'), 'utf8');
+    assert.match(hrSource, /\/employees\/:id\/compensation'.*requirePermission\('hr\.employees\.update'\)/);
+    assert.match(financeSource, /\/compensation-requests'.*requirePermission\('finance\.compensation\.view'\)/);
+    assert.match(financeSource, /\/compensation-requests\/:id\/review'.*requirePermission\('finance\.compensation\.approve'\)/);
 
     const openRequestIndex = CompensationChangeRequest.schema.indexes().find(([keys]) => (
         keys.tenantId === 1 && keys.employeeId === 1 && keys.isOpen === 1
@@ -7283,5 +7294,95 @@ test('every catalog permission has a usable scope, and suggestedRoles agree with
             assert.ok(isScopeCompatible(permission.requiredScope, roleScope),
                 `${role} (${roleScope}) holds ${permission.key} but requiredScope is ${permission.requiredScope}`);
         }
+    }
+});
+
+test('the target org can actually reach its routes', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const routesDir = path.join(__dirname, '..', 'routes');
+
+    // Each role, and the permissions a school would grant it after Phase 2.
+    const roles = {
+        'Admission Manager': [
+            'students.create', 'students.view', 'students.detail', 'students.update',
+            'enrollments.create', 'branch.classes.view', 'branch.classes.create',
+            'branch.sections.manage', 'branch.subjects.manage', 'branch.promotions.run',
+            'branch.transfers.run'
+        ],
+        'Super Admin': ['payroll.approve', 'payroll.view'],
+        'Finance': ['payroll.pay', 'payroll.view'],
+        'HR': ['payroll.generate', 'payroll.review', 'hr.employees.view']
+    };
+
+    const checks = [
+        ['Admission Manager', 'registrarRoutes.js', 'post', '/students'],
+        ['Admission Manager', 'branchAdminRoutes.js', 'post', '/classes'],
+        ['Admission Manager', 'branchAdminRoutes.js', 'post', '/sections'],
+        ['Admission Manager', 'branchSharedRoutes.js', 'get', '/classes'],
+        ['Admission Manager', 'academicRoutes.js', 'post', '/promote'],
+        ['Super Admin', 'hrRoutes.js', 'put', '/payroll/:id/approve'],
+        ['Finance', 'hrRoutes.js', 'put', '/payroll/:id/pay'],
+        ['HR', 'hrRoutes.js', 'post', '/payroll/generate'],
+        ['HR', 'hrRoutes.js', 'put', '/payroll/:id/review']
+    ];
+
+    const escapeRe = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const blocked = [];
+    for (const [roleName, file, method, routePath] of checks) {
+        const source = fs.readFileSync(path.join(routesDir, file), 'utf8');
+
+        // A blanket role lock would reject a custom role before permissions are consulted.
+        const lock = source.match(/router\.use\(authorize\(([^)]*)\)\)/);
+        if (lock) { blocked.push(`${roleName}: ${file} still has role lock ${lock[1]}`); continue; }
+
+        const pattern = new RegExp('router\\.' + method + '\\(\\s*[\'"`]' + escapeRe(routePath) + '[\'"`][^\\n]*');
+        const line = (source.match(pattern) || [])[0];
+        if (!line) { blocked.push(`${roleName}: ${method.toUpperCase()} ${routePath} not found in ${file}`); continue; }
+
+        const single = line.match(/requirePermission\('([^']+)'\)/);
+        const any = line.match(/requireAnyPermission\(\[([^\]]+)\]/);
+        const needed = single ? [single[1]]
+            : any ? any[1].split(',').map((s) => s.trim().replace(/'/g, ''))
+            : [];
+
+        if (needed.length && !needed.some((p) => roles[roleName].includes(p))) {
+            blocked.push(`${roleName}: ${method.toUpperCase()} ${routePath} needs ${needed.join('|')}`);
+        }
+    }
+
+    assert.deepEqual(blocked, [], `Target org roles blocked from their routes:\n  ${blocked.join('\n  ')}`);
+});
+
+test('only deliberate role locks remain, and each is justified', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const routesDir = path.join(__dirname, '..', 'routes');
+
+    // Phase 3 removed the role gates that only stopped a school from composing its own
+    // roles. These five stay for a structural reason, documented at the call site.
+    const JUSTIFIED = {
+        'platformRoutes.js': 'platform scope is a hard boundary, never school-configurable',
+        'teacherRoutes.js': 'teacherAssignmentGuard skips its check for any non-teacher role',
+        'studentPortalRoutes.js': 'portal identity bound to User.studentId',
+        'parentRoutes.js': 'portal identity bound to linked students',
+        'cashierRoutes.js': 'cash handling pending its own review in Phase 6'
+    };
+
+    const found = [];
+    for (const file of fs.readdirSync(routesDir)) {
+        const source = fs.readFileSync(path.join(routesDir, file), 'utf8');
+        if (/authorize\(/.test(source)) found.push(file);
+    }
+
+    assert.deepEqual(found.sort(), Object.keys(JUSTIFIED).sort(),
+        'a role lock was added or removed without updating the justification list');
+
+    // Each retained lock must carry its reasoning in the file, so the next reader does not
+    // mistake a deliberate boundary for an oversight.
+    for (const file of found) {
+        const source = fs.readFileSync(path.join(routesDir, file), 'utf8');
+        assert.match(source, /KEPT/, `${file} keeps a role lock but does not say why`);
     }
 });

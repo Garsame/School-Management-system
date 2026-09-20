@@ -13,14 +13,15 @@ const {
     getFinanceSections
 } = require('../controllers/financeController');
 const { getCompensationRequests, reviewCompensationRequest } = require('../controllers/compensationController');
-const { protect, authorize, requireScope, tenantGuard } = require('../middleware/auth');
+const { protect, requireScope, tenantGuard } = require('../middleware/auth');
 const { requirePermission } = require('../middleware/permissions');
 const { financeRateLimiter } = require('../middleware/rateLimiter');
 
 // All routes require authentication, correct scope and tenant context
 router.use(financeRateLimiter);
 router.use(protect);
-router.use(authorize('finance_director'));
+// Phase 3: no role lock. All 21 routes below carry their own finance.* permission, so a
+// school can define its own finance role (a Bursar, say) without forking the platform.
 router.use(requireScope('tenant'));
 router.use(tenantGuard);
 

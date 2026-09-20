@@ -246,19 +246,47 @@ triggers none of them** — HR generates and reviews, Super Admin approves, Fina
 leave granting-to-another-account unbounded. `getAssignablePermissions` is that bound.
 
 
-#### Phase 3 — Retire the blanket role gates · **S** · after Phase 2
+#### Phase 3 — Retire the blanket role gates · **S** · after Phase 2 · **DONE**
 
-| # | Task |
+**Track 1 complete: the target org runs end to end.** A test asserts all four roles reach
+their routes — 183/183 tests pass, frontend build clean.
+
+**38 role gates reduced to 5.** Every removal was verified safe first: a gate came out only
+once every route beneath it carried its own `requirePermission`.
+
+| # | Task | Status |
+| --- | --- | --- |
+| 3.1 | `branchAdminRoutes` blanket gate | Removed |
+| 3.2 | `registrarRoutes` blanket gate | Removed |
+| 3.3 | Remaining redundant `authorize()` | 26 removed across 6 files, plus 3 more blanket gates |
+| 3.4 | In-controller `req.role ===` checks | Payroll ones converted to scope/permission |
+| 3.5 | Keep `authorize('platform_owner')` | Kept, with 4 others — all documented |
+
+**Four ungated routes were closed first.** Three academic-year lookups and one shared-class
+lookup had no permission check; they were only protected by the role gate about to be
+removed. Each now requires a permission its legitimate callers already hold.
+
+**A regression was caught and fixed.** Removing `authorize('cashier','super_admin')` from
+`payPayroll` exposed that its branch check read `req.user.role === 'cashier'` — so any other
+role skipped it entirely and could pay another branch's payroll. It now keys on `req.scope`,
+which covers cashiers and any custom branch role alike. `getPayrollHistory` had the mirror
+problem in the safe direction: its role list returned 403 to anyone outside it, so a school
+granting `payroll.view` to its own role got denied despite holding it. Both are now
+permission- and scope-driven.
+
+**The 5 retained locks, each with a structural reason recorded at the call site:**
+
+| File | Why it stays |
 | --- | --- |
-| 3.1 | Remove `router.use(authorize('branch_admin'))` — keep `requireScope('branch')` + existing per-route permissions |
-| 3.2 | Remove `router.use(authorize('registrar'))` — same |
-| 3.3 | Review the remaining 36 `authorize()` calls; convert where a permission already covers it |
-| 3.4 | Replace the 16 in-controller `req.role ===` checks with capability or scope checks |
-| 3.5 | Keep `authorize('platform_owner')` — platform scope is a genuine hard boundary |
+| `platformRoutes` | Platform scope is a hard boundary, never school-configurable |
+| `teacherRoutes` | `teacherAssignmentGuard` **skips** its class/subject check for any non-teacher role, so removing the lock would give a custom role unrestricted access. Generalising the guard is Phase 4 |
+| `studentPortalRoutes` | Portal identity bound to `User.studentId` |
+| `parentRoutes` | Portal identity bound to linked students |
+| `cashierRoutes` | All routes gated, but cash handling deserves its own review — Phase 6 |
 
-**After Phase 3 your entire target org runs.** Track 1 complete.
+A test asserts exactly these five remain and that each file explains itself, so a lock cannot
+be added or removed silently.
 
----
 
 ### Track 2 — let a super admin invent arbitrary roles
 

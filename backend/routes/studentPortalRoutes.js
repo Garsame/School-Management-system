@@ -7,6 +7,8 @@ const { requirePermission } = require('../middleware/permissions');
 
 // Apply middleware
 router.use(protect);
+// KEPT deliberately. This is a portal identity bound to User.studentId, not a staff role
+// a school composes. Every handler reads the signed-in student's own record.
 router.use(authorize('student'));
 router.use(requireScope('branch'));
 router.use(tenantGuard);

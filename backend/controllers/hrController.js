@@ -207,17 +207,16 @@ const getPayrollHistory = async (req, res) => {
         if (month) query.month = Number(month);
         if (year) query.year = Number(year);
 
-        // Staff can only see their own payslips
-        if (req.user.role === 'teacher' || req.user.role === 'registrar') {
+        // What you see follows the permission you hold, not the role you happen to have.
+        // payroll.self.view is your own payslips; payroll.view is other people's, bounded
+        // by your scope. The previous role list denied anyone outside it, so a school that
+        // granted payroll.view to a role of its own got a 403 despite holding it.
+        if (!req.permissions.includes('payroll.view')) {
             query.userId = req.user._id;
-        } else if (req.user.role === 'cashier') {
-            // Cashiers see their own branch's staff plus head-office (tenant-scoped)
-            // staff such as the HR Manager and Finance Director, whose payroll has no branch.
-            query.$or = [{ branchId: req.user.branchId }, { branchId: null }];
-        } else if (req.user.role === 'branch_admin') {
-            query.branchId = req.user.branchId;
-        } else if (!['super_admin', 'finance_director', 'hr_payroll_manager'].includes(req.user.role)) {
-            return sendError(res, 403, 'Unauthorized access');
+        } else if (req.scope === 'branch') {
+            // Own branch, plus head-office staff (branchId null) such as the HR Manager
+            // and Finance Director, whose payroll belongs to no branch.
+            query.$or = [{ branchId: req.branchId }, { branchId: null }];
         }
 
         const payrolls = await Payroll.find(query)
@@ -249,9 +248,15 @@ const payPayroll = async (req, res) => {
             return sendError(res, 400, 'Payroll must be approved before it can be paid');
         }
 
-        // A cashier may pay their own branch's payroll, or head-office (branchless)
-        // payroll such as the HR Manager and Finance Director.
-        if (req.user.role === 'cashier' && payroll.branchId && String(payroll.branchId) !== String(req.user.branchId)) {
+        // Branch-scoped payers are limited to their own branch, plus head-office payroll
+        // (branchId null) for tenant-scoped staff such as the HR Manager and Finance
+        // Director. Tenant-scoped payers cover the whole school.
+        //
+        // This is keyed on scope, not role. It used to check `role === 'cashier'`, which
+        // meant any other role skipped the branch check entirely — harmless while only
+        // cashiers could reach here, but wide open once a school can grant payroll.pay to
+        // a role of its own.
+        if (req.scope === 'branch' && payroll.branchId && String(payroll.branchId) !== String(req.branchId)) {
             return sendError(res, 403, 'Unauthorized to process payroll for this branch');
         }
 

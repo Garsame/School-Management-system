@@ -18,6 +18,8 @@ const { requirePermission } = require('../middleware/permissions');
 
 // Protect all routes under this namespace
 router.use(protect);
+// KEPT deliberately. A portal identity bound to the parent's linked students, not a
+// staff role a school composes.
 router.use(authorize('parent'));
 router.use(tenantGuard);
 

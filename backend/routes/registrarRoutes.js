@@ -15,8 +15,8 @@ const {
     previewStudentImport
 } = require('../controllers/registrarController');
 
-const { protect, authorize, requireScope, tenantGuard, branchGuard } = require('../middleware/auth');
-const { requirePermission } = require('../middleware/permissions');
+const { protect, requireScope, tenantGuard, branchGuard } = require('../middleware/auth');
+const { requireAnyPermission, requirePermission } = require('../middleware/permissions');
 const { enforcePlanLimit } = require('../services/planLimitService');
 
 // Global Middleware for Registrar Routes
@@ -26,13 +26,15 @@ const { enforcePlanLimit } = require('../services/planLimitService');
 // 4. Tenant Isolation
 // 5. Branch Isolation
 router.use(protect);
-router.use(authorize('registrar'));
+// Phase 3: the blanket role gate is gone so a school can define its own admissions
+// role. Every route below carries its own requirePermission.
 router.use(requireScope('branch'));
 router.use(tenantGuard);
 router.use(branchGuard);
 
 // Routes
-router.get('/academic-years/current', getCurrentAcademicYear);
+// Shared reference data, gated so it is not left open once the role gate is removed.
+router.get('/academic-years/current', requireAnyPermission(['students.view', 'students.create']), getCurrentAcademicYear);
 router.get('/stats', requirePermission('students.view'), getRegistrarStats);
 router.post('/students', requirePermission('students.create'), enforcePlanLimit('students'), createStudentAdmission);
 router.get('/students', requirePermission('students.view'), getStudents);

@@ -56,6 +56,8 @@ router.post('/auth/logout', platformLogout);
 
 // Restricted to Platform Owner
 router.use(protect);
+// KEPT deliberately. Platform scope is a genuine hard boundary, not a school-configurable
+// one: no tenant role may ever reach these routes. See RBAC_ROADMAP.md Phase 3.5.
 router.use(authorize('platform_owner'));
 
 router.get('/dashboard', requirePermission('platform.dashboard.view'), getPlatformDashboard);

@@ -11,7 +11,7 @@ const {
     getTenantAuditLogs,
     getPermissionCatalog, getUserPermissions, updateUserPermissions
 } = require('../controllers/tenantController');
-const { protect, authorize, requireScope, tenantGuard } = require('../middleware/auth');
+const { protect, requireScope, tenantGuard } = require('../middleware/auth');
 const { requireAnyPermission, requirePermission } = require('../middleware/permissions');
 const { authRateLimiter } = require('../middleware/rateLimiter');
 const { enforcePlanLimit } = require('../services/planLimitService');
@@ -38,15 +38,21 @@ router.get('/branches/:branchId/class-categories', tenantGuard, asyncHandler(asy
 }));
 
 // Public lookup for any logged in tenant user (within scope) - restricted to Super Admin / Finance Director
-router.get('/academic-years', authorize('super_admin', 'finance_director', 'hr_payroll_manager'), asyncHandler(async (req, res) => {
+router.get('/academic-years', requireAnyPermission([
+    'tenant.academicYears.view',
+    'finance.feeStructures.view',
+    'payroll.view'
+]), asyncHandler(async (req, res) => {
     if (!req.tenantId) return res.status(403).json({ message: 'Tenant context missing' });
     const AcademicYear = require('../models/AcademicYear');
     const years = await AcademicYear.find({ tenantId: req.tenantId });
     res.json(years);
 }));
 
-// Strictly Super Admin area starts here
-router.use(authorize('super_admin'));
+// School administration. Phase 3 removed the super_admin role lock: all 36 routes below
+// carry their own tenant.* permission, so a school can define its own administrative role
+// rather than being limited to the one the platform shipped. Tenant scope and isolation
+// still apply, and the escalation guard still stops anyone widening their own access.
 router.use(requireScope('tenant'));
 router.use(tenantGuard);
 
