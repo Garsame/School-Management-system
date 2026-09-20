@@ -1,0 +1,20 @@
+{
+  "name": "school-management-system",
+  "private": true,
+  "description": "Multi-tenant school management platform. This root package holds no dependencies; it delegates to the backend and frontend workspaces so commands can be run from the repository root.",
+  "scripts": {
+    "test": "npm --prefix backend test",
+    "dev": "npm --prefix backend run dev",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "start": "npm --prefix backend start",
+    "install:all": "npm --prefix backend install && npm --prefix frontend install",
+    "migrate:roles": "npm --prefix backend run migrate:roles",
+    "migrate:roles:dry": "npm --prefix backend run migrate:roles:dry",
+    "create:platform-owner": "npm --prefix backend run create:platform-owner",
+    "fix:indexes": "npm --prefix backend run fix:indexes",
+    "fix:enrollment-indexes": "npm --prefix backend run fix:enrollment-indexes",
+    "cleanup:orphans": "npm --prefix backend run cleanup:orphans"
+  }
+}
