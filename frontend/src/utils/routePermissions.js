@@ -20,6 +20,7 @@ export const ROUTE_PERMISSION_RULES = [
     rule(/^\/tenant\/students\/[^/]+$/, 'students.detail'),
     rule(/^\/tenant\/students$/, 'students.view'),
     rule(/^\/tenant\/audit-logs$/, 'tenant.audit.view'),
+    rule(/^\/tenant\/attendance$/, 'attendance.oversight.view'),
 
     rule(/^\/finance$/, 'finance.dashboard.view'),
     rule(/^\/finance\/policies$/, 'finance.policies.view'),
@@ -62,6 +63,7 @@ export const ROUTE_PERMISSION_RULES = [
     rule(/^\/registrar\/students\/[^/]+$/, 'students.detail'),
     rule(/^\/registrar\/students$/, 'students.view'),
     rule(/^\/registrar\/enrollments\/new$/, 'enrollments.create'),
+    rule(/^\/registrar\/attendance$/, 'attendance.oversight.view'),
 
     rule(/^\/cashier$/, 'cashier.dashboard.view'),
     rule(/^\/cashier\/invoices\/[^/]+$/, 'cashier.invoices.detail'),

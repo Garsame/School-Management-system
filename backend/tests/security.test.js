@@ -7523,3 +7523,28 @@ test('attendance oversight routes are gated and scope-aware', () => {
     const teacher = fs.readFileSync(path.join(root, 'controllers', 'teacherController.js'), 'utf8');
     assert.match(teacher, /You did not create this session/);
 });
+
+test('the attendance page is routed and gated in both shells', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const src = path.join(__dirname, '..', '..', 'frontend', 'src');
+    const app = fs.readFileSync(path.join(src, 'App.jsx'), 'utf8');
+    const rules = fs.readFileSync(path.join(src, 'utils', 'routePermissions.js'), 'utf8');
+    const page = fs.readFileSync(path.join(src, 'pages', 'attendance', 'AttendanceOversight.jsx'), 'utf8');
+
+    // Mounted for the head of school and for admissions, from one page.
+    assert.match(app, /AttendanceOversight/);
+    assert.match(rules, /tenant.{0,4}attendance\$\/, 'attendance\.oversight\.view'/, 'tenant attendance route rule missing');
+    assert.match(rules, /registrar.{0,4}attendance\$\/, 'attendance\.oversight\.view'/, 'registrar attendance route rule missing');
+
+    // Viewing and taking are separate permissions, so look-but-not-touch must render as
+    // read-only rather than showing controls the backend would reject.
+    assert.match(page, /hasPermission\(user, 'attendance\.oversight\.manage'\)/);
+    assert.match(page, /canManage && /);
+
+    // Both sidebars offer it, filtered by the same permission.
+    for (const layout of ['TenantLayout.jsx', 'RegistrarLayout.jsx']) {
+        const source = fs.readFileSync(path.join(src, 'layouts', layout), 'utf8');
+        assert.match(source, /attendance\.oversight\.view/, `${layout} should link to attendance`);
+    }
+});

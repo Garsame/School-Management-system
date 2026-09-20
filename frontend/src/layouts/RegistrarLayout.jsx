@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Outlet, Navigate, useLocation, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
-import { LayoutDashboard, UserPlus, Users, LogOut, Menu, X, User as UserIcon, Search } from 'lucide-react';
+import { LayoutDashboard, UserPlus, Users, LogOut, Menu, X, User as UserIcon, Search, CalendarCheck} from 'lucide-react';
 import { filterMenuByPermission } from '../utils/permissions';
 import SchoolLogo from '../components/branding/SchoolLogo';
 import UserAvatar from '../components/account/UserAvatar';
@@ -21,6 +21,7 @@ const RegistrarLayout = () => {
             { label: 'Dashboard', path: '/registrar', icon: LayoutDashboard, permission: 'registrar.dashboard.view', keywords: ['home', 'main', 'index', 'overview', 'summary'] },
             { label: 'New Admission', path: '/registrar/admissions', icon: UserPlus, permission: 'students.create', keywords: ['admission', 'new student', 'admit'] },
             { label: 'Students Directory', path: '/registrar/students', icon: Users, permission: 'students.view', keywords: ['student', 'directory', 'list', 'search'] },
+            { label: 'Attendance', path: '/registrar/attendance', icon: CalendarCheck, permission: 'attendance.oversight.view', keywords: ['attendance', 'register', 'present', 'absent', 'late'] },
             { label: 'Re-Enrollment', path: '/registrar/enrollments/new', icon: Users, permission: 'enrollments.create', keywords: ['enroll', 're-enroll', 'register'] },
             { label: 'My Profile', path: '/registrar/profile', icon: UserIcon, keywords: ['profile', 'account', 'personal', 'avatar'] }
         ]);

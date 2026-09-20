@@ -13,8 +13,7 @@ import {
     ClipboardList,
     KeyRound,
     GraduationCap,
-    Search
-} from 'lucide-react';
+    Search, CalendarCheck} from 'lucide-react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
@@ -39,6 +38,7 @@ const TenantLayout = ({ children }) => {
         { icon: Calendar, label: 'Academic Years', path: '/tenant/academic-years', permission: 'tenant.academicYears.view', keywords: ['calendar', 'terms', 'semesters', 'years', 'dates'] },
         { icon: GraduationCap, label: 'Academic Policy', path: '/tenant/academic-policy', permission: 'tenant.academicPolicy.view', keywords: ['curriculum', 'grade', 'rules', 'classes', 'education'] },
         { icon: GraduationCap, label: 'Students', path: '/tenant/students', permission: 'students.view', keywords: ['students', 'classes', 'history', 'enrollment'] },
+        { icon: CalendarCheck, label: 'Attendance', path: '/tenant/attendance', permission: 'attendance.oversight.view', keywords: ['attendance', 'register', 'present', 'absent', 'late'] },
         { icon: BarChart3, label: 'Reports', path: '/tenant/reports', permission: 'tenant.reports.view', keywords: ['stats', 'analytics', 'charts', 'performance', 'summary'] },
         { icon: ClipboardList, label: 'Audit Logs', path: '/tenant/audit-logs', permission: 'tenant.audit.view', keywords: ['history', 'security', 'actions', 'events', 'records', 'activity'] },
         { icon: UserIcon, label: 'My Profile', path: '/tenant/profile', keywords: ['profile', 'account', 'personal', 'avatar'] }

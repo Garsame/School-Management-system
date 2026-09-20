@@ -28,6 +28,9 @@ const TenantReports = lazy(() => import('./pages/tenant/Reports'));
 const TenantStudents = lazy(() => import('./pages/tenant/Students'));
 const TenantStudentDetails = lazy(() => import('./pages/tenant/StudentDetails'));
 const TenantAuditLogs = lazy(() => import('./pages/tenant/AuditLogs'));
+// One page, mounted in both shells: the head of school and the admissions officer see the
+// same attendance, scoped by the backend to what each may reach.
+const AttendanceOversight = lazy(() => import('./pages/attendance/AttendanceOversight'));
 const FinanceDashboard = lazy(() => import('./pages/finance/FinanceDashboard'));
 const FinancePolicies = lazy(() => import('./pages/finance/Policies'));
 const FeeStructures = lazy(() => import('./pages/finance/FeeStructures'));
@@ -180,6 +183,7 @@ function App() {
                   <Route path="students" element={<TenantStudents />} />
                   <Route path="students/:studentId" element={<TenantStudentDetails />} />
                   <Route path="audit-logs" element={<TenantAuditLogs />} />
+                  <Route path="attendance" element={<AttendanceOversight />} />
                   <Route path="profile" element={<AccountProfile />} />
                 </Route>
               </Route>
@@ -266,6 +270,7 @@ function App() {
                 <Route path="students" element={<RegistrarStudents />} />
                 <Route path="students/:studentId" element={<RegistrarStudentDetails />} />
                 <Route path="enrollments/new" element={<RegistrarNewEnrollment />} />
+                <Route path="attendance" element={<AttendanceOversight />} />
                 <Route path="profile" element={<AccountProfile />} />
               </Route>
             </Route>
