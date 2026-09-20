@@ -19,8 +19,11 @@ import {
     ClipboardCheck
 } from 'lucide-react';
 import http from '../../services/api/http';
+import { useAuth } from '../../context/AuthContext';
+import { hasPermission } from '../../utils/permissions';
 
 const TeacherAttendance = () => {
+    const { user } = useAuth();
     const [searchParams] = useSearchParams();
     const classIdParam = searchParams.get('classId');
 
@@ -279,7 +282,7 @@ const TeacherAttendance = () => {
 
                     {/* Footer Actions */}
                     <div className="flex justify-end">
-                        <Button 
+                        {hasPermission(user, 'teacher.attendance.submit') && <Button 
                             onClick={handleSubmit} 
                             disabled={saving || (students || []).length === 0}
                             size="md"
@@ -291,7 +294,7 @@ const TeacherAttendance = () => {
                                     <span>Sync Register to Cloud</span>
                                 </div>
                             )}
-                        </Button>
+                        </Button>}
                     </div>
                 </div>
             )}

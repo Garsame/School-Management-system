@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import tenantService from '../../services/tenantService';
 import { confirmAction } from '../../components/feedback/notificationService';
+import { useAuth } from '../../context/AuthContext';
+import { hasPermission } from '../../utils/permissions';
 
 const PLUS_MINUS_RULES = [
     { min: 95, max: 100, grade: 'A+' },
@@ -76,6 +78,7 @@ const buildApiRules = (rules = []) => (
 );
 
 const AcademicPolicy = () => {
+    const { user } = useAuth();
     const [policy, setPolicy] = useState(EMPTY_POLICY);
     const [years, setYears] = useState([]);
     const [selectedYearId, setSelectedYearId] = useState('');
@@ -426,14 +429,14 @@ const AcademicPolicy = () => {
                     </div>
 
                     <div className="flex justify-end">
-                        <button
+                        {hasPermission(user, 'tenant.academicPolicy.update') && <button
                             type="submit"
                             disabled={savingPolicy}
                             className="phoenix-primary-button disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             {savingPolicy ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                             Save policy
-                        </button>
+                        </button>}
                     </div>
                 </div>
             </form>
@@ -526,14 +529,14 @@ const AcademicPolicy = () => {
                             </label>
                         </div>
 
-                        <button
+                        {hasPermission(user, 'tenant.academicPolicy.update') && <button
                             type="submit"
                             disabled={!selectedYearId || savingTerm}
                             className="phoenix-primary-button mt-4 w-full disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             {savingTerm ? <Loader2 size={16} className="animate-spin" /> : editingTermId ? <Save size={16} /> : <Plus size={16} />}
                             {editingTermId ? 'Update term' : 'Add term'}
-                        </button>
+                        </button>}
                     </form>
 
                     <div className="academic-term-list">

@@ -5,8 +5,11 @@ import { Table, Button, Spinner, Badge, Toast, Modal } from '../../components/ui
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, CheckCircle2, Download, FileUp, Search, XCircle } from 'lucide-react';
 import { dateStamp, downloadBlob, parseCsvText } from '../../utils/download';
+import { useAuth } from '../../context/AuthContext';
+import { hasPermission } from '../../utils/permissions';
 
 const Students = () => {
+    const { user } = useAuth();
     const [students, setStudents] = useState([]);
     const [classes, setClasses] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -195,7 +198,7 @@ const Students = () => {
                         <Download size={15} />
                         Template
                     </Button>
-                    <Button
+                    {hasPermission(user, 'students.create') && <Button
                         type="button"
                         variant="outline"
                         className="flex items-center gap-2 !h-9 text-xs"
@@ -205,7 +208,7 @@ const Students = () => {
                     >
                         {!importing && <FileUp size={15} />}
                         Import CSV
-                    </Button>
+                    </Button>}
                     <Button
                         type="button"
                         variant="outline"

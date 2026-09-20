@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { CreditCard, FilePlus2, Receipt, RefreshCw, RotateCcw, WalletCards } from 'lucide-react';
 import platformService from '../../services/platformService';
+import { useAuth } from '../../context/AuthContext';
+import { hasPermission } from '../../utils/permissions';
 
 const unwrapData = (response, fallback) => response?.data?.data ?? response?.data ?? fallback;
 const money = (value, currency = 'USD') => new Intl.NumberFormat('en-US', {
@@ -9,6 +11,7 @@ const money = (value, currency = 'USD') => new Intl.NumberFormat('en-US', {
 }).format(Number(value || 0));
 
 const Billing = () => {
+    const { user } = useAuth();
     const [summary, setSummary] = useState({});
     const [invoices, setInvoices] = useState([]);
     const [tenants, setTenants] = useState([]);
@@ -103,14 +106,14 @@ const Billing = () => {
                     <p className="text-sm text-slate-500 mt-1">Issue school subscription invoices, record payments, and enforce overdue access rules.</p>
                     {error && <p className="text-sm font-semibold text-rose-600 mt-2">{error}</p>}
                 </div>
-                <button
+                {hasPermission(user, 'platform.billing.manage') && <button
                     onClick={reconcileBilling}
                     disabled={reconciling}
                     className="flex h-10 items-center justify-center gap-2 border border-slate-200 bg-white px-4 text-xs font-extrabold uppercase text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                 >
                     <RefreshCw size={15} className={reconciling ? 'animate-spin' : ''} />
                     Reconcile Billing
-                </button>
+                </button>}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -189,10 +192,10 @@ const Billing = () => {
                                     <td className="px-4 py-3 text-right font-bold text-amber-700">{money(invoice.balance, invoice.currency)}</td>
                                     <td className="px-4 py-3 font-bold text-xs">{invoice.status}</td>
                                     <td className="px-4 py-3 text-right">
-                                        <button disabled={invoice.balance <= 0 || invoice.status === 'VOID'} onClick={() => recordPayment(invoice)}
+                                        {hasPermission(user, 'platform.billing.payments.record') && <button disabled={invoice.balance <= 0 || invoice.status === 'VOID'} onClick={() => recordPayment(invoice)}
                                             className="px-3 py-1.5 text-xs font-bold border border-blue-200 text-blue-700 hover:bg-blue-50 disabled:opacity-30">
                                             Record Payment
-                                        </button>
+                                        </button>}
                                     </td>
                                 </tr>
                             ))}
@@ -215,9 +218,9 @@ const Billing = () => {
                             </div>
                             <div className="flex items-center gap-3">
                                 <span className="font-black text-emerald-700">{money(payment.amount)}</span>
-                                <button onClick={() => reversePayment(payment)} title="Reverse payment" className="p-2 text-slate-400 hover:text-rose-600">
+                                {hasPermission(user, 'platform.billing.payments.reverse') && <button onClick={() => reversePayment(payment)} title="Reverse payment" className="p-2 text-slate-400 hover:text-rose-600">
                                     <RotateCcw size={15} />
-                                </button>
+                                </button>}
                             </div>
                         </div>
                     ))}

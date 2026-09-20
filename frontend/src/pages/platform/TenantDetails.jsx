@@ -7,6 +7,8 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import platformService from '../../services/platformService';
 import { confirmAction, promptAction } from '../../components/feedback/notificationService';
+import { useAuth } from '../../context/AuthContext';
+import { hasPermission } from '../../utils/permissions';
 
 const NAVY = '#1b2a4a';
 const BLUE = '#4477f5';
@@ -38,6 +40,7 @@ const UsageBar = ({ label, used, max, pct }) => (
 );
 
 const TenantDetails = () => {
+    const { user } = useAuth();
     const { tenantId } = useParams();
     const navigate = useNavigate();
     const [tenant, setTenant] = useState(null);
@@ -169,16 +172,16 @@ const TenantDetails = () => {
                     >
                         <Mail size={15} /> Contact Admin
                     </button>
-                    {['active', 'suspended'].includes(normalizedStatus) && (
+                    {['active', 'suspended'].includes(normalizedStatus) && hasPermission(user, 'platform.tenants.deactivate') && (
                     <button onClick={toggleAccess} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90 transition shadow-sm"
                         style={{ background: isActive ? '#e11d48' : '#059669' }}>
                         {isActive ? 'Suspend' : 'Reactivate'}
                     </button>
                     )}
-                    <button onClick={changePlan} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90 transition shadow-sm"
+                    {hasPermission(user, 'platform.tenants.plan.update') && <button onClick={changePlan} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90 transition shadow-sm"
                         style={{ background: NAVY }}>
                         Manage Plan
-                    </button>
+                    </button>}
                 </div>
             </div>
 

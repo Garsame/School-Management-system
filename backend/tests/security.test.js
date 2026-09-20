@@ -6976,3 +6976,62 @@ test('every catalog permission is enforced somewhere, or explicitly exempted', (
     const staleExemptions = [...EXEMPT.keys()].filter((key) => backendSource.includes(`'${key}'`));
     assert.deepEqual(staleExemptions, [], `Now enforced, remove from EXEMPT: ${staleExemptions.join(', ')}`);
 });
+
+test('pages with mutating actions gate them on permission', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const pagesRoot = path.join(__dirname, '..', '..', 'frontend', 'src', 'pages');
+
+    const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+        const full = path.join(dir, entry.name);
+        return entry.isDirectory() ? walk(full) : (entry.name.endsWith('.jsx') ? [full] : []);
+    });
+
+    // Pages whose whole route already requires the action permission (the route guard in
+    // routePermissions.js covers them), so a second in-page check would be redundant.
+    const ROUTE_LEVEL_ONLY = new Set([
+        'branch/Promotions.jsx',       // route requires branch.promotions.run
+        'branch/Transfer.jsx',         // route requires branch.transfers.run
+        'branch/StaffCreate.jsx',      // route requires branch.staff.create
+        'cashier/NewPayment.jsx',      // route requires cashier.payments.create
+        'registrar/Admissions.jsx',    // route requires students.create
+        'registrar/NewEnrollment.jsx', // route requires enrollments.create
+        'platform/NewTenant.jsx',      // route requires platform.tenants.create
+        'teacher/AttendanceSession.jsx', // route requires teacher.attendance.submit
+        'teacher/ResultsEntry.jsx',    // route requires teacher.results.enter
+        'finance/InvoiceGenerate.jsx', // route requires finance.invoices.generate
+        'tenant/StaffPermissions.jsx'  // route requires tenant.users.permissions.view
+    ]);
+
+    // Self-service pages: the user acts on their own record, so there is nothing to gate.
+    const SELF_SERVICE = /^(account|student|parent|teacher\/Profile|ChangePassword)/;
+
+    // Unreachable: not imported or routed anywhere in App.jsx. Delete them or wire them up.
+    const DEAD_PAGES = new Set(['tenant/Promote.jsx', 'tenant/Transfer.jsx']);
+
+    // Leave requests are gated at the route: staff create their own, and managers review
+    // through a route that already requires hr.leaves.review.
+    const LEAVE_PAGES = new Set(['hr/LeavesRequest.jsx', 'hr/StaffLeavesManager.jsx']);
+
+    const ungated = [];
+    for (const file of walk(pagesRoot)) {
+        const rel = path.relative(pagesRoot, file).split(path.sep).join('/');
+        if (ROUTE_LEVEL_ONLY.has(rel) || SELF_SERVICE.test(rel)) continue;
+        if (DEAD_PAGES.has(rel) || LEAVE_PAGES.has(rel) || rel === 'Landing.jsx') continue;
+        // Strip DOM and download helpers so they are not mistaken for API mutations.
+        const source = fs.readFileSync(file, 'utf8')
+            .replace(/\b(createElement|createObjectURL|revokeObjectURL|createRef|createContext)\s*\(/g, '');
+        const mutates = /\b(create|update|delete|remove|generate|approve|reject|reverse|assign|promote|transfer|record|review)[A-Z]\w*\s*\(/.test(source)
+            || /\.(post|put|patch|delete)\(/.test(source);
+        if (mutates && !source.includes('hasPermission')) ungated.push(rel);
+    }
+
+    assert.deepEqual(ungated, [], `Pages with mutating actions but no permission gate: ${ungated.join(', ')}`);
+});
+
+test('the unused Can component is gone, leaving one gating pattern', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const canPath = path.join(__dirname, '..', '..', 'frontend', 'src', 'components', 'auth', 'Can.jsx');
+    assert.equal(fs.existsSync(canPath), false, 'Can.jsx was deleted in favour of hasPermission');
+});

@@ -7,8 +7,11 @@ import { confirmAction } from '../../components/feedback/notificationService';
 import { documentHeader, downloadHtmlDocument, escapeHtml, formatPrintDate, printHtmlDocument, signatureBlock } from '../../utils/printDocument';
 import { useBranding } from '../../context/BrandingContext';
 import EnrollmentHistory from '../../components/students/EnrollmentHistory';
+import { useAuth } from '../../context/AuthContext';
+import { hasPermission } from '../../utils/permissions';
 
 const StudentDetails = () => {
+    const { user } = useAuth();
     const { studentId: id } = useParams();
     const navigate = useNavigate();
     const [student, setStudent] = useState(null);
@@ -229,7 +232,7 @@ const StudentDetails = () => {
                             >
                                 Download Summary
                             </Button>
-                            <Button 
+                            {hasPermission(user, 'students.password.reset') && <Button 
                                 variant="outline" 
                                 className="flex items-center gap-2 text-xs h-10 px-4 border border-[var(--border)]"
                                 onClick={handleResetPassword}
@@ -237,8 +240,8 @@ const StudentDetails = () => {
                             >
                                 <RefreshCw size={14} className={resetting ? 'animate-spin' : ''} />
                                 Reset Password
-                            </Button>
-                            <Button onClick={() => setEditing(true)} className="text-xs h-10 px-4">Edit Profile</Button>
+                            </Button>}
+                            {hasPermission(user, 'students.update') && <Button onClick={() => setEditing(true)} className="text-xs h-10 px-4">Edit Profile</Button>}
                         </>
                     ) : (
                         <>

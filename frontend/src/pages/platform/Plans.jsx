@@ -14,10 +14,13 @@ import {
   Palette
 } from 'lucide-react';
 import platformService from '../../services/platformService';
+import { useAuth } from '../../context/AuthContext';
+import { hasPermission } from '../../utils/permissions';
 
 const iconMap = { Zap, Star, Crown, ShieldCheck };
 
 const Plans = () => {
+    const { user } = useAuth();
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -125,13 +128,13 @@ const Plans = () => {
           <h2 className="text-xl font-black text-slate-900 tracking-tight">Subscription Tiers</h2>
           <p className="text-slate-500 text-xs mt-1">Manage platform resource limits and pricing models.</p>
         </div>
-        <button 
+        {hasPermission(user, 'platform.plans.create') && <button 
           onClick={() => handleOpenModal()}
           className="h-10 bg-blue-600 text-white px-5 rounded-lg font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-blue-500 transition shadow"
         >
           <Plus size={16} />
           <span>Create New Tier</span>
-        </button>
+        </button>}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -143,12 +146,12 @@ const Plans = () => {
                   {plan.iconComponent && <plan.iconComponent size={24} />}
                 </div>
                 <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => handleOpenModal(plan)} className="p-1.5 bg-white/80 rounded-lg hover:bg-white transition shadow-sm text-slate-600">
+                  {hasPermission(user, 'platform.plans.update') && <button onClick={() => handleOpenModal(plan)} className="p-1.5 bg-white/80 rounded-lg hover:bg-white transition shadow-sm text-slate-600">
                     <Settings2 size={14} />
-                  </button>
-                  <button disabled={plan.isActive === false} onClick={() => handleDelete(plan._id)} className="p-1.5 bg-white/80 rounded-lg hover:bg-red-50 hover:text-red-500 transition shadow-sm text-slate-600 disabled:opacity-30">
+                  </button>}
+                  {hasPermission(user, 'platform.plans.delete') && <button disabled={plan.isActive === false} onClick={() => handleDelete(plan._id)} className="p-1.5 bg-white/80 rounded-lg hover:bg-red-50 hover:text-red-500 transition shadow-sm text-slate-600 disabled:opacity-30">
                     <Trash2 size={14} />
-                  </button>
+                  </button>}
                 </div>
               </div>
               <h3 className="text-base font-black text-slate-800 tracking-tight">{plan.name}</h3>
@@ -209,9 +212,9 @@ const Plans = () => {
              </div>
              <h3 className="text-lg font-black text-slate-800 mb-1">No tiers defined</h3>
              <p className="text-xs text-slate-500 mb-6 max-w-sm mx-auto">Start by creating your first subscription plan to onboard school tenants.</p>
-             <button onClick={() => handleOpenModal()} className="h-10 px-6 bg-blue-600 text-white rounded-lg font-black text-xs uppercase tracking-widest hover:bg-blue-500 transition shadow">
+             {hasPermission(user, 'platform.plans.create') && <button onClick={() => handleOpenModal()} className="h-10 px-6 bg-blue-600 text-white rounded-lg font-black text-xs uppercase tracking-widest hover:bg-blue-500 transition shadow">
                INITIALIZE PLANS
-             </button>
+             </button>}
           </div>
         )}
       </div>

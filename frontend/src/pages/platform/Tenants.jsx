@@ -6,6 +6,8 @@ import {
 import { useNavigate } from 'react-router-dom';
 import platformService from '../../services/platformService';
 import { confirmAction, promptAction } from '../../components/feedback/notificationService';
+import { useAuth } from '../../context/AuthContext';
+import { hasPermission } from '../../utils/permissions';
 
 const NAVY = '#1b2a4a';
 const BLUE = '#4477f5';
@@ -25,6 +27,7 @@ const statusConfig = {
 };
 
 const Tenants = () => {
+    const { user } = useAuth();
     const [tenants, setTenants] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
@@ -130,14 +133,14 @@ const Tenants = () => {
                     <p className="text-slate-500 text-sm">Manage and monitor all school tenants on the platform.</p>
                     {error && <p className="text-sm font-semibold text-rose-600 mt-1">{error}</p>}
                 </div>
-                <button
+                {hasPermission(user, 'platform.tenants.create') && <button
                     onClick={() => navigate('/platform/tenants/new')}
                     className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white shadow-md hover:opacity-90 hover:-translate-y-0.5 transition-all flex-shrink-0"
                     style={{ background: NAVY }}
                 >
                     <Plus size={18} />
                     Add New School
-                </button>
+                </button>}
             </div>
 
             {/* Search bar */}
@@ -230,20 +233,20 @@ const Tenants = () => {
                                             <div className="flex items-center justify-end gap-1.5">
                                                 {isPending && (
                                                     <>
-                                                        <button
+                                                        {hasPermission(user, 'platform.tenants.approve') && <button
                                                             onClick={() => handleApprove(tenant._id || tenant.id)}
                                                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition"
                                                             title="Approve School"
                                                         >
                                                             <CheckCircle2 size={13} /> Approve
-                                                        </button>
-                                                        <button
+                                                        </button>}
+                                                        {hasPermission(user, 'platform.tenants.reject') && <button
                                                             onClick={() => handleReject(tenant._id || tenant.id)}
                                                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition"
                                                             title="Reject School"
                                                         >
                                                             <XCircle size={13} /> Reject
-                                                        </button>
+                                                        </button>}
                                                     </>
                                                 )}
                                                 <button
@@ -253,7 +256,7 @@ const Tenants = () => {
                                                 >
                                                     <Eye size={16} />
                                                 </button>
-                                                {!isPending && status !== 'Rejected' && (
+                                                {!isPending && status !== 'Rejected' && hasPermission(user, 'platform.tenants.deactivate') && (
                                                     <button
                                                         onClick={() => handleToggleStatus(tenant._id || tenant.id, status)}
                                                         className={`p-2 rounded-lg transition ${status === 'Active' ? 'text-slate-400 hover:text-rose-600 hover:bg-rose-50' : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'}`}

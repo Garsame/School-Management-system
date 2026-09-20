@@ -7,6 +7,8 @@ import {
 import platformService from '../../services/platformService';
 import { API_ORIGIN } from '../../services/api';
 import { notify } from '../../components/feedback/notificationService';
+import { useAuth } from '../../context/AuthContext';
+import { hasPermission } from '../../utils/permissions';
 
 const NAVY  = '#1b2a4a';
 const BLUE  = '#4477f5';
@@ -64,6 +66,7 @@ const Input = ({ icon: Icon, className = '', ...props }) => (
 
 /* ═══════════════════════════════════════════════════════════════ */
 const Settings = () => {
+    const { user } = useAuth();
     const [activeTab,  setActiveTab]  = useState('branding');
     const [editing,    setEditing]    = useState(false);
     const [loading,    setLoading]    = useState(false);
@@ -169,7 +172,8 @@ const Settings = () => {
     );
 
     const activeTabMeta = tabs.find(t => t.id === activeTab);
-    const isEditable = activeTab === 'branding' || activeTab === 'smtp';
+    const isEditable = (activeTab === 'branding' || activeTab === 'smtp')
+        && hasPermission(user, 'platform.settings.update');
 
     return (
         <div className="space-y-6">
@@ -464,14 +468,14 @@ const Settings = () => {
 
                                 {/* Divider + test button */}
                                 <div className="pt-2 border-t border-slate-100">
-                                    <button
+                                    {hasPermission(user, 'platform.smtp.test') && <button
                                         onClick={handleTestSmtp}
                                         disabled={loading}
                                         className="inline-flex items-center gap-2 h-10 px-5 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 transition disabled:opacity-50"
                                     >
                                         {loading ? <Loader2 size={15} className="animate-spin" /> : <Smartphone size={15} />}
                                         Send Test Email
-                                    </button>
+                                    </button>}
                                 </div>
                             </div>
                         )}
