@@ -16,11 +16,16 @@ const userSchema = new mongoose.Schema({
     },
     username: { type: String, trim: true, uppercase: true }, // Used as login identifier for students (studentCode)
     passwordHash: { type: String, required: true, minlength: 8 },
-    role: { 
-        type: String, 
+    role: {
+        type: String,
         enum: ['super_admin', 'finance_director', 'hr_payroll_manager', 'branch_admin', 'teacher', 'cashier', 'registrar', 'platform_owner', 'student', 'parent'],
-        required: true 
+        required: true
     },
+    // The Role record backing `role`. `role` stays the authoritative string so existing
+    // queries, indexes, and route guards keep working; roleId is what makes the permission
+    // set editable. Null on users created before the Phase 1 migration, which fall back to
+    // the built-in defaults for their role.
+    roleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Role' },
     phone: { type: String },
     address: { type: String },
     employeeId: { type: String, trim: true, uppercase: true },

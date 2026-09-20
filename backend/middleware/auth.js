@@ -23,7 +23,12 @@ const protect = async (req, res, next) => {
         try {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-            req.user = await User.findById(decoded.id).select('-passwordHash');
+            // Populating the role resolves permissions from the school's own Role record.
+            // Users predating the Phase 1 migration have no roleId and fall back to the
+            // built-in defaults for their role string.
+            req.user = await User.findById(decoded.id)
+                .select('-passwordHash')
+                .populate('roleId');
 
             if (!req.user || !req.user.isActive) {
                 return res.status(401).json({ message: 'User not found or inactive' });
@@ -36,7 +41,8 @@ const protect = async (req, res, next) => {
             req.branchId = req.user.branchId;
             req.role = req.user.role;
             req.scope = req.user.scope;
-            req.permissions = getEffectivePermissions(req.user);
+            req.userRole = req.user.roleId || null;
+            req.permissions = getEffectivePermissions(req.user, req.userRole);
 
             const expectedScope = getExpectedScope(req.role);
             if (!expectedScope || expectedScope !== req.scope) {

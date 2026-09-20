@@ -9,7 +9,9 @@
     "create:platform-owner": "node create-platform-owner.js",
     "fix:indexes": "node scripts/fixLegacyIndexes.js",
     "fix:enrollment-indexes": "node scripts/fixEnrollmentIndexes.js",
-    "cleanup:orphans": "node scripts/cleanupOrphanAdmissions.js"
+    "cleanup:orphans": "node scripts/cleanupOrphanAdmissions.js",
+    "migrate:roles": "node scripts/seedSystemRoles.js",
+    "migrate:roles:dry": "node scripts/seedSystemRoles.js --dry-run"
   },
   "keywords": [],
   "author": "",

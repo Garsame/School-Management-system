@@ -26,6 +26,7 @@ const { login } = require('./authController');
 const { TENANT_ADMIN_CREATABLE_ROLES, assertValidRoleScope } = require('../utils/rolePolicy');
 const {
     PERMISSION_CATALOG,
+    findEscalatedPermissions,
     getPermissionCatalogForRole,
     getUserPermissionParts,
     sanitizeAssignablePermissionsForRole
@@ -740,6 +741,35 @@ const updateUserPermissions = asyncHandler(async (req, res) => {
         if (allowSet.has(key)) {
             const error = new Error(`Permission ${key} cannot appear in both allow and deny`);
             error.statusCode = 400;
+            throw error;
+        }
+    }
+
+    // 4. No self-escalation: a user cannot add a permission to their own account.
+    //
+    // The rule is deliberately about SELF-grants, not all grants. A school administrator
+    // routinely delegates permissions they will never hold themselves — a super admin
+    // grants cashier and teacher permissions without being either. Blocking that would
+    // break delegation, which is the whole point of the role.
+    //
+    // The real escalation vector is an admin whose own access was narrowed granting the
+    // removed permission back to themselves. Granting to a second account they control is
+    // not caught here; that is bounded today by the catalog's allowedRoles whitelist, and
+    // Phase 2 replaces this with a proper administrative ceiling once that boxing is gone.
+    //
+    // Denying is always allowed: taking access away is never escalation.
+    if (targetUser._id.toString() === req.user._id.toString()) {
+        // protect() sets req.permissions; derive it if something bypassed that middleware,
+        // so an absent list can never be read as "grant freely".
+        const actorPermissions = Array.isArray(req.permissions)
+            ? req.permissions
+            : getUserPermissionParts(req.user || {}, req.user?.roleId || null).effective;
+        const escalated = findEscalatedPermissions(actorPermissions, req.body.allow);
+        if (escalated.length) {
+            const error = new Error(
+                `You cannot grant yourself permissions you do not already hold: ${escalated.join(', ')}`
+            );
+            error.statusCode = 403;
             throw error;
         }
     }

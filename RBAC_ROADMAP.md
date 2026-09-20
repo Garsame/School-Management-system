@@ -174,24 +174,38 @@ Three gaps were larger than this phase assumed:
 
 ---
 
-#### Phase 1 — Role becomes data · **M** · after Phase 0
+#### Phase 1 — Role becomes data · **M** · after Phase 0 · **DONE**
 
-Nothing visible changes. Load-bearing step.
+Nothing visible changed. Verified: **204 of 204 users resolve to identical permissions**
+through the role path. 176/176 tests pass.
 
-| # | Task |
-| --- | --- |
-| 1.1 | `models/Role.js` — `tenantId`, `key`, `name`, `description`, `scope`, `permissions[]`, `isSystem`, `isActive` |
-| 1.2 | Migration seeding the 10 current roles as `isSystem` roles per tenant, from `DEFAULT_ROLE_PERMISSIONS` |
-| 1.3 | `User.roleId → Role`; backfill; keep `User.role` string in sync so existing queries work |
-| 1.4 | `getEffectivePermissions` reads `Role.permissions` — **still per-request from the DB** |
-| 1.5 | Role CRUD behind a new `tenant.roles.*` permission group |
-| 1.6 | **Privilege-escalation guard** — a user may never grant a permission they do not hold |
+| # | Task | Status |
+| --- | --- | --- |
+| 1.1 | `models/Role.js` | Done — plus `dataScope`, ready for Phase 4 |
+| 1.2 | Migration seeding the built-in roles per tenant | Done — `npm run migrate:roles`, idempotent, `--dry-run` supported |
+| 1.3 | `User.roleId`; backfill; keep `User.role` in sync | Done |
+| 1.4 | Permissions resolve from `Role.permissions` | Done — still per-request from the DB |
+| 1.5 | Role CRUD behind `tenant.roles.*` | Done — 5 permissions, 6 endpoints |
+| 1.6 | Privilege-escalation guard | Done — **scope corrected, see below** |
 
-**1.6 must land here, before Phase 2.** It does not exist today. The blast radius is small only
-because permissions are boxed by role — the moment Phase 2 removes that boxing, it becomes the
-primary escalation path.
+**Correction to 1.6.** The planned rule was "a user may never grant a permission they do not
+hold". That is wrong, and the test suite caught it: a super admin never holds
+`cashier.payments.reverse`, so the rule would have stopped the school's own access-giver from
+granting almost anything. Delegating a permission you administer is not escalation.
 
----
+The shipped rule targets the actual vector: **a user cannot grant a permission to their own
+account, or add one to their own role, unless they already hold it.** That closes the case of
+an admin restoring access which was deliberately taken away. Granting to a second account they
+control remains bounded by the catalog's `allowedRoles` whitelist — **Phase 2 must replace that
+with a real administrative ceiling** once the boxing is removed.
+
+Safety rails shipped with 1.5:
+- A role held by active users cannot be deleted or deactivated until they are reassigned.
+- The last role that can manage access cannot be removed — no locking the school out.
+- Built-in roles can be deactivated but not deleted; `key` and `scope` are immutable.
+- Assigning a role bumps `tokenVersion`, so live sessions re-resolve immediately.
+- An inactive role grants nothing, rather than falling back to the defaults it was built from.
+
 
 #### Phase 2 — Unbox the permission catalog · **M** · after Phase 1
 

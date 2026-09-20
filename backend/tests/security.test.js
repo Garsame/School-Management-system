@@ -7035,3 +7035,108 @@ test('the unused Can component is gone, leaving one gating pattern', () => {
     const canPath = path.join(__dirname, '..', '..', 'frontend', 'src', 'components', 'auth', 'Can.jsx');
     assert.equal(fs.existsSync(canPath), false, 'Can.jsx was deleted in favour of hasPermission');
 });
+
+test('permissions resolve from a Role record when one is linked', () => {
+    const { getEffectivePermissions, getUserPermissionParts, resolveRoleDefaults } = require('../utils/permissions');
+
+    const cashier = { role: 'cashier', permissions: { allow: [], deny: [] } };
+
+    // No role linked: fall back to the built-in defaults, exactly as before Phase 1.
+    const builtIn = getEffectivePermissions(cashier);
+    assert.ok(builtIn.includes('cashier.payments.create'));
+    assert.ok(!builtIn.includes('cashier.payments.reverse'), 'reversal is not a cashier default');
+
+    // A seeded role holds the same keys, so behaviour is unchanged.
+    const seeded = { isActive: true, permissions: builtIn };
+    assert.deepEqual(getEffectivePermissions(cashier, seeded), builtIn);
+
+    // An edited role is what now decides the baseline.
+    const edited = { isActive: true, permissions: [...builtIn, 'cashier.payments.reverse'] };
+    assert.ok(getEffectivePermissions(cashier, edited).includes('cashier.payments.reverse'));
+
+    // Deactivating a role must remove access, not silently fall back to the defaults.
+    assert.deepEqual(getEffectivePermissions(cashier, { isActive: false, permissions: builtIn }), []);
+    assert.deepEqual(resolveRoleDefaults(cashier, { isActive: false, permissions: builtIn }), []);
+
+    // A user deny still wins over whatever the role grants.
+    const denied = { role: 'cashier', permissions: { allow: [], deny: ['cashier.payments.reverse'] } };
+    assert.ok(!getUserPermissionParts(denied, edited).effective.includes('cashier.payments.reverse'));
+
+    // Keys the role holds that are not in the catalog are dropped rather than honoured.
+    assert.deepEqual(resolveRoleDefaults(cashier, { isActive: true, permissions: ['not.a.real.permission'] }), []);
+});
+
+test('a user cannot grant themselves a permission they do not hold', async () => {
+    const { updateUserPermissions } = require('../controllers/tenantController');
+    const User = require('../models/User');
+    const originalFindOne = User.findOne;
+
+    const adminId = new mongoose.Types.ObjectId();
+    const admin = {
+        _id: adminId,
+        role: 'super_admin',
+        scope: 'tenant',
+        tenantId: 'tenant-esc',
+        isActive: true,
+        permissions: { allow: [], deny: [] },
+        save: async function () { return this; }
+    };
+
+    try {
+        User.findOne = async () => admin;
+
+        // Granting yourself something you do not hold is refused.
+        const req = {
+            params: { userId: String(adminId) },
+            body: { allow: ['tenant.branches.create'], deny: [] },
+            user: admin,
+            tenantId: 'tenant-esc',
+            permissions: ['tenant.users.permissions.update']
+        };
+        const res = createResponse();
+        let captured = null;
+        await updateUserPermissions(req, res, (error) => { captured = error; });
+
+        assert.ok(captured, 'self-escalation should be rejected');
+        assert.equal(captured.statusCode, 403);
+        assert.match(captured.message, /cannot grant yourself/i);
+
+        // Denying your own permission is not escalation, so it is not blocked by this rule.
+        const reqDeny = {
+            params: { userId: String(adminId) },
+            body: { allow: [], deny: ['tenant.branches.create'] },
+            user: admin,
+            tenantId: 'tenant-esc',
+            permissions: ['tenant.users.permissions.update']
+        };
+        let denyError = null;
+        await updateUserPermissions(reqDeny, createResponse(), (error) => { denyError = error; });
+        assert.ok(
+            !denyError || !/cannot grant yourself/i.test(denyError.message),
+            'denying your own permission is not self-escalation'
+        );
+    } finally {
+        User.findOne = originalFindOne;
+    }
+});
+
+test('seeded system roles mirror the built-in role permissions exactly', () => {
+    const { DEFAULT_ROLE_PERMISSIONS } = require('../utils/permissions');
+    const { ROLE_PRESENTATION, dataScopeFor } = require('../scripts/seedSystemRoles');
+    const { ROLE_SCOPE } = require('../utils/rolePolicy');
+
+    // Every built-in role must be presentable, or the migration would skip it.
+    for (const key of Object.keys(ROLE_SCOPE)) {
+        assert.ok(ROLE_PRESENTATION[key], `no name/description for seeded role ${key}`);
+        assert.ok(Array.isArray(DEFAULT_ROLE_PERMISSIONS[key]), `no default permissions for ${key}`);
+        const scope = dataScopeFor(key);
+        assert.ok(['all', 'assigned', 'own'].includes(scope.branches));
+        assert.ok(['all', 'assigned', 'own'].includes(scope.records));
+    }
+
+    // Teachers are the only role already reading authorizedBranchIds, so they are the only
+    // seeded role with branch scope 'assigned'. Generalising this is Phase 4.
+    assert.equal(dataScopeFor('teacher').branches, 'assigned');
+    assert.equal(dataScopeFor('super_admin').branches, 'all');
+    assert.equal(dataScopeFor('cashier').branches, 'own');
+});

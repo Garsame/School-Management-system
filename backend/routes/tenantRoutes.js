@@ -16,6 +16,7 @@ const { requireAnyPermission, requirePermission } = require('../middleware/permi
 const { authRateLimiter } = require('../middleware/rateLimiter');
 const { enforcePlanLimit } = require('../services/planLimitService');
 const academicPolicyController = require('../controllers/academicPolicyController');
+const roleController = require('../controllers/roleController');
 
 // Public tenant auth
 router.post('/auth/login', authRateLimiter, login);
@@ -70,6 +71,14 @@ router.patch('/users/:userId/password', requirePermission('tenant.users.password
 router.get('/permissions/catalog', requirePermission('tenant.users.permissions.view'), getPermissionCatalog);
 router.get('/users/:userId/permissions', requirePermission('tenant.users.permissions.view'), getUserPermissions);
 router.put('/users/:userId/permissions', requirePermission('tenant.users.permissions.update'), updateUserPermissions);
+
+// C2) Role Management
+router.get('/roles', requirePermission('tenant.roles.view'), roleController.getRoles);
+router.post('/roles', requirePermission('tenant.roles.create'), roleController.createRole);
+router.get('/roles/:roleId', requirePermission('tenant.roles.view'), roleController.getRoleById);
+router.put('/roles/:roleId', requirePermission('tenant.roles.update'), roleController.updateRole);
+router.delete('/roles/:roleId', requirePermission('tenant.roles.delete'), roleController.deleteRole);
+router.post('/roles/:roleId/assign', requirePermission('tenant.roles.assign'), roleController.assignRole);
 
 // D) Academic Year
 router.post('/academic-years', requirePermission('tenant.academicYears.create'), createAcademicYear);

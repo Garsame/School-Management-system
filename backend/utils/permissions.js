@@ -51,6 +51,12 @@ const PERMISSION_CATALOG = Object.freeze([
     createPermission('tenant.users.password.reset', 'Reset user passwords', 'School Admin', 'Set a new temporary password for a user.', ['super_admin']),
     createPermission('tenant.users.permissions.view', 'View user permissions', 'School Admin', 'View effective permissions for users.', ['super_admin']),
     createPermission('tenant.users.permissions.update', 'Update user permissions', 'School Admin', 'Change user-specific allowed and denied permissions.', ['super_admin']),
+    createPermission('tenant.roles.view', 'View roles', 'School Admin', 'View the roles this school hands out.', ['super_admin']),
+    createPermission('tenant.roles.create', 'Create roles', 'School Admin', 'Create new roles for this school.', ['super_admin']),
+    createPermission('tenant.roles.update', 'Update roles', 'School Admin', 'Rename roles and change what they grant.', ['super_admin']),
+    createPermission('tenant.roles.delete', 'Delete roles', 'School Admin', 'Archive roles that are no longer used.', ['super_admin']),
+    createPermission('tenant.roles.assign', 'Assign roles', 'School Admin', 'Move users between roles.', ['super_admin']),
+
     createPermission('tenant.academicYears.view', 'View academic years', 'School Admin', 'View school academic years.', ['super_admin']),
     createPermission('tenant.academicYears.create', 'Create academic years', 'School Admin', 'Create new academic years.', ['super_admin']),
     createPermission('tenant.academicYears.update', 'Update academic years', 'School Admin', 'Edit academic years.', ['super_admin']),
@@ -218,8 +224,24 @@ const sanitizeAssignablePermissionsForRole = (role = '', values = []) => {
     return sanitizePermissions(values).filter((permission) => allowed.has(permission));
 };
 
-const getUserPermissionParts = (user = {}) => {
-    const defaults = getDefaultPermissionsForRole(user.role);
+/**
+ * Where a user's baseline permissions come from.
+ *
+ * A seeded Role holds exactly the same keys as DEFAULT_ROLE_PERMISSIONS, so passing one
+ * changes nothing until a school edits it. Users migrated before roleId was backfilled,
+ * and platform owners, fall back to the built-in defaults.
+ *
+ * An inactive role grants nothing: deactivating a role must take access away, not silently
+ * fall back to the defaults it was built from.
+ */
+const resolveRoleDefaults = (user = {}, roleRecord = null) => {
+    if (!roleRecord) return getDefaultPermissionsForRole(user.role);
+    if (roleRecord.isActive === false) return [];
+    return sanitizePermissions(roleRecord.permissions || []);
+};
+
+const getUserPermissionParts = (user = {}, roleRecord = null) => {
+    const defaults = resolveRoleDefaults(user, roleRecord);
     const allow = sanitizeAssignablePermissionsForRole(user.role, user.permissions?.allow || []);
     const deny = sanitizeAssignablePermissionsForRole(user.role, user.permissions?.deny || []);
     const effectiveSet = new Set([...defaults, ...allow]);
@@ -234,15 +256,35 @@ const getUserPermissionParts = (user = {}) => {
     };
 };
 
-const getEffectivePermissions = (user = {}) => getUserPermissionParts(user).effective;
+const getEffectivePermissions = (user = {}, roleRecord = null) => (
+    getUserPermissionParts(user, roleRecord).effective
+);
+
+/**
+ * Phase 1.6 — privilege escalation guard.
+ *
+ * A user may never grant a permission they do not themselves hold. Without this, an admin
+ * whose own access was narrowed could still hand the removed permission to someone else,
+ * or to a second account they control. Today the blast radius is small because the catalog
+ * boxes permissions by role; Phase 2 removes that boxing, which makes this the main
+ * escalation path.
+ *
+ * Returns the permissions the actor tried to grant but does not hold.
+ */
+const findEscalatedPermissions = (actorPermissions = [], requestedPermissions = []) => {
+    const held = new Set(normalizePermissionList(actorPermissions));
+    return normalizePermissionList(requestedPermissions).filter((permission) => !held.has(permission));
+};
 
 module.exports = {
     DEFAULT_ROLE_PERMISSIONS,
     PERMISSION_CATALOG,
+    findEscalatedPermissions,
     getDefaultPermissionsForRole,
     getEffectivePermissions,
     getPermissionCatalogForRole,
     getUserPermissionParts,
+    resolveRoleDefaults,
     sanitizeAssignablePermissionsForRole,
     sanitizePermissions
 };
