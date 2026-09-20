@@ -7466,3 +7466,60 @@ test('the head of school can run promotions and transfers without a branch admin
     const uncovered = DEFAULT_ROLE_PERMISSIONS.branch_admin.filter((key) => !sa.has(key));
     assert.deepEqual(uncovered, ['hr.leaves.create']);
 });
+
+test('attendance oversight is grantable to both a school-wide and a branch role', () => {
+    const { PERMISSION_CATALOG, findUnassignablePermissions, DEFAULT_ROLE_PERMISSIONS } = require('../utils/permissions');
+    const byKey = new Map(PERMISSION_CATALOG.map((p) => [p.key, p]));
+    const keys = ['attendance.oversight.view', 'attendance.oversight.manage'];
+
+    // A single-campus head of school is tenant-scoped; an admissions officer is
+    // branch-scoped. Both need this, so the scope must be 'any'.
+    for (const key of keys) {
+        assert.ok(byKey.has(key), `${key} missing from the catalog`);
+        assert.equal(byKey.get(key).requiredScope, 'any');
+    }
+    assert.deepEqual(findUnassignablePermissions({ scope: 'tenant', planTier: 'growth', values: keys }), []);
+    assert.deepEqual(findUnassignablePermissions({ scope: 'branch', planTier: 'growth', values: keys }), []);
+
+    // Nobody could see attendance before this: not the head of school, not admissions.
+    for (const key of keys) {
+        assert.ok(DEFAULT_ROLE_PERMISSIONS.super_admin.includes(key));
+        assert.ok(DEFAULT_ROLE_PERMISSIONS.registrar.includes(key));
+        // Portal identities see only their own, through their own endpoints.
+        assert.ok(!DEFAULT_ROLE_PERMISSIONS.student.includes(key));
+        assert.ok(!DEFAULT_ROLE_PERMISSIONS.parent.includes(key));
+    }
+});
+
+test('attendance oversight routes are gated and scope-aware', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const root = path.join(__dirname, '..');
+    const routes = fs.readFileSync(path.join(root, 'routes', 'attendanceRoutes.js'), 'utf8');
+    const controller = fs.readFileSync(path.join(root, 'controllers', 'attendanceController.js'), 'utf8');
+    const server = fs.readFileSync(path.join(root, 'server.js'), 'utf8');
+
+    assert.match(server, /app\.use\('\/api\/attendance', require\('\.\/routes\/attendanceRoutes'\)\)/);
+
+    // Reads and writes carry different permissions, so a school can grant look-but-not-touch.
+    assert.match(routes, /router\.get\('\/summary'.*attendance\.oversight\.view/);
+    assert.match(routes, /router\.get\('\/sessions'.*attendance\.oversight\.view/);
+    assert.match(routes, /router\.get\('\/students\/:studentId'.*attendance\.oversight\.view/);
+    assert.match(routes, /router\.post\('\/sessions'.*attendance\.oversight\.manage/);
+    assert.match(routes, /router\.put\('\/sessions\/:sessionId\/records'.*attendance\.oversight\.manage/);
+    assert.match(routes, /router\.patch\('\/sessions\/:sessionId\/close'.*attendance\.oversight\.manage/);
+
+    // No role or branch-scope lock: it must serve a tenant-scoped and a branch-scoped caller.
+    assert.doesNotMatch(routes, /authorize\(/);
+    assert.doesNotMatch(routes, /requireScope\(/);
+
+    // The controller must never read the caller's branch directly — a school-wide user has none.
+    assert.doesNotMatch(controller, /req\.user\.branchId/);
+    assert.match(controller, /const branchScope = \(req\) =>/);
+    // Writes take the branch from the class, not the caller.
+    assert.match(controller, /branchId: classDoc\.branchId/);
+
+    // The teacher path must stay ownership-bound; oversight is a separate door.
+    const teacher = fs.readFileSync(path.join(root, 'controllers', 'teacherController.js'), 'utf8');
+    assert.match(teacher, /You did not create this session/);
+});

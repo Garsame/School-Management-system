@@ -128,6 +128,7 @@ app.use('/api/exams', require('./routes/examRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 app.use('/api/assignments', require('./routes/assignmentRoutes'));
+app.use('/api/attendance', require('./routes/attendanceRoutes'));
 app.use('/api/registrar', require('./routes/registrarRoutes'));
 app.use('/api/teacher', require('./routes/teacherRoutes'));
 app.use('/api/student', require('./routes/studentPortalRoutes'));

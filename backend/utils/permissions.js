@@ -230,6 +230,13 @@ const PERMISSION_CATALOG = Object.freeze([
     createPermission('teacher.gradingPolicy.view', 'View grading policy', 'Teacher', 'View grading policy.', ['teacher']),
     createPermission('teacher.gradingPolicy.manage', 'Manage grading policy', 'Teacher', 'Manage grading policy.', ['teacher']),
 
+    // Attendance oversight. Until now attendance could only be seen by the teacher who
+    // took it, the student, or their parent — nobody running the school could look at it.
+    // Listed against both a tenant-scoped and a branch-scoped role so the derived scope is
+    // 'any': a single-campus head of school and a per-branch admissions officer both need it.
+    createPermission('attendance.oversight.view', 'View school attendance', 'Attendance', 'See attendance for any class, and any student history.', ['super_admin', 'registrar']),
+    createPermission('attendance.oversight.manage', 'Take school attendance', 'Attendance', 'Open attendance for any class, mark it, and close it.', ['super_admin', 'registrar']),
+
     createPermission('hr.leaves.create', 'Create leave requests', 'HR', 'Create staff leave requests.', ['teacher', 'cashier', 'registrar', 'branch_admin']),
     createPermission('hr.dashboard.view', 'View HR dashboard', 'HR', 'View school-wide staffing and payroll summaries.', ['hr_payroll_manager']),
     createPermission('hr.employees.view', 'View employees', 'HR', 'View employee and compensation profiles.', ['hr_payroll_manager']),
