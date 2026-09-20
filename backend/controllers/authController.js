@@ -7,6 +7,7 @@ const { getEffectivePermissions } = require('../utils/permissions');
 const Plan = require('../models/Plan');
 const PlatformSetting = require('../models/PlatformSetting');
 const { limitsFromPlan } = require('../services/planLimitService');
+const { linkUserToRole, seedRolesForTenant } = require('../scripts/seedSystemRoles');
 const { resolveTenantStatus } = require('../services/tenantStatusService');
 const { logActivity } = require('../utils/logger');
 const fs = require('fs/promises');
@@ -65,7 +66,7 @@ const buildSessionPayload = (user, tenant = null) => ({
     students: user.students || [],
     avatarUrl: user.avatarUrl || '',
     mustChangePassword: Boolean(user.mustChangePassword),
-    permissions: getEffectivePermissions(user),
+    permissions: getEffectivePermissions(user, user.roleId || null),
     billing: tenant ? {
         billingCycle: tenant.subscription?.billingCycle || 'monthly',
         subscriptionStatus: tenant.subscription?.status || 'pending',
@@ -231,6 +232,9 @@ const registerTenant = async (req, res) => {
             statusHistory: [{ status: 'pending', reason: 'Public school registration submitted' }]
         });
 
+        // A school registering itself needs its roles too, or it has nothing to configure.
+        await seedRolesForTenant(tenant._id);
+
         // 3. Create Super Admin User. The Main Branch is created when the platform approves the tenant.
         user = await User.create({
             tenantId: tenant._id,
@@ -242,6 +246,7 @@ const registerTenant = async (req, res) => {
             permissionProfile: 'default_super_admin',
             isActive: true
         });
+        await linkUserToRole(user);
 
         await logActivity({
             action: 'TENANT_REGISTRATION_SUBMITTED',
@@ -306,7 +311,10 @@ const login = async (req, res) => {
             query.tenantId = tenant._id;
         }
 
-        const candidates = await User.find(query);
+        // Populate the role so the session payload reports the permissions the API will
+        // actually enforce. Without it login returns the built-in defaults and the sidebar
+        // disagrees with the backend about what this user can do.
+        const candidates = await User.find(query).populate('roleId');
         const matches = [];
         for (const candidate of candidates) {
             if (!isAccountLocked(candidate) && await candidate.comparePassword(password)) matches.push(candidate);

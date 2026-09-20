@@ -40,6 +40,7 @@ const nodemailer = require('nodemailer');
 const monitoringService = require('../services/monitoringService');
 const { applyTenantStatus, resolveTenantStatus } = require('../services/tenantStatusService');
 const { limitsFromPlan, staffSeatFilter } = require('../services/planLimitService');
+const { linkUserToRole, seedRolesForTenant } = require('../scripts/seedSystemRoles');
 const { clearAuthCookie, getJwtExpiresIn, setAuthCookie } = require('../utils/authCookies');
 
 const generateToken = (id) => {
@@ -425,6 +426,11 @@ const registerTenant = asyncHandler(async (req, res) => {
     // 3. Create Default Branch
     const branch = await ensureMainBranchForTenant(tenant, adminEmail);
 
+    // 3b. Give the school its roles before any user is created, so the super admin can be
+    // linked to one. Without this a new school has nothing to configure and silently falls
+    // back to the built-in defaults.
+    await seedRolesForTenant(tenant._id);
+
     // 4. Create Initial Tenant Super Admin
     const user = await User.create({
         tenantId: tenant._id,
@@ -436,6 +442,7 @@ const registerTenant = asyncHandler(async (req, res) => {
         permissionProfile: 'default_super_admin',
         mustChangePassword: true
     });
+    await linkUserToRole(user);
 
     // 5. Log activity
     await logActivity({

@@ -44,6 +44,49 @@ const dataScopeFor = (roleKey) => {
     return { branches: 'own', records: 'all', fieldMasks: [] };
 };
 
+// Every role a school gets. platform_owner belongs to no school.
+const TENANT_ROLE_KEYS = Object.keys(ROLE_SCOPE).filter((key) => ROLE_SCOPE[key] !== 'platform');
+
+/**
+ * Give one school its starting set of roles.
+ *
+ * Called when a tenant is created, so a new school has something to configure from day one.
+ * The migration below is for schools that predate roles being data at all. Safe to re-run:
+ * a role that already exists is left exactly as the school edited it.
+ */
+const seedRolesForTenant = async (tenantId) => {
+    const Role = require('../models/Role');
+    const created = [];
+    for (const key of TENANT_ROLE_KEYS) {
+        const existing = await Role.findOne({ tenantId, key }).select('_id').lean();
+        if (existing) continue;
+        created.push(await Role.create({
+            tenantId,
+            key,
+            name: ROLE_PRESENTATION[key].name,
+            description: ROLE_PRESENTATION[key].description,
+            scope: ROLE_SCOPE[key],
+            permissions: DEFAULT_ROLE_PERMISSIONS[key] || [],
+            dataScope: dataScopeFor(key),
+            isSystem: true,
+            isActive: true
+        }));
+    }
+    return created;
+};
+
+/** Point a user at their school's role record, so permissions resolve from it. */
+const linkUserToRole = async (user) => {
+    const Role = require('../models/Role');
+    if (!user || user.roleId) return null;
+    const query = user.tenantId ? { tenantId: user.tenantId, key: user.role } : { key: user.role, scope: 'platform' };
+    const role = await Role.findOne(query).select('_id').lean();
+    if (!role) return null;
+    const User = require('../models/User');
+    await User.updateOne({ _id: user._id }, { $set: { roleId: role._id } });
+    return role._id;
+};
+
 const seedSystemRoles = async ({ dryRun = false } = {}) => {
     const Role = require('../models/Role');
     const Tenant = require('../models/Tenant');
@@ -52,8 +95,7 @@ const seedSystemRoles = async ({ dryRun = false } = {}) => {
     const tenants = await Tenant.find({}).select('_id name').lean();
     const stats = { tenants: tenants.length, rolesCreated: 0, rolesExisting: 0, usersLinked: 0, usersUnmatched: 0 };
 
-    // Tenant-scoped roles: everything except platform_owner, which belongs to no school.
-    const tenantRoleKeys = Object.keys(ROLE_SCOPE).filter((key) => ROLE_SCOPE[key] !== 'platform');
+    const tenantRoleKeys = TENANT_ROLE_KEYS;
 
     for (const tenant of tenants) {
         for (const key of tenantRoleKeys) {
@@ -156,4 +198,11 @@ if (require.main === module) {
     });
 }
 
-module.exports = { ROLE_PRESENTATION, dataScopeFor, seedSystemRoles };
+module.exports = {
+    ROLE_PRESENTATION,
+    TENANT_ROLE_KEYS,
+    dataScopeFor,
+    linkUserToRole,
+    seedRolesForTenant,
+    seedSystemRoles
+};

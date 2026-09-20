@@ -7548,3 +7548,54 @@ test('the attendance page is routed and gated in both shells', () => {
         assert.match(source, /attendance\.oversight\.view/, `${layout} should link to attendance`);
     }
 });
+
+test('a new school is seeded with its own roles', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const root = path.join(__dirname, '..');
+    const platform = fs.readFileSync(path.join(root, 'controllers', 'platformController.js'), 'utf8');
+    const auth = fs.readFileSync(path.join(root, 'controllers', 'authController.js'), 'utf8');
+
+    // Without this a school created after the Phase 1 migration has no roles at all: it
+    // silently falls back to the built-in defaults and cannot configure anything.
+    for (const [name, source] of [['platformController', platform], ['authController', auth]]) {
+        assert.match(source, /seedRolesForTenant\(tenant\._id\)/, `${name} must seed roles on tenant creation`);
+        assert.match(source, /linkUserToRole\(user\)/, `${name} must link the first admin to their role`);
+    }
+
+    const { TENANT_ROLE_KEYS } = require('../scripts/seedSystemRoles');
+    assert.equal(TENANT_ROLE_KEYS.includes('platform_owner'), false, 'platform_owner belongs to no school');
+    assert.ok(TENANT_ROLE_KEYS.length >= 9);
+});
+
+test('login reports the same permissions the API enforces', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const auth = fs.readFileSync(path.join(__dirname, '..', 'controllers', 'authController.js'), 'utf8');
+
+    // The session payload drives the sidebar. If it resolves from the built-in defaults
+    // while protect() resolves from the role record, the two disagree about what the user
+    // can do and the menu shows the wrong thing.
+    assert.match(auth, /getEffectivePermissions\(user, user\.roleId \|\| null\)/);
+    assert.match(auth, /User\.find\(query\)\.populate\('roleId'\)/);
+});
+
+test('a school can fill any role it has defined, not a hardcoded three', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const tenant = fs.readFileSync(path.join(__dirname, '..', 'controllers', 'tenantController.js'), 'utf8');
+
+    // A single-campus school has no branch admin to delegate to, so a hardcoded creatable
+    // list of {finance, hr, branch_admin} meant teachers and admissions staff could be
+    // defined but never created by anyone.
+    assert.match(tenant, /const resolveAssignableRole = async \(req, roleKey\)/);
+    assert.match(tenant, /Role\.findOne\(\{ tenantId: req\.tenantId, key: roleKey \}\)/);
+    assert.match(tenant, /is deactivated in this school/);
+
+    // Portal identities stay out: they are created by admission and guardian workflows,
+    // which tie them to a student record.
+    assert.match(tenant, /const PORTAL_ROLES = new Set\(\['student', 'parent'\]\)/);
+
+    // The new user is linked to the role record, or permissions would resolve from defaults.
+    assert.match(tenant, /roleId: assignableRole\._id/);
+});

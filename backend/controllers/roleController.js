@@ -4,10 +4,8 @@ const User = require('../models/User');
 const Tenant = require('../models/Tenant');
 const { logActivity } = require('../utils/logger');
 const {
-    findEscalatedPermissions,
     findUnassignablePermissions,
     getAssignablePermissions,
-    getUserPermissionParts,
     sanitizeAssignablePermissionsForScope
 } = require('../utils/permissions');
 const { findNewDutyConflicts } = require('../utils/segregationOfDuties');
@@ -154,20 +152,19 @@ const updateRole = asyncHandler(async (req, res) => {
         const next = await assertAssignable(req, role.scope, req.body.permissions);
         dutyConflicts = findNewDutyConflicts(role.permissions, next);
 
-        // Editing your own role is the self-escalation path: it would let an admin restore
-        // a permission that was deliberately taken away from them.
-        if (String(req.user.roleId?._id || req.user.roleId) === String(role._id)) {
-            const actorPermissions = Array.isArray(req.permissions)
-                ? req.permissions
-                : getUserPermissionParts(req.user, req.user.roleId).effective;
-            const escalated = findEscalatedPermissions(actorPermissions, next);
-            if (escalated.length) {
-                throw fail(
-                    `You cannot add permissions to your own role that you do not already hold: ${escalated.join(', ')}`,
-                    403
-                );
-            }
-        }
+        // No self-escalation check here, deliberately.
+        //
+        // It looked necessary but was both harmful and useless. Harmful: the head of school
+        // could never grant their own role a permission the platform had not given them by
+        // default, and since only they manage roles, that permission was unreachable by
+        // anyone — the school was locked out of its own configuration.
+        //
+        // Useless: a deliberate restriction lives in the user's own deny list, and
+        // effective = (role ∪ allow) − deny, so a deny still wins no matter what the role
+        // grants. Editing your own role cannot undo a restriction placed on you.
+        //
+        // The real self-grant path is the user-level allow list, and updateUserPermissions
+        // still guards that.
         role.permissions = next;
     }
 

@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const Tenant = require('../models/Tenant');
 const Branch = require('../models/Branch');
 const User = require('../models/User');
+const Role = require('../models/Role');
 const AcademicYear = require('../models/AcademicYear');
 const Student = require('../models/Student');
 const Enrollment = require('../models/Enrollment');
@@ -42,8 +43,41 @@ const {
 } = require('../services/transferGradeService');
 
 const ACTIVE_ENROLLMENT_STATUSES = ['Current', 'Active', 'active'];
-const TENANT_MANAGED_ACCOUNT_ROLES = [...TENANT_ADMIN_CREATABLE_ROLES];
+const TENANT_MANAGED_ACCOUNT_ROLES = ['super_admin', 'finance_director', 'hr_payroll_manager', 'branch_admin', 'registrar', 'cashier', 'teacher'];
 const PERMISSION_MANAGED_STAFF_ROLES = ['finance_director', 'hr_payroll_manager', 'branch_admin', 'teacher', 'registrar', 'cashier'];
+
+/**
+ * Which roles a school administrator may fill.
+ *
+ * This used to be a hardcoded set of three: finance director, HR manager, branch admin.
+ * A single-campus school has no branch admin to delegate to, so teachers and admissions
+ * staff could never be created by anyone — the school could define the role but not fill it.
+ *
+ * Roles are data now, so the school's own active roles are the answer. Student and parent
+ * accounts are still excluded: those are created by admission and guardian workflows, which
+ * link them to a student record rather than standing alone.
+ */
+const PORTAL_ROLES = new Set(['student', 'parent']);
+
+const resolveAssignableRole = async (req, roleKey) => {
+    if (PORTAL_ROLES.has(roleKey)) {
+        const error = new Error('Student and parent accounts are created through admission, not here');
+        error.statusCode = 403;
+        throw error;
+    }
+    const role = await Role.findOne({ tenantId: req.tenantId, key: roleKey }).select('_id key scope isActive');
+    if (!role) {
+        const error = new Error(`This school has no role named ${roleKey}`);
+        error.statusCode = 400;
+        throw error;
+    }
+    if (!role.isActive) {
+        const error = new Error(`The ${roleKey} role is deactivated in this school`);
+        error.statusCode = 400;
+        throw error;
+    }
+    return role;
+};
 
 // ---- Helper utilities ----
 const serializeUser = (user) => {
@@ -89,8 +123,8 @@ const ensureTenantUser = async (req, userId) => {
 
 const ensureTenantManagedUser = async (req, userId) => {
     const user = await ensureTenantUser(req, userId);
-    if (!TENANT_ADMIN_CREATABLE_ROLES.has(user.role)) {
-        const error = new Error('This account is managed through its branch or student guardian workflow');
+    if (PORTAL_ROLES.has(user.role)) {
+        const error = new Error('This account is managed through its student or guardian workflow');
         error.statusCode = 403;
         throw error;
     }
@@ -364,9 +398,10 @@ const createUser = asyncHandler(async (req, res) => {
     const { name, email, password, role, scope, branchId } = req.body;
     const normalized = assertValidRoleScope(role, scope);
 
-    if (!TENANT_ADMIN_CREATABLE_ROLES.has(normalized.role)) {
-        res.status(403);
-        throw new Error('This role cannot be created by a tenant administrator');
+    const assignableRole = await resolveAssignableRole(req, normalized.role);
+    if (assignableRole.scope !== normalized.scope) {
+        res.status(400);
+        throw new Error(`The ${normalized.role} role is ${assignableRole.scope}-scoped in this school`);
     }
     if (!name || !email || !password) {
         res.status(400);
@@ -414,6 +449,7 @@ const createUser = asyncHandler(async (req, res) => {
             scope: normalized.scope,
             mustChangePassword: true,
             isActive: true,
+            roleId: assignableRole._id,
             createdBy: req.user._id,
             updatedBy: req.user._id,
             ...profileFields
@@ -487,10 +523,7 @@ const updateUser = asyncHandler(async (req, res) => {
     const nextScope = req.body.scope ? String(req.body.scope).trim().toLowerCase() : targetUser.scope;
     const normalized = assertValidRoleScope(nextRole, nextScope);
 
-    if (!TENANT_ADMIN_CREATABLE_ROLES.has(normalized.role)) {
-        res.status(403);
-        throw new Error('This role cannot be managed by a tenant administrator');
-    }
+    await resolveAssignableRole(req, normalized.role);
     if (Object.prototype.hasOwnProperty.call(req.body, 'name')) {
         const name = String(req.body.name || '').trim();
         if (!name) { res.status(400); throw new Error('Name is required'); }
