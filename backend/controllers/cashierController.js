@@ -17,6 +17,21 @@ const getDayBounds = (value) => {
     return { start, end, date: start.toISOString().slice(0, 10) };
 };
 
+/**
+ * Which branch this caller acts in.
+ *
+ * A branch-scoped cashier is confined to their own branch. A school-wide finance user — a
+ * school where one person is both finance and cashier — covers every branch, so their reads
+ * carry no branch filter. Writes are unaffected either way: recordInvoicePayment resolves the
+ * invoice by tenant and stamps the payment with the invoice's own branch, never the caller's.
+ *
+ * Spread into a query: `{ tenantId, ...branchScope(req) }`.
+ */
+const branchScope = (req) => (req.scope === 'branch' ? { branchId: req.branchId } : {});
+
+/** Bare branch id for callers that need a value, undefined for school-wide users. */
+const scopedBranchId = (req) => (req.scope === 'branch' ? req.branchId : undefined);
+
 const getCashierDayCloseData = async (req) => {
     const bounds = getDayBounds(req.query.date);
     if (!bounds) {
@@ -27,7 +42,7 @@ const getCashierDayCloseData = async (req) => {
 
     const query = {
         tenantId: req.user.tenantId,
-        branchId: req.user.branchId,
+        ...branchScope(req),
         recordedBy: req.user._id,
         createdAt: { $gte: bounds.start, $lte: bounds.end }
     };
@@ -92,7 +107,7 @@ exports.searchInvoices = async (req, res) => {
         // Base Query: Tenant & Branch Isolation
         const query = {
             tenantId: req.user.tenantId,
-            branchId: req.user.branchId
+            ...branchScope(req)
         };
         
         let found = false;
@@ -101,7 +116,7 @@ exports.searchInvoices = async (req, res) => {
             const search = String(q).trim().slice(0, 80).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const students = await Student.find({
                 tenantId: req.user.tenantId,
-                branchId: req.user.branchId,
+                ...branchScope(req),
                 $or: [
                     { admissionNumber: { $regex: search, $options: 'i' } },
                     { firstName: { $regex: search, $options: 'i' } },
@@ -122,7 +137,7 @@ exports.searchInvoices = async (req, res) => {
             // First find student by admission number
             const student = await Student.findOne({
                 tenantId: req.user.tenantId,
-                branchId: req.user.branchId,
+                ...branchScope(req),
                 admissionNumber: admissionNumber
             });
             
@@ -160,7 +175,7 @@ exports.getInvoiceById = async (req, res) => {
         const invoice = await Invoice.findOne({
             _id: req.params.id,
             tenantId: req.user.tenantId,
-            branchId: req.user.branchId
+            ...branchScope(req)
         })
         .populate('studentId', 'firstName lastName admissionNumber guardianInfo')
         .populate('academicYearId', 'name');
@@ -192,7 +207,7 @@ exports.createPayment = async (req, res) => {
 
         const { payment, invoice } = await recordInvoicePayment({
             tenantId: req.user.tenantId,
-            branchId: req.user.branchId,
+            branchId: scopedBranchId(req),
             invoiceId,
             amount,
             method,
@@ -204,9 +219,9 @@ exports.createPayment = async (req, res) => {
         try {
             await logAction({
                 tenantId: req.user.tenantId,
-                branchId: req.user.branchId,
+                branchId: payment.branchId,
                 actorUserId: req.user._id,
-                actorRole: req.user.role || 'cashier',
+                actorRole: req.user.role,
                 action: 'PAYMENT_CREATED',
                 entityType: 'Payment',
                 entityId: payment._id,
@@ -217,9 +232,9 @@ exports.createPayment = async (req, res) => {
 
              await logAction({
                 tenantId: req.user.tenantId,
-                branchId: req.user.branchId,
+                branchId: invoice.branchId,
                 actorUserId: req.user._id,
-                actorRole: req.user.role || 'cashier',
+                actorRole: req.user.role,
                 action: 'INVOICE_UPDATED',
                 entityType: 'Invoice',
                 entityId: invoice._id,
@@ -250,7 +265,7 @@ exports.getReceipt = async (req, res) => {
         const payment = await Payment.findOne({
             _id: req.params.paymentId,
             tenantId: req.user.tenantId,
-            branchId: req.user.branchId
+            ...branchScope(req)
         }).populate('invoiceId')
           .populate('recordedBy', 'name firstName lastName email');
 
@@ -268,10 +283,11 @@ exports.getReceipt = async (req, res) => {
         const invoice = payment.invoiceId;
         
         // Fetch Student Info
-        const student = await Student.findOne({ _id: invoice.studentId, tenantId: req.user.tenantId, branchId: req.user.branchId }).select('firstName lastName admissionNumber');
+        const student = await Student.findOne({ _id: invoice.studentId, tenantId: req.user.tenantId, ...branchScope(req) }).select('firstName lastName admissionNumber');
 
-        // Fetch Branch Branding
-        const branch = await Branch.findOne({ _id: req.user.branchId, tenantId: req.user.tenantId }).select('name logoUrl address contactInfo receiptFooter');
+        // Branding comes from the branch that issued the payment, not from the caller: a
+        // school-wide finance user has no branch of their own to read it from.
+        const branch = await Branch.findOne({ _id: payment.branchId, tenantId: req.user.tenantId }).select('name logoUrl address contactInfo receiptFooter');
 
         const formatRecordedBy = (recordedBy) => {
             if (!recordedBy) return 'System User';
@@ -339,7 +355,7 @@ exports.getPayments = async (req, res) => {
 
         const query = {
             tenantId: req.user.tenantId,
-            branchId: req.user.branchId
+            ...branchScope(req)
         };
 
         if (invoiceId) query.invoiceId = invoiceId;
@@ -405,7 +421,7 @@ exports.reversePayment = async (req, res) => {
 
         const { payment, reversal } = await reverseInvoicePayment({
             tenantId: req.user.tenantId,
-            branchId: req.user.branchId,
+            branchId: scopedBranchId(req),
             paymentId: req.params.id,
             reason,
             recordedBy: req.user._id
@@ -414,9 +430,9 @@ exports.reversePayment = async (req, res) => {
         // 5. Audit
         await logAction({
              tenantId: req.user.tenantId,
-             branchId: req.user.branchId,
+             branchId: payment.branchId,
              actorUserId: req.user._id,
-             actorRole: req.user.role || 'cashier',
+             actorRole: req.user.role,
              action: 'PAYMENT_REVERSED',
              entityType: 'Payment',
              entityId: payment._id,
@@ -438,7 +454,7 @@ exports.reversePayment = async (req, res) => {
 exports.getDashboardStats = async (req, res) => {
     try {
         const tenantId = req.user.tenantId;
-        const branchId = req.user.branchId;
+        const branchId = scopedBranchId(req);
 
         // Timezone safe local day boundaries on server
         const startOfDay = new Date();

@@ -6,15 +6,30 @@ const normalizePermissionList = (values = []) => {
 };
 
 /**
- * Plan tiers, weakest first. A permission carrying `minPlanTier` can only be granted by a
- * school on that tier or higher, so a custom role can never be used to reach past what the
- * school pays for.
+ * Plan tiers by rank, weakest first. A permission carrying `minPlanTier` can only be granted
+ * by a school on that tier or higher, so a custom role can never reach past what the school
+ * pays for.
+ *
+ * Two naming schemes exist in this codebase: platformController seeds basic/pro/enterprise,
+ * while the showcase seeds foundation/growth/excellence. Both are mapped, because ranking an
+ * unknown slug as the lowest tier would silently deny a paying school everything above it.
  */
+const PLAN_TIERS = Object.freeze({
+    basic: 0,
+    foundation: 0,
+    pro: 1,
+    growth: 1,
+    enterprise: 2,
+    excellence: 2
+});
+
 const PLAN_TIER_ORDER = Object.freeze(['basic', 'pro', 'enterprise']);
 
 const planTierRank = (slug) => {
-    const index = PLAN_TIER_ORDER.indexOf(String(slug || '').trim().toLowerCase());
-    return index === -1 ? 0 : index;
+    const key = String(slug || '').trim().toLowerCase();
+    // Unknown slugs fall to the lowest tier: a plan we cannot place must not unlock more
+    // than the cheapest one does.
+    return Object.prototype.hasOwnProperty.call(PLAN_TIERS, key) ? PLAN_TIERS[key] : 0;
 };
 
 /**
@@ -145,8 +160,11 @@ const PERMISSION_CATALOG = Object.freeze([
     createPermission('branch.staff.deactivate', 'Deactivate branch staff', 'Branch', 'Suspend branch staff accounts.', ['super_admin', 'branch_admin']),
     createPermission('branch.students.view', 'View branch students', 'Branch', 'View students in a branch.', ['super_admin', 'branch_admin', 'registrar', 'teacher']),
     createPermission('branch.students.detail', 'View branch student details', 'Branch', 'View detailed student records in a branch.', ['super_admin', 'branch_admin', 'registrar', 'teacher']),
-    createPermission('branch.transfers.run', 'Run branch transfers', 'Branch', 'Transfer students out of the managed branch.', ['branch_admin']),
-    createPermission('branch.promotions.run', 'Run branch promotions', 'Branch', 'Promote branch students.', ['branch_admin']),
+    // super_admin is included so the head of school can run these directly. A school with a
+    // single campus has no branch admin to delegate to, and listing super_admin here widens
+    // the derived scope to 'any', which is what lets a school-wide role hold them.
+    createPermission('branch.transfers.run', 'Run branch transfers', 'Branch', 'Transfer students between branches.', ['super_admin', 'branch_admin']),
+    createPermission('branch.promotions.run', 'Run branch promotions', 'Branch', 'Promote students to the next grade.', ['super_admin', 'branch_admin']),
     createPermission('branch.assignments.view', 'View teacher assignments', 'Branch', 'View branch teacher assignments.', ['super_admin', 'branch_admin']),
     createPermission('branch.assignments.manage', 'Manage teacher assignments', 'Branch', 'Create and update teacher assignments.', ['super_admin', 'branch_admin']),
     createPermission('branch.exams.view', 'View branch exams', 'Branch', 'View exams in the branch.', ['super_admin', 'branch_admin']),
@@ -185,14 +203,14 @@ const PERMISSION_CATALOG = Object.freeze([
     createPermission('students.password.reset', 'Reset student passwords', 'Students', 'Reset student portal passwords.', ['super_admin', 'branch_admin', 'registrar']),
     createPermission('enrollments.create', 'Create enrollments', 'Enrollments', 'Create or re-enroll students.', ['super_admin', 'branch_admin', 'registrar']),
 
-    createPermission('cashier.dashboard.view', 'View cashier dashboard', 'Cashier', 'View cashier dashboard.', ['cashier']),
-    createPermission('cashier.invoices.search', 'Search invoices', 'Cashier', 'Search invoices for payment.', ['cashier']),
-    createPermission('cashier.invoices.detail', 'View cashier invoice details', 'Cashier', 'View invoice details from cashier portal.', ['cashier']),
-    createPermission('cashier.payments.view', 'View cashier payments', 'Cashier', 'View cashier payment history.', ['cashier']),
-    createPermission('cashier.payments.create', 'Record payments', 'Cashier', 'Record student payments.', ['cashier']),
-    createPermission('cashier.payments.reverse', 'Reverse payments', 'Cashier', 'Reverse payments from cashier portal.', ['cashier']),
-    createPermission('cashier.receipts.view', 'View receipts', 'Cashier', 'View payment receipts.', ['cashier']),
-    createPermission('cashier.receipts.print', 'Print receipts', 'Cashier', 'Print payment receipts.', ['cashier']),
+    createPermission('cashier.dashboard.view', 'View cashier dashboard', 'Cashier', 'View cashier dashboard.', ['finance_director', 'cashier']),
+    createPermission('cashier.invoices.search', 'Search invoices', 'Cashier', 'Search invoices for payment.', ['finance_director', 'cashier']),
+    createPermission('cashier.invoices.detail', 'View cashier invoice details', 'Cashier', 'View invoice details from cashier portal.', ['finance_director', 'cashier']),
+    createPermission('cashier.payments.view', 'View cashier payments', 'Cashier', 'View cashier payment history.', ['finance_director', 'cashier']),
+    createPermission('cashier.payments.create', 'Record payments', 'Cashier', 'Record student payments.', ['finance_director', 'cashier']),
+    createPermission('cashier.payments.reverse', 'Reverse payments', 'Cashier', 'Reverse payments from cashier portal.', ['finance_director', 'cashier']),
+    createPermission('cashier.receipts.view', 'View receipts', 'Cashier', 'View payment receipts.', ['finance_director', 'cashier']),
+    createPermission('cashier.receipts.print', 'Print receipts', 'Cashier', 'Print payment receipts.', ['finance_director', 'cashier']),
 
     createPermission('teacher.dashboard.view', 'View teacher dashboard', 'Teacher', 'View teacher dashboard.', ['teacher']),
     createPermission('teacher.schedule.view', 'View teacher schedule', 'Teacher', 'View teacher timetable.', ['teacher']),
@@ -402,6 +420,7 @@ const findEscalatedPermissions = (actorPermissions = [], requestedPermissions = 
 module.exports = {
     DEFAULT_ROLE_PERMISSIONS,
     PERMISSION_CATALOG,
+    PLAN_TIERS,
     PLAN_TIER_ORDER,
     deriveRequiredScope,
     findEscalatedPermissions,

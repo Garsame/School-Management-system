@@ -7240,6 +7240,13 @@ test('plan tier caps what a school can reach', () => {
     assert.equal(planTierRank(undefined), planTierRank('basic'));
     assert.equal(planTierRank('nonsense'), planTierRank('basic'));
 
+    // The seeded plans use foundation/growth/excellence while platformController uses
+    // basic/pro/enterprise. Both must rank, or a paying school would be treated as the
+    // cheapest tier and silently denied everything above it.
+    assert.equal(planTierRank('foundation'), planTierRank('basic'));
+    assert.equal(planTierRank('growth'), planTierRank('pro'));
+    assert.equal(planTierRank('excellence'), planTierRank('enterprise'));
+
     // The mechanism works even though no permission currently sets minPlanTier: pricing
     // tiers are the school's business decision, not a default the platform should invent.
     const tiered = { ...PERMISSION_CATALOG[0], minPlanTier: 'enterprise' };
@@ -7366,8 +7373,9 @@ test('only deliberate role locks remain, and each is justified', () => {
         'platformRoutes.js': 'platform scope is a hard boundary, never school-configurable',
         'teacherRoutes.js': 'teacherAssignmentGuard skips its check for any non-teacher role',
         'studentPortalRoutes.js': 'portal identity bound to User.studentId',
-        'parentRoutes.js': 'portal identity bound to linked students',
-        'cashierRoutes.js': 'cash handling pending its own review in Phase 6'
+        'parentRoutes.js': 'portal identity bound to linked students'
+        // cashierRoutes lost its lock: schools where one person is both finance and cashier
+        // need a school-wide role to reach it. cashierController resolves branch by scope.
     };
 
     const found = [];
@@ -7385,4 +7393,76 @@ test('only deliberate role locks remain, and each is justified', () => {
         const source = fs.readFileSync(path.join(routesDir, file), 'utf8');
         assert.match(source, /KEPT/, `${file} keeps a role lock but does not say why`);
     }
+});
+
+test('a school-wide role can combine finance and cashier work', () => {
+    const { findUnassignablePermissions } = require('../utils/permissions');
+
+    // Many schools have one person doing both jobs. Splitting them into two branch-scoped
+    // and tenant-scoped roles was our assumption, not theirs.
+    const merged = [
+        'finance.dashboard.view', 'finance.invoices.view', 'finance.invoices.generate',
+        'finance.payments.view', 'finance.feeStructures.create', 'finance.outstanding.view',
+        'finance.policies.update', 'payroll.pay',
+        'cashier.dashboard.view', 'cashier.invoices.search', 'cashier.invoices.detail',
+        'cashier.payments.view', 'cashier.payments.create', 'cashier.payments.reverse',
+        'cashier.receipts.view', 'cashier.receipts.print'
+    ];
+    assert.deepEqual(
+        findUnassignablePermissions({ scope: 'tenant', planTier: 'growth', values: merged }),
+        [],
+        'a school-wide finance role must be able to hold cashier permissions'
+    );
+
+    // A dedicated branch cashier must still work for schools that do separate the roles.
+    const branchCashier = merged.filter((key) => key.startsWith('cashier.'));
+    assert.deepEqual(
+        findUnassignablePermissions({ scope: 'branch', planTier: 'growth', values: branchCashier }),
+        []
+    );
+});
+
+test('the cashier controller resolves branch from scope, never from a null user branch', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const source = fs.readFileSync(path.join(__dirname, '..', 'controllers', 'cashierController.js'), 'utf8');
+
+    // A school-wide finance user has no branchId. Reading req.user.branchId would filter
+    // every query by null and silently return nothing, or stamp records with no branch.
+    assert.doesNotMatch(source, /req\.user\.branchId/,
+        'cashierController must not read the caller branch directly; use branchScope/scopedBranchId');
+    assert.match(source, /const branchScope = \(req\) =>/);
+    assert.match(source, /req\.scope === 'branch'/);
+
+    // Receipt branding must come from the payment's branch, not the caller's.
+    assert.match(source, /Branch\.findOne\(\{ _id: payment\.branchId/);
+
+    // The route must not re-impose a branch-scope lock the controller no longer needs.
+    const routes = fs.readFileSync(path.join(__dirname, '..', 'routes', 'cashierRoutes.js'), 'utf8');
+    assert.doesNotMatch(routes, /requireScope\('branch'\)/);
+    assert.doesNotMatch(routes, /authorize\(/);
+});
+
+test('the head of school can run promotions and transfers without a branch admin', () => {
+    const { DEFAULT_ROLE_PERMISSIONS, findUnassignablePermissions } = require('../utils/permissions');
+
+    // A single-campus school has no branch admin to delegate to.
+    for (const key of ['branch.promotions.run', 'branch.transfers.run']) {
+        assert.ok(DEFAULT_ROLE_PERMISSIONS.super_admin.includes(key), `super_admin should hold ${key}`);
+    }
+    assert.deepEqual(
+        findUnassignablePermissions({ scope: 'tenant', planTier: 'growth', values: ['branch.promotions.run', 'branch.transfers.run'] }),
+        []
+    );
+    // Still available to a branch role for schools that do have branch admins.
+    assert.deepEqual(
+        findUnassignablePermissions({ scope: 'branch', planTier: 'growth', values: ['branch.promotions.run', 'branch.transfers.run'] }),
+        []
+    );
+
+    // Super admin should now cover every branch-admin capability except submitting their
+    // own leave request, which is meaningless for the head of school.
+    const sa = new Set(DEFAULT_ROLE_PERMISSIONS.super_admin);
+    const uncovered = DEFAULT_ROLE_PERMISSIONS.branch_admin.filter((key) => !sa.has(key));
+    assert.deepEqual(uncovered, ['hr.leaves.create']);
 });
