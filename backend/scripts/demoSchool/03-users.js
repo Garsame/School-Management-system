@@ -54,13 +54,17 @@ const run = async () => {
             role: person.role,
             scope: person.scope,
             ...(person.scope === 'branch' ? { branchId: branch._id } : {}),
-            jobTitle: person.jobTitle,
-            department: person.department,
-            employmentType: 'Permanent',
-            hireDate: '2024-08-01',
-            currency: 'USD',
-            paymentMethod: 'Bank',
-            ...SALARIES[person.role]
+            // Compensation is read from employmentInfo; sent at the top level it is
+            // silently ignored and payroll later generates nothing.
+            employmentInfo: {
+                jobTitle: person.jobTitle,
+                department: person.department,
+                employmentType: 'Permanent',
+                hireDate: '2024-08-01',
+                currency: 'USD',
+                paymentMethod: 'Bank',
+                ...SALARIES[person.role]
+            }
         };
         const user = await admin.post('/tenant/users', payload);
         created.push(user);
@@ -76,14 +80,16 @@ const run = async () => {
             role: 'teacher',
             scope: 'branch',
             branchId: branch._id,
-            jobTitle: 'Teacher',
-            department: 'Academic',
-            specialization: subject,
-            employmentType: 'Permanent',
-            hireDate: '2024-08-01',
-            currency: 'USD',
-            paymentMethod: 'Bank',
-            ...SALARIES.teacher
+            employmentInfo: {
+                jobTitle: 'Teacher',
+                department: 'Academic',
+                specialization: subject,
+                employmentType: 'Permanent',
+                hireDate: '2024-08-01',
+                currency: 'USD',
+                paymentMethod: 'Bank',
+                ...SALARIES.teacher
+            }
         });
     }
     console.log(`   ${TEACHERS.length} teachers created`);

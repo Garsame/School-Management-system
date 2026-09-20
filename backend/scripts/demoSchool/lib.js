@@ -94,3 +94,19 @@ const expectDenied = async (label, fn) => {
 const step = (n, title) => console.log(`\n${'─'.repeat(3)} ${n}. ${title} ${'─'.repeat(Math.max(2, 56 - title.length))}`);
 
 module.exports = { ApiError, PASSWORD, Session, expectDenied, loginPlatform, loginTenant, signIn, step };
+
+/**
+ * Responses are inconsistent: some endpoints return the payload directly, others wrap it in
+ * { success, data }. Guessing wrong yields an empty array and a step that silently does
+ * nothing, so unwrap once here rather than writing `res.data || res` at every call site.
+ */
+const unwrap = (payload) => {
+    if (Array.isArray(payload)) return payload;
+    if (payload && typeof payload === 'object') {
+        if (Array.isArray(payload.data)) return payload.data;
+        if (payload.data && typeof payload.data === 'object') return payload.data;
+    }
+    return payload;
+};
+
+module.exports.unwrap = unwrap;
