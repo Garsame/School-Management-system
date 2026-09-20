@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-labelledby="title">
+  <title id="title">Barwaaqo Scholars School</title>
+  <circle cx="120" cy="120" r="108" fill="#1F4F8A"/>
+  <circle cx="120" cy="120" r="88" fill="#fff" stroke="#C58A1D" stroke-width="8"/>
+  <path fill="#1F4F8A" d="M55 103 120 72l65 31-65 31z"/>
+  <path fill="#C58A1D" d="M79 126h82v37c-25 18-57 18-82 0z"/>
+  <path fill="#1F4F8A" d="M98 132h44v29c-13 7-31 7-44 0z"/>
+  <text x="120" y="199" fill="#1F4F8A" font-family="Arial, sans-serif" font-size="22" font-weight="700" text-anchor="middle">BSS</text>
+  <path fill="#C58A1D" d="M177 103h7v42h-7z"/>
+</svg>

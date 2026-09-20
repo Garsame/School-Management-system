@@ -1,0 +1,324 @@
+# RBAC Roadmap — From Fixed Roles to Super-Admin Configuration
+
+**Companion to:** `RBAC_AND_TENANT_CONFIGURATION.md`
+**Date:** 2026-09-20
+**Revision:** 2 — corrected role model after clarification
+
+---
+
+## 0. The target org
+
+Seven roles. HR owns **employees and everything wrapped around employees**. Student and
+academic work belongs to Admission Manager, Branch Admin and Super Admin — **not** to HR.
+
+| Role | Scope | Owns |
+| --- | --- | --- |
+| **Super Admin** | School-wide | Everything. School master, creates roles, creates users, grants access, removes users, **approves payroll**. |
+| **HR** | School-wide | Employees · employment records · compensation · leaves · payroll **generate + review**. Nothing student-facing. |
+| **Finance** | School-wide | Fees, invoices, payments, finance policy, **pays approved payroll**. |
+| **Admission Manager** | **Branch** | Admissions · student registration · student status · classes · sections · subjects · student activity · promotions · transfers. One per branch. |
+| **Branch Admin** | Branch | Branch operations, staff accounts, timetable, exams, branch reports. |
+| **Teacher** | Branch | Schedule, attendance, results entry, own payroll, leave requests. |
+| **Parent / Student** | Own records | Portal access only. |
+
+### Payroll chain
+
+```
+HR generates ─▶ HR reviews ─▶ Super Admin approves ─▶ Finance pays
+```
+
+Three separate people on the money path. This is **stronger** segregation of duties than the
+current default and needs no SoD warning.
+
+The current hardcoded chain differs: `payroll.approve` belongs to `finance_director` and
+`payroll.pay` to `super_admin` + `cashier`. Your chain is effectively a swap:
+
+| Permission | Today | Target |
+| --- | --- | --- |
+| `payroll.approve` | `finance_director` | **+ super_admin** |
+| `payroll.pay` | `super_admin`, `cashier` | **+ finance_director** |
+
+**Verified safe.** `approvePayroll` runs through `transitionPayroll`, which queries
+`{ _id, tenantId }` with **no branch coupling**. `payPayroll` queries the same way, and its only
+branch check is explicitly gated on `req.user.role === 'cashier'` — a tenant-scoped Finance
+Director skips it. **Zero controller changes required.**
+
+---
+
+## 1. Verdict per role
+
+### Super Admin
+| Need | Status |
+| --- | --- |
+| Everything else | Already has it |
+| `payroll.approve` | **Gap** — boxed to `finance_director`. Phase 2. |
+
+### HR — works almost entirely today
+| Need | Permission | Status |
+| --- | --- | --- |
+| Leaves view + review | `hr.leaves.view` / `.review` | Already |
+| Employee records | `hr.employees.view` / `.update` | Already |
+| Payroll view, generate, review | `payroll.view` / `.generate` / `.review` | Already |
+
+**HR needs no changes at all.** `hr_payroll_manager` is tenant-scoped and already reaches every
+branch's staff. HR manages records only — account creation stays with Branch Admin / Super Admin,
+so the branch-scoped `branch.staff.*` permissions are not needed.
+
+### Finance
+| Need | Status |
+| --- | --- |
+| All finance permissions | Already has them |
+| `payroll.pay` | **Gap** — boxed to `super_admin` + `cashier`. Phase 2. |
+
+### Admission Manager — `registrar` plus seven branch permissions
+| Need | Permission | Status |
+| --- | --- | --- |
+| Admission, registration, student status, updates | `students.*`, `enrollments.create` | Already |
+| View classes, view branch students | `branch.classes.view`, `branch.students.view` | Already |
+| Create / edit classes | `branch.classes.create` / `.update` | **Gap** |
+| Sections, subjects | `branch.sections.manage`, `branch.subjects.manage` | **Gap** |
+| Student activity | `branch.results.view`, `branch.timetable.view` | **Gap** |
+| Promotions, transfers | `branch.promotions.run`, `branch.transfers.run` | **Gap** |
+
+**Every gap is branch-scoped, and `registrar` is already branch-scoped.** No branch-context work.
+
+### Teacher / Parent / Student
+Unchanged. Work today.
+
+---
+
+## 2. The two things that actually block you
+
+Everything above reduces to exactly two problems.
+
+### Blocker A — the catalog boxes permissions by role
+
+```js
+createPermission('branch.classes.create', ..., ['super_admin', 'branch_admin'])
+```
+
+A branch-scoped Admission Manager cannot hold it, even though the scope is compatible.
+**Fix: Phase 2.**
+
+### Blocker B — blanket role gates on two route files
+
+```js
+// routes/branchAdminRoutes.js:27   and   routes/registrarRoutes.js:29
+router.use(authorize('branch_admin'));
+router.use(authorize('registrar'));
+```
+
+These reject by role **before** any permission check runs. But every route underneath already
+carries a correct `requirePermission(...)`. **Removing the blanket gate is a deletion, not a
+rewrite** — the permission layer already does the real work, so security is unchanged.
+**Fix: Phase 3.**
+
+---
+
+## 3. What is NOT needed (correction to revision 1)
+
+Revision 1 put a **277-site branch-context refactor** on the critical path. That was based on a
+misreading in which HR did student admissions. **It is now off the critical path entirely.**
+
+| Item | Rev 1 | Rev 2 |
+| --- | --- | --- |
+| Branch-context refactor (`req.scopedBranchId`, 277 sites) | **Phase 3, size L, blocking** | **Deferred — not needed** |
+| Data scope engine | Phase 4 | Deferred |
+| Field masking | Phase 4 | Deferred |
+
+**Why it is no longer needed:** it is only required when a role is *school-wide* but reaches into
+*branch* data. In your org, nothing does that. HR is school-wide but touches only tenant-scoped
+employee and payroll records. Admission Manager touches branch data but **is** branch-scoped, one
+per branch. The scopes line up.
+
+**When it comes back:** if you later want one admission manager covering all branches, or a
+school-wide role writing branch records. Design is preserved in
+`RBAC_AND_TENANT_CONFIGURATION.md` §5.5 for that day.
+
+---
+
+## 4. Roadmap
+
+### Track 1 — make your org work
+
+Your seven roles map **1:1 onto existing role keys**. Admission Manager is `registrar` renamed and
+extended; HR is `hr_payroll_manager` as-is. **No new role keys, so no new layouts or shells are
+needed for this track.**
+
+---
+
+#### Phase 0 — Close existing gaps · **S** · no dependencies · **IN PROGRESS**
+
+See `PHASE_0_REPORT.md` for detail. Backend 171/171 pass, frontend build clean.
+
+| # | Task | Status |
+| --- | --- | --- |
+| 0.1 | `enforcePlanLimit('users')` on every user-creation route | **Done** — 2 gaps, not 1 |
+| 0.2 | Wire `Can` into pages, or delete it | 13 of 21 pages gated; `Can.jsx` decision open |
+| 0.3 | Audit pages for unusable action buttons | **Done** — 21 pages, list in report |
+| 0.4 | Decide `Plan.features[]` | Recommendation in report |
+| 0.5 | Land in-flight payroll work | Verified correct, uncommitted |
+| 0.6 | **Seat counting counted students as staff seats** | **Done** — see below |
+| 0.7 | **27 of 152 permissions were never enforced** | **Done** — 10 fixed, 17 exempted with reasons |
+| 0.8 | **Payroll page hardcoded roles, breaking the target chain** | **Done** |
+
+Three gaps were larger than this phase assumed:
+
+- **0.6** `maxUsers` counted students and parents. Basic advertises 200 students but 20 users,
+  so admission stopped at student 14. `maxUsers` is now a staff-seat limit. **This would have
+  blocked the demo school on day one.**
+- **0.7** 18% of the catalog was decorative — toggling it did nothing. Harmless today because
+  `authorize(role)` still covered those routes, but **Phase 3 removes those role gates**.
+- **0.8** `hr/PayrollDashboard.jsx` chose buttons by role string, so Super-Admin-approves /
+  Finance-pays would have shown no buttons even after Phase 2.
+
+---
+
+#### Phase 1 — Role becomes data · **M** · after Phase 0
+
+Nothing visible changes. Load-bearing step.
+
+| # | Task |
+| --- | --- |
+| 1.1 | `models/Role.js` — `tenantId`, `key`, `name`, `description`, `scope`, `permissions[]`, `isSystem`, `isActive` |
+| 1.2 | Migration seeding the 10 current roles as `isSystem` roles per tenant, from `DEFAULT_ROLE_PERMISSIONS` |
+| 1.3 | `User.roleId → Role`; backfill; keep `User.role` string in sync so existing queries work |
+| 1.4 | `getEffectivePermissions` reads `Role.permissions` — **still per-request from the DB** |
+| 1.5 | Role CRUD behind a new `tenant.roles.*` permission group |
+| 1.6 | **Privilege-escalation guard** — a user may never grant a permission they do not hold |
+
+**1.6 must land here, before Phase 2.** It does not exist today. The blast radius is small only
+because permissions are boxed by role — the moment Phase 2 removes that boxing, it becomes the
+primary escalation path.
+
+---
+
+#### Phase 2 — Unbox the permission catalog · **M** · after Phase 1
+
+The phase that makes your org expressible.
+
+| # | Task |
+| --- | --- |
+| 2.1 | Migrate 152 catalog entries from `allowedRoles[]` to `{ requiredScope, suggestedRoles, minPlanTier }` |
+| 2.2 | `sanitizeAssignablePermissionsForRole` → `sanitizeAssignablePermissionsForScope` |
+| 2.3 | Plan ceiling — no grant above the tenant's tier, including via custom roles |
+| 2.4 | SoD warnings at tick time — warn and require acknowledgement, never block |
+
+**Unlocks:** Super Admin gets `payroll.approve`. Finance gets `payroll.pay`. Admission Manager
+gets all seven branch permissions.
+
+SoD conflict set for 2.4 (your own payroll chain triggers none of these):
+- `payroll.generate` + `payroll.approve` + `payroll.pay`
+- `finance.invoices.generate` + `cashier.payments.create` + `cashier.payments.reverse`
+- `students.create` + `students.password.reset`
+- `tenant.users.create` + `tenant.users.permissions.update`
+
+---
+
+#### Phase 3 — Retire the blanket role gates · **S** · after Phase 2
+
+| # | Task |
+| --- | --- |
+| 3.1 | Remove `router.use(authorize('branch_admin'))` — keep `requireScope('branch')` + existing per-route permissions |
+| 3.2 | Remove `router.use(authorize('registrar'))` — same |
+| 3.3 | Review the remaining 36 `authorize()` calls; convert where a permission already covers it |
+| 3.4 | Replace the 16 in-controller `req.role ===` checks with capability or scope checks |
+| 3.5 | Keep `authorize('platform_owner')` — platform scope is a genuine hard boundary |
+
+**After Phase 3 your entire target org runs.** Track 1 complete.
+
+---
+
+### Track 2 — let a super admin invent arbitrary roles
+
+Track 1 delivers *your* org. Track 2 delivers the general capability you asked for: any super
+admin inventing roles you have not thought of. Those roles need role keys that no layout knows
+about, which is why the shell work lives here.
+
+#### Phase 4 — Navigation from the server · **M**
+| # | Task |
+| --- | --- |
+| 4.1 | `GET /api/me/navigation` → `{ home, sections[] }` computed from effective permissions |
+| 4.2 | Collapse 10 role-keyed layouts into one capability-driven shell |
+| 4.3 | Replace `RoleScopeGuard`'s exact `hasRole` match with a capability check |
+| 4.4 | `TenantNavigationConfig` — rename / reorder / hide / group pages |
+
+#### Phase 5 — Role Studio · **M**
+| # | Task |
+| --- | --- |
+| 5.1 | Create / clone / rename / archive roles |
+| 5.2 | Capability picker grouped by module, SoD warnings inline |
+| 5.3 | **Live preview** — "show me the app as this role sees it" before saving |
+| 5.4 | Bulk user reassignment; role usage view |
+
+#### Phase 6 — Hardening · **M**
+| # | Task |
+| --- | --- |
+| 6.1 | Authorization test matrix: every role × every route |
+| 6.2 | Privilege-escalation suite |
+| 6.3 | Tenant isolation + IDOR pass |
+| 6.4 | Confirm instant revocation end to end |
+| 6.5 | Audit-log completeness for all role and permission mutations |
+
+---
+
+## 5. Critical path
+
+```
+TRACK 1 — your org works
+Phase 0 ──▶ Phase 1 ──▶ Phase 2 ──▶ Phase 3          ◀── target org fully running
+   S          M           M           S
+
+TRACK 2 — any org works
+                              Phase 4 ──▶ Phase 5 ──▶ Phase 6
+                                 M           M           M
+
+DEFERRED — only if a school-wide role ever needs branch data
+   Branch-context refactor (L) · data scope engine (M) · field masking (M)
+```
+
+**Track 1 is S + M + M + S.** That is the whole distance between today and your seven roles
+running in production.
+
+**The demo school runs alongside Track 1.** It exercises the current roles and will surface
+ordinary bugs that Phase 6 would otherwise catch late. The two streams only collide at Phase 4,
+when layouts change — so build the school now.
+
+---
+
+## 6. Answers to your questions
+
+**"Super admin decides how many users?"** — Within the plan cap the platform owner sets. Phase 0
+closes the gap that lets tenant-scoped creation exceed it.
+
+**"He creates the administrators?"** — Yes today, but only 3 role types. Any role after Phase 2.
+After Phase 1.6 he can only grant what he himself holds.
+
+**"He decides which and what role he wants?"** — For the seven roles in §0: Phase 3. For inventing
+arbitrary new roles: Phase 5.
+
+**"He has a whole configuration?"** — Phase 5. Roles, capabilities, data scope and page
+visibility in one console with live preview.
+
+**"He can add some features and views for the user he wants?"** — Views: Phase 4 + 5. *New pages*
+is deliberately out of scope — renaming, reordering, grouping and hiding is in (Phase 4.4).
+
+**"Remove some users?"** — Already works. `updateUserStatus` deactivates, bumps `tokenVersion` to
+kill live sessions, records reason and timestamp, and refuses on the last super admin. It is a
+**soft delete** by design, since payroll, student and audit records reference users. Hard deletion
+for data-protection requests is separate work.
+
+---
+
+## 7. Security invariants — tested every phase
+
+1. **No privilege escalation.** Never grant what you do not hold. **Missing today — Phase 1.6.**
+2. **No self-lockout.** Enforced; preserve.
+3. **Last super admin protected.** Enforced; extend to any role holding `tenant.roles.*`.
+4. **Plan ceiling.** No grant above tier, including via custom roles.
+5. **Scope integrity.** A branch-scoped role never holds a tenant-scoped permission.
+6. **System roles immutable** in `key` and `scope`; name and description editable.
+7. **Tenant isolation.** A role from tenant A is never assignable in tenant B.
+8. **Instant revocation.** Resolve per-request from the DB. **Never cache effective permissions
+   into the JWT** — it silently breaks revocation and is the most likely well-meant regression here.
+9. **Full audit.** Every role and permission mutation logged with before/after.

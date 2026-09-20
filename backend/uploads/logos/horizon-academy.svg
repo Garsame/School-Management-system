@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-labelledby="title">
+  <title id="title">Horizon International Academy</title>
+  <path fill="#176B5B" d="M120 10 218 47v70c0 59-38 94-98 113-60-19-98-54-98-113V47z"/>
+  <path fill="#fff" d="m45 85 75-34 75 34-75 34z"/>
+  <path fill="#D6A62E" d="M72 109h96v50c-29 21-67 21-96 0z"/>
+  <path fill="#176B5B" d="M89 119h62v35c-19 12-43 12-62 0z"/>
+  <text x="120" y="151" fill="#fff" font-family="Arial, sans-serif" font-size="27" font-weight="700" text-anchor="middle">HIA</text>
+  <path fill="#D6A62E" d="M193 84h8v50h-8z"/>
+</svg>

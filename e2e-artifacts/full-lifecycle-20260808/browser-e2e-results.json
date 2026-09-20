@@ -1,0 +1,1979 @@
+{
+  "startedAt": "2026-08-08T09:03:37.842Z",
+  "frontendOrigin": "http://127.0.0.1:5181",
+  "journeys": [
+    {
+      "role": "platform-owner",
+      "login": {
+        "passed": true,
+        "expectedPath": "/platform",
+        "snapshot": {
+          "url": "http://127.0.0.1:5181/platform",
+          "title": "School Management Platform",
+          "heading": "Platform Dashboard",
+          "alerts": [],
+          "globalOverflow": false,
+          "invalidControls": [],
+          "bodyExcerpt": "MadrasaHub\n\nPlatform Console\n\nPlatform Owner\n\nPlatform Owner\n\nP\n\nPlatform management\n\nDashboard\nTenants\nPlans\nBilling\nAudit Logs\nMonitoring\nSettings\nMy Profile\nSign out\nPlatform Dashboard\n\nMonitor tenant growth, subscription activity, and system health in one place.\n\nRegistered schools\n\n2\n\nLive\n\nAll tenant accounts\n\nActive schools\n\n2\n\nLive\n\nCurrently operational\n\nPlatform summary\n1. Branches\n4\n2. Students\n98\n3. Revenue\n$2,718\n4. Health\nExcellent\nSubscription revenue\n\nRecorded tenant subscription transactions.\n\n$2,718\n2026-08\n0\n700\n1400\n2100\n2800\nTenant activation\n\nActive compared with inactive schools.\n\n2\nSchools\nActive\n\n2\n\nInactive\n\n0\n\nRecently onboarded tenants\n\nLatest schools registered on the platform.\n\n2 records\nSchool\tPlan\tBranches\tStatus\tJoined\n\nB\nBarwaaqo Scholars School\n\tExcellence\t2\tActive\t2 mins ago\n\nH\nHorizon International Academy\n\tGrowth\t2\tActive\t2 mins ago\nSystem activity\n\nRecent platform audit events.\n\nPLATFORM_LOGIN\n\nPlatform Owner - PlatformSession (6a75f4e28df46dfcfb58a132)\n\njust now\n\nTENANT_APPROVED\n\nPlatform Owner - Tenant (6a76f04b8f048679e411d440)\n\n2 mins ago\n\nTENANT_APPROVED\n\nPlatform Owner - Tenant (6a76f0478f048679e411cd1c)\n\n2 mins ago\n\n0",
+          "unauthorized": false,
+          "blank": false
+        },
+        "errors": []
+      },
+      "pages": [
+        {
+          "route": "/platform",
+          "expectedText": "Platform",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/platform",
+            "title": "School Management Platform",
+            "heading": "Platform Dashboard",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "MadrasaHub\n\nPlatform Console\n\nPlatform Owner\n\nPlatform Owner\n\nP\n\nPlatform management\n\nDashboard\nTenants\nPlans\nBilling\nAudit Logs\nMonitoring\nSettings\nMy Profile\nSign out\nPlatform Dashboard\n\nMonitor tenant growth, subscription activity, and system health in one place.\n\nRegistered schools\n\n2\n\nLive\n\nAll tenant accounts\n\nActive schools\n\n2\n\nLive\n\nCurrently operational\n\nPlatform summary\n1. Branches\n4\n2. Students\n98\n3. Revenue\n$2,718\n4. Health\nExcellent\nSubscription revenue\n\nRecorded tenant subscription transactions.\n\n$2,718\n2026-08\n0\n700\n1400\n2100\n2800\nTenant activation\n\nActive compared with inactive schools.\n\n2\nSchools\nActive\n\n2\n\nInactive\n\n0\n\nRecently onboarded tenants\n\nLatest schools registered on the platform.\n\n2 records\nSchool\tPlan\tBranches\tStatus\tJoined\n\nB\nBarwaaqo Scholars School\n\tExcellence\t2\tActive\t2 mins ago\n\nH\nHorizon International Academy\n\tGrowth\t2\tActive\t2 mins ago\nSystem activity\n\nRecent platform audit events.\n\nPLATFORM_LOGIN\n\nPlatform Owner - PlatformSession (6a75f4e28df46dfcfb58a132)\n\njust now\n\nTENANT_APPROVED\n\nPlatform Owner - Tenant (6a76f04b8f048679e411d440)\n\n2 mins ago\n\nTENANT_APPROVED\n\nPlatform Owner - Tenant (6a76f0478f048679e411cd1c)\n\n2 mins ago\n\n0",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/platform/tenants",
+          "expectedText": "School",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/platform/tenants",
+            "title": "School Management Platform",
+            "heading": "",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "MadrasaHub\n\nPlatform Console\n\nPlatform Owner\n\nPlatform Owner\n\nP\n\nPlatform management\n\nDashboard\nTenants\nPlans\nBilling\nAudit Logs\nMonitoring\nSettings\nMy Profile\nSign out\nTenant Management\n\nManage and monitor all school tenants on the platform.\n\nAdd New School\nAll statuses\nPending\nActive\nSuspended\nRejected\nAll plans\nexcellence\ngrowth\n\n2 of 2 schools\n\nSchool\tPlan\tStatus\tBranches\tStudents\tJoined\tActions\n\nB\n\nBarwaaqo Scholars School\n\nbarwaaqo-scholars.school\n\n\tExcellence\t\nActive\t2\t49\t08 Aug 2026\t\n\n\nH\n\nHorizon International Academy\n\nhorizon-academy.school\n\n\tGrowth\t\nActive\t2\t49\t08 Aug 2026\t\n\nShowing 2 of 2 tenants",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/platform/plans",
+          "expectedText": "Plan",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/platform/plans",
+            "title": "School Management Platform",
+            "heading": "",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "MadrasaHub\n\nPlatform Console\n\nPlatform Owner\n\nPlatform Owner\n\nP\n\nPlatform management\n\nDashboard\nTenants\nPlans\nBilling\nAudit Logs\nMonitoring\nSettings\nMy Profile\nSign out\nSubscription Tiers\n\nManage platform resource limits and pricing models.\n\nCreate New Tier\nExcellence\nActive\n$129\n/mo\n\n$1290/year\n\nBranches\n15\nStudents\n10000\nStorage\n250GB\nSupport\nSlug ID: excellence\nGrowth\nActive\n$69\n/mo\n\n$690/year\n\nBranches\n5\nStudents\n2500\nStorage\n50GB\nSupport\nSlug ID: growth\nFoundation\nActive\n$29\n/mo\n\n$290/year\n\nBranches\n2\nStudents\n500\nStorage\n10GB\nSupport\nSlug ID: foundation",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/platform/billing",
+          "expectedText": "Billing",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/platform/billing",
+            "title": "School Management Platform",
+            "heading": "",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [
+              "select-one"
+            ],
+            "bodyExcerpt": "MadrasaHub\n\nPlatform Console\n\nPlatform Owner\n\nPlatform Owner\n\nP\n\nPlatform management\n\nDashboard\nTenants\nPlans\nBilling\nAudit Logs\nMonitoring\nSettings\nMy Profile\nSign out\nPlatform Billing\n\nIssue school subscription invoices, record payments, and enforce overdue access rules.\n\nReconcile Billing\n\nSubscription Revenue\n\n$2,718.00\n\nOutstanding Balance\n\n$0.00\n\nActive Payments\n\n4\n\nIssue Subscription Invoice\nSchool\nSelect school\nBarwaaqo Scholars School\nHorizon International Academy\nCycle\nMonthly\nYearly\nPeriod start\nIssue Invoice\nSubscription Invoices\nInvoice\tSchool\tCycle\tAmount\tBalance\tStatus\tAction\nSUB-EXCELLENCE-2-2\tBarwaaqo Scholars School\tYearly\t$1,290.00\t$0.00\tPAID\tRecord Payment\nSUB-EXCELLENCE-2-1\tBarwaaqo Scholars School\tYearly\t$1,290.00\t$0.00\tPAID\tRecord Payment\nSUB-GROWTH-1-2\tHorizon International Academy\tMonthly\t$69.00\t$0.00\tPAID\tRecord Payment\nSUB-GROWTH-1-1\tHorizon International Academy\tMonthly\t$69.00\t$0.00\tPAID\tRecord Payment\nRecent Subscription Payments\n\nBarwaaqo Scholars School\n\nBANK_TRANSFER · BANK-EXCELLENCE-2-2 · SUB-REC-2-2\n\n$1,290.00\n\nBarwaaqo Scholars School\n\nBANK_TRANSFER · BANK-EXCELLENCE-2-1 · SUB-REC-2-1\n\n$1,290.00\n\nHorizon International Academy\n\nBANK_TRANSFER · BAN",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/platform/audit",
+          "expectedText": "Audit",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/platform/audit",
+            "title": "School Management Platform",
+            "heading": "",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "MadrasaHub\n\nPlatform Console\n\nPlatform Owner\n\nPlatform Owner\n\nP\n\nPlatform management\n\nDashboard\nTenants\nPlans\nBilling\nAudit Logs\nMonitoring\nSettings\nMy Profile\nSign out\nAudit Logs\n\nTrack all admin actions and platform events.\n\nExport CSV\nAll\nSecurity\nWarnings\nUpdates\nInfo\n3 entries\nAction\tPerformed By\tTarget\tTime\n\n\nPLATFORM_LOGIN\n\ninfo\n\t\nPO\nPlatform Owner\n\tPlatformSession (6a75f4e28df46dfcfb58a132)\t\n8/8/2026, 12:03:40 PM\n\n\n\nTENANT_APPROVED\n\ninfo\n\t\nPO\nPlatform Owner\n\tTenant (6a76f04b8f048679e411d440)\t\n8/8/2026, 12:01:01 PM\n\n\n\nTENANT_APPROVED\n\ninfo\n\t\nPO\nPlatform Owner\n\tTenant (6a76f0478f048679e411cd1c)\t\n8/8/2026, 12:00:59 PM",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/platform/monitoring",
+          "expectedText": "Monitoring",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/platform/monitoring",
+            "title": "School Management Platform",
+            "heading": "",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "MadrasaHub\n\nPlatform Console\n\nPlatform Owner\n\nPlatform Owner\n\nP\n\nPlatform management\n\nDashboard\nTenants\nPlans\nBilling\nAudit Logs\nMonitoring\nSettings\nMy Profile\nSign out\nSystem Monitoring\n\nReal-time health status and performance metrics of the platform.\n\nExcellent\n\nTenants\n\n2\n\nActive\n\n2\n\nPending\n\n0\n\nSuspended\n\n0\n\nBranches\n\n4\n\nUsers\n\n199\n\nStudents\n\n98\n\nActive Plans\n\n3\n\nPlatform Warnings\n\nPublic registration is enabled.\n\nOperational\nCore REST API\nConnected\nMongoDB Cluster\nNot Configured\nRedis Cache\n91.42% Free\nFile Storage\nResponse Time (Last 24h)\n13:00\n01:00\n12:00\nPlatform Metrics\nUptime\n0d 0h 1m\nError Rate\n0.00%\nAvg Response\n140.54ms\nP95 Response\n338.59ms\nRuntime Summary\n\nQueue status: Idle. Requests(24h): 21. Errors(24h): 0.\n\nCPU load: 0% • Memory usage: 85.01%",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/platform/settings",
+          "expectedText": "Settings",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/platform/settings",
+            "title": "School Management Platform",
+            "heading": "",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "MadrasaHub\n\nPlatform Console\n\nPlatform Owner\n\nPlatform Owner\n\nP\n\nPlatform management\n\nDashboard\nTenants\nPlans\nBilling\nAudit Logs\nMonitoring\nSettings\nMy Profile\nSign out\nPlatform Settings\n\nConfigure global settings for the MadrasaHub platform.\n\nBranding\nEmail (SMTP)\nBranding\n\nCustomise the platform name, website and brand colours.\n\nEdit\nPlatform Name\nMadrasaHub\nOfficial Website\nhttps://madrasahub.com\nSupport Email\nsupport@madrasahub.com\nContact Phone\nNot set\nDefault Currency\nUSD\nDefault Plan\nfoundation\nPublic Registration\nEnabled\nPrimary Colour\n#1B2A4A\nSecondary Colour\n#4477F5\nLogo\nNot uploaded",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/platform/profile",
+          "expectedText": "Profile",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/platform/profile",
+            "title": "School Management Platform",
+            "heading": "My Profile",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "MadrasaHub\n\nPlatform Console\n\nPlatform Owner\n\nPlatform Owner\n\nP\n\nPlatform management\n\nDashboard\nTenants\nPlans\nBilling\nAudit Logs\nMonitoring\nSettings\nMy Profile\nSign out\nMy Profile\n\nManage your personal details and profile image.\n\nChange password\nP\nPlatform Owner\nPlatform Owner\nActive account\n\nPNG, JPEG, or WebP. Maximum size 2 MB.\n\nContact information\n\nContact details you can keep up to date.\n\nPhone\nAddress\nEmergency contact\n\nA trusted person the institution may contact when needed.\n\nContact name\nRelationship\nContact phone\nContact email\nOfficial and account information\n\nVerified fields are read-only.\n\nFull name\n\nPlatform Owner\n\nDate of birth\n\nNot recorded\n\nGender\n\nNot recorded\n\nEmail\n\nowner@example.com\n\nRole\n\nPlatform Owner\n\nAccess scope\n\nPlatform\n\nContact an authorized administrator if your name, date of birth, gender, email, role, school, or branch information needs to change.",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        }
+      ],
+      "screenshot": "D:\\school-management-system\\e2e-artifacts\\full-lifecycle-20260808\\platform-owner-dashboard.png"
+    },
+    {
+      "role": "hr",
+      "login": {
+        "passed": true,
+        "expectedPath": "/hr",
+        "snapshot": {
+          "url": "http://127.0.0.1:5181/hr",
+          "title": "School Management Platform",
+          "heading": "HR overview",
+          "alerts": [],
+          "globalOverflow": false,
+          "invalidControls": [],
+          "bodyExcerpt": "Nadiifa Mohamed Ali\n\nHR & PAYROLL MANAGER\n\nN\n\nPEOPLE MANAGEMENT\n\nHR Dashboard\nEmployees\nLeave Management\nPayroll\nReports\nMy Profile\nLogout\nHR overview\n\nMonitor staffing, compensation readiness, leave, and payroll.\n\nActive employees\n\n24\n\n24 employee records\n\nMissing salary profiles\n\n0\n\nRequire compensation setup\n\nLeave awaiting review\n\n2\n\nPending staff requests\n\nPending payroll\n\nUSD 0\n\nGenerated but not paid\n\nPayroll workflow\n\nCurrent records by processing stage.\n\nDraft\n0\nReviewed\n0\nApproved\n0\nPaid\n22\nWorkforce by role\n\nActive staff distribution.\n\nTeacher\n16\nBranch Admin\n2\nFinance Director\n1\nCashier\n2\nRegistrar\n2\nHr Payroll Manager\n1",
+          "unauthorized": false,
+          "blank": false
+        },
+        "errors": []
+      },
+      "pages": [
+        {
+          "route": "/hr",
+          "expectedText": "HR overview",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/hr",
+            "title": "School Management Platform",
+            "heading": "HR overview",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Nadiifa Mohamed Ali\n\nHR & PAYROLL MANAGER\n\nN\n\nPEOPLE MANAGEMENT\n\nHR Dashboard\nEmployees\nLeave Management\nPayroll\nReports\nMy Profile\nLogout\nHR overview\n\nMonitor staffing, compensation readiness, leave, and payroll.\n\nActive employees\n\n24\n\n24 employee records\n\nMissing salary profiles\n\n0\n\nRequire compensation setup\n\nLeave awaiting review\n\n2\n\nPending staff requests\n\nPending payroll\n\nUSD 0\n\nGenerated but not paid\n\nPayroll workflow\n\nCurrent records by processing stage.\n\nDraft\n0\nReviewed\n0\nApproved\n0\nPaid\n22\nWorkforce by role\n\nActive staff distribution.\n\nTeacher\n16\nBranch Admin\n2\nFinance Director\n1\nCashier\n2\nRegistrar\n2\nHr Payroll Manager\n1",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/hr/employees",
+          "expectedText": "Employees",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/hr/employees",
+            "title": "School Management Platform",
+            "heading": "Employees",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Nadiifa Mohamed Ali\n\nHR & PAYROLL MANAGER\n\nN\n\nPEOPLE MANAGEMENT\n\nHR Dashboard\nEmployees\nLeave Management\nPayroll\nReports\nMy Profile\nLogout\nEmployees\n\nView approved compensation and submit changes for Finance approval.\n\n24\nemployees\nAll locations\nCentral Campus\nHead office\nRiverside Campus\nEmployee\tRole\tLocation\tBasic salary\tRecurring net\tChange status\tProfile\n\n\nAbdiqani Warsame Omar\n\nHIA-1-TR-003\n\n\tTeacher\tCentral Campus\tUSD 700\tUSD 750\tNo pending change\tRequest change\n\n\nAbdirahman Said Ali\n\nHIA-2-BA-001\n\n\tBranch Admin\tRiverside Campus\tUSD 900\tUSD 1,000\tNo pending change\tRequest change\n\n\nAbdirizak Yusuf Noor\n\nHIA-FD-001\n\n\tFinance Director\tHead office\tUSD 1,200\tUSD 1,300\tNo pending change\tRequest change\n\n\nAbdullahi Omar Ali\n\nHIA-2-TR-006\n\n\tTeacher\tRiverside Campus\tUSD 700\tUSD 750\tNo pending change\tRequest change\n\n\nAhmed Ali Farah\n\nHIA-2-TR-002\n\n\tTeacher\tRiverside Campus\tUSD 700\tUSD 750\tNo pending change\tRequest change\n\n\nAmina Yusuf Hassan\n\nHIA-2-TR-001\n\n\tTeacher\tRiverside Campus\tUSD 700\tUSD 750\tNo pending change\tRequest change\n\n\nBashir Ahmed Osman\n\nHIA-2-CS-001\n\n\tCashier\tRiverside Campus\tUSD 600\tUSD 700\tNo pending change\tRequest change\n\n\nFadumo Ibrahim Ali\n\nHIA-1-TR-002\n\n\tTeacher\tCe",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/hr/leaves",
+          "expectedText": "Leave",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/hr/leaves",
+            "title": "School Management Platform",
+            "heading": "Leave requests",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Nadiifa Mohamed Ali\n\nHR & PAYROLL MANAGER\n\nN\n\nPEOPLE MANAGEMENT\n\nHR Dashboard\nEmployees\nLeave Management\nPayroll\nReports\nMy Profile\nLogout\nLeave requests\n\nReview staff time off and keep branch coverage organized.\n\n2 awaiting review\nAll requests\n4\nPending\n2\nApproved\n2\nRejected\n0\nEmployee\tLeave type\tDates\tReason\tStatus\tReview\n\nA\n\nAmina Yusuf Hassan\n\nTeacher\n\n\tSick\t\n\nMay 12, 2026\n\nto May 13, 2026 · 2 days\n\n\tMedical recovery\t\nApproved\t\nBy Abdirahman Said Ali\n\n\nH\n\nHibo Mohamed Nur\n\nRegistrar\n\n\tAnnual\t\n\nJul 5, 2026\n\nto Jul 10, 2026 · 6 days\n\n\tAnnual leave request\t\nPending\t\nReview\n\nK\n\nKhadar Ali Osman\n\nRegistrar\n\n\tAnnual\t\n\nJul 5, 2026\n\nto Jul 10, 2026 · 6 days\n\n\tAnnual leave request\t\nPending\t\nReview\n\nY\n\nYusuf Abdullahi Nur\n\nTeacher\n\n\tSick\t\n\nMay 12, 2026\n\nto May 13, 2026 · 2 days\n\n\tMedical recovery\t\nApproved\t\nBy Hodan Mohamed Aden",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/hr/payroll",
+          "expectedText": "Payroll",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/hr/payroll",
+            "title": "School Management Platform",
+            "heading": "Payroll",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Nadiifa Mohamed Ali\n\nHR & PAYROLL MANAGER\n\nN\n\nPEOPLE MANAGEMENT\n\nHR Dashboard\nEmployees\nLeave Management\nPayroll\nReports\nMy Profile\nLogout\nPayroll\n\nGenerate, review, approve, and record monthly staff salaries.\n\nJanuary\nFebruary\nMarch\nApril\nMay\nJune\nJuly\nAugust\nSeptember\nOctober\nNovember\nDecember\n2025\n2026\n2027\nGenerate payroll\n\nTotal payroll\n\nUSD 0\n\nPaid\n\nUSD 0\n\nPending\n\nUSD 0\n\nNo payroll for this period\n\nGenerate payroll after employee salary profiles are complete.",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/hr/reports",
+          "expectedText": "HR reports",
+          "passed": false,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/hr/reports",
+            "title": "School Management Platform",
+            "heading": "Payroll reports",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Nadiifa Mohamed Ali\n\nHR & PAYROLL MANAGER\n\nN\n\nPEOPLE MANAGEMENT\n\nHR Dashboard\nEmployees\nLeave Management\nPayroll\nReports\nMy Profile\nLogout\nPayroll reports\n\nReview payroll cost, deductions, disbursement, and branch totals.\n\nGross payroll\n\nUSD 16,750\n\nPending payout\n\nUSD 0\n\nPaid payroll\n\nUSD 16,690\n\nDeductions\n\nUSD 60\n\nPayroll by location\n\nAll generated payroll records.\n\nLocation\tPayroll records\tNet payroll\nCentral Campus\t11\tUSD 8,345\nRiverside Campus\t11\tUSD 8,345",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/hr/profile",
+          "expectedText": "Profile",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/hr/profile",
+            "title": "School Management Platform",
+            "heading": "My Profile",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Nadiifa Mohamed Ali\n\nHR & PAYROLL MANAGER\n\nN\n\nPEOPLE MANAGEMENT\n\nHR Dashboard\nEmployees\nLeave Management\nPayroll\nReports\nMy Profile\nLogout\nMy Profile\n\nManage your personal details and profile image.\n\nChange password\nN\nNadiifa Mohamed Ali\nHr Payroll Manager\nActive account\n\nPNG, JPEG, or WebP. Maximum size 2 MB.\n\nContact information\n\nContact details you can keep up to date.\n\nPhone\nAddress\nEmergency contact\n\nA trusted person the institution may contact when needed.\n\nContact name\nRelationship\nContact phone\nContact email\nOfficial and account information\n\nVerified fields are read-only.\n\nFull name\n\nNadiifa Mohamed Ali\n\nDate of birth\n\nNot recorded\n\nGender\n\nNot recorded\n\nEmail\n\nhr@horizonacademy.edu.so\n\nEmployee ID\n\nHIA-HR-001\n\nRole\n\nHr Payroll Manager\n\nAccess scope\n\nTenant\n\nContact an authorized administrator if your name, date of birth, gender, email, role, school, or branch information needs to change.",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        }
+      ],
+      "screenshot": "D:\\school-management-system\\e2e-artifacts\\full-lifecycle-20260808\\hr-dashboard.png"
+    },
+    {
+      "role": "finance",
+      "login": {
+        "passed": true,
+        "expectedPath": "/finance",
+        "snapshot": {
+          "url": "http://127.0.0.1:5181/finance",
+          "title": "School Management Platform",
+          "heading": "Financial overview",
+          "alerts": [],
+          "globalOverflow": false,
+          "invalidControls": [],
+          "bodyExcerpt": "Abdirizak Yusuf Noor\n\nFINANCE DIRECTOR\n\nA\n\nFINANCE MANAGEMENT\n\nFinance Dashboard\nPolicies\nFee Structures\nInvoices\nPayments\nSalary Approvals\nPayroll Approvals\nReports\nOutstanding\nReceipt Branding\nMy Profile\nLogout\nFinancial overview\n\nTrack collections and outstanding balances across the institution.\n\nAll Branches\nCentral Campus\nRiverside Campus\nAll Years\n2024-2025\n2025-2026\n\nTotal Collected\n\n$1,404\n\nSum of all transaction methods\n\nTotal Outstanding\n\n$1,452\n\nPending fee collections\n\nUnpaid Invoices\n\n32\n\nInvoices awaiting payment\n\nCollections by Method\n\nBreakdown of fees received per channel.\n\nMOBILE_MONEY\n\n$702\n\n16 payments\n\nCASH\n\n$702\n\n16 payments\n\nCollections by Branch\n\nBreakdown of fees received per school location.\n\nRiverside Campus\n\n$702\n\nCentral Campus\n\n$702",
+          "unauthorized": false,
+          "blank": false
+        },
+        "errors": []
+      },
+      "pages": [
+        {
+          "route": "/finance",
+          "expectedText": "Finance",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/finance",
+            "title": "School Management Platform",
+            "heading": "Financial overview",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Abdirizak Yusuf Noor\n\nFINANCE DIRECTOR\n\nA\n\nFINANCE MANAGEMENT\n\nFinance Dashboard\nPolicies\nFee Structures\nInvoices\nPayments\nSalary Approvals\nPayroll Approvals\nReports\nOutstanding\nReceipt Branding\nMy Profile\nLogout\nFinancial overview\n\nTrack collections and outstanding balances across the institution.\n\nAll Branches\nCentral Campus\nRiverside Campus\nAll Years\n2024-2025\n2025-2026\n\nTotal Collected\n\n$1,404\n\nSum of all transaction methods\n\nTotal Outstanding\n\n$1,452\n\nPending fee collections\n\nUnpaid Invoices\n\n32\n\nInvoices awaiting payment\n\nCollections by Method\n\nBreakdown of fees received per channel.\n\nMOBILE_MONEY\n\n$702\n\n16 payments\n\nCASH\n\n$702\n\n16 payments\n\nCollections by Branch\n\nBreakdown of fees received per school location.\n\nRiverside Campus\n\n$702\n\nCentral Campus\n\n$702",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/finance/policies",
+          "expectedText": "Policies",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/finance/policies",
+            "title": "School Management Platform",
+            "heading": "Finance policies",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Abdirizak Yusuf Noor\n\nFINANCE DIRECTOR\n\nA\n\nFINANCE MANAGEMENT\n\nFinance Dashboard\nPolicies\nFee Structures\nInvoices\nPayments\nSalary Approvals\nPayroll Approvals\nReports\nOutstanding\nReceipt Branding\nMy Profile\nLogout\nFinance policies\n\nConfigure global invoicing and collection rules.\n\nInvoice Generation Policy\n\nDefine automatic billing events and operational switches.\n\nAuto-Invoice Mode\n\nRecord when your finance team expects invoices to be generated. Invoice generation remains a reviewed finance action.\n\nManual Only\nOn Year Start\nOn Enrollment\n\nModule Status\n\nMaster switch for finance operations. Disabling stops all new transactions.\n\nSave Configuration",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/finance/fee-structures",
+          "expectedText": "Fee",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/finance/fee-structures",
+            "title": "School Management Platform",
+            "heading": "Fee structures",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Abdirizak Yusuf Noor\n\nFINANCE DIRECTOR\n\nA\n\nFINANCE MANAGEMENT\n\nFinance Dashboard\nPolicies\nFee Structures\nInvoices\nPayments\nSalary Approvals\nPayroll Approvals\nReports\nOutstanding\nReceipt Branding\nMy Profile\nLogout\nFee structures\n\nManage tuition rules and breakdown templates.\n\nCreate New\nGrade 1 Monthly Fee Plan\nCentral Campus\nGrade 1\n2025-2026\nMonthly payments\nTuition\n$344\nActivities and resources\n$86\nTotal Value\n$430\nGrade 2 Monthly Fee Plan\nCentral Campus\nGrade 2\n2025-2026\nMonthly payments\nTuition\n$368\nActivities and resources\n$92\nTotal Value\n$460\nGrade 3 Monthly Fee Plan\nCentral Campus\nGrade 3\n2025-2026\nMonthly payments\nTuition\n$392\nActivities and resources\n$98\nTotal Value\n$490\nGrade 4 Monthly Fee Plan\nCentral Campus\nGrade 4\n2025-2026\nMonthly payments\nTuition\n$416\nActivities and resources\n$104\nTotal Value\n$520\nGrade 5 Monthly Fee Plan\nCentral Campus\nGrade 5\n2025-2026\nMonthly payments\nTuition\n$440\nActivities and resources\n$110\nTotal Value\n$550\nGrade 6 Monthly Fee Plan\nCentral Campus\nGrade 6\n2025-2026\nMonthly payments\nTuition\n$464\nActivities and resources\n$116\nTotal Value\n$580\nGrade 7 Monthly Fee Plan\nCentral Campus\nGrade 7\n2025-2026\nMonthly payments\nTuition\n$488\nActivities and res",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/finance/invoices",
+          "expectedText": "Invoices",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/finance/invoices",
+            "title": "School Management Platform",
+            "heading": "Invoice management",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Abdirizak Yusuf Noor\n\nFINANCE DIRECTOR\n\nA\n\nFINANCE MANAGEMENT\n\nFinance Dashboard\nPolicies\nFee Structures\nInvoices\nPayments\nSalary Approvals\nPayroll Approvals\nReports\nOutstanding\nReceipt Branding\nMy Profile\nLogout\nInvoice management\n\nTrack and manage student billing records.\n\nGenerate Invoice\nBranch\nSelect Option\nCentral Campus\nRiverside Campus\nAcademic Year\nSelect Option\n2024-2025\n2025-2026\nStatus\nSelect Option\nPAID\nUNPAID\nPARTIALLY_PAID\nVOID\nSearch Student\nInvoice #\tStudent\tDate\tBilling Period\tTotal\tPaid\tBalance\tStatus\t\nINV-11d3d8\tMohamed Ahmed\t6/10/2026\tJUN\t$76\t$38\t$38\tPARTIALLY_PAID\t\n\nINV-11d3db\tIfrah Abdi\t6/10/2026\tJUN\t$76\t$0\t$76\tUNPAID\t\n\nINV-11d3d5\tHani Abdullahi\t6/10/2026\tJUN\t$73\t$73\t$0\tPAID\t\n\nINV-11d3d2\tAbdirahman Ibrahim\t6/10/2026\tJUN\t$73\t$0\t$73\tUNPAID\t\n\nINV-11d3cf\tAyaan Said\t6/10/2026\tJUN\t$70\t$35\t$35\tPARTIALLY_PAID\t\n\nINV-11d3c9\tMuna Aden\t6/10/2026\tJUN\t$67\t$0\t$67\tUNPAID\t\n\nINV-11d3c6\tBashir Yusuf\t6/10/2026\tJUN\t$67\t$33.5\t$33.5\tPARTIALLY_PAID\t\n\nINV-11d3cc\tAnas Omar\t6/10/2026\tJUN\t$70\t$70\t$0\tPAID\t\n\nINV-11d3c3\tRahma Farah\t6/10/2026\tJUN\t$64\t$64\t$0\tPAID\t\n\nINV-11d3c0\tMustafa Nur\t6/10/2026\tJUN\t$64\t$0\t$64\tUNPAID\t\n\nINV-11d3bd\tUbah Jama\t6/10/2026\tJUN\t$61\t$30.5\t$30.5\tPARTIALLY_PAID\t\n\nINV",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/finance/payments",
+          "expectedText": "Payments",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/finance/payments",
+            "title": "School Management Platform",
+            "heading": "Transaction history",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Abdirizak Yusuf Noor\n\nFINANCE DIRECTOR\n\nA\n\nFINANCE MANAGEMENT\n\nFinance Dashboard\nPolicies\nFee Structures\nInvoices\nPayments\nSalary Approvals\nPayroll Approvals\nReports\nOutstanding\nReceipt Branding\nMy Profile\nLogout\nTransaction history\n\nRead-only ledger of all received student payments.\n\nBranch\nSelect Option\nCentral Campus\nRiverside Campus\nMethod\nSelect Option\nCash\nCard\nBank Transfer\nOnline\nFrom Date\nTo Date\nReceipt ID\tInvoice Ref\tDate\tMethod\tReference\tAmount\nRCP-11d076\tINV-11d02e\t6/16/2026 03:00 AM\tCASH\t-\t+$43\nRCP-11d077\tINV-11d031\t6/16/2026 03:00 AM\tMOBILE_MONEY\tMM-HIA-1-2\t+$21.5\nRCP-11d078\tINV-11d037\t6/16/2026 03:00 AM\tMOBILE_MONEY\tMM-HIA-1-4\t+$46\nRCP-11d079\tINV-11d03a\t6/16/2026 03:00 AM\tCASH\t-\t+$24.5\nRCP-11d07a\tINV-11d040\t6/16/2026 03:00 AM\tCASH\t-\t+$52\nRCP-11d07b\tINV-11d043\t6/16/2026 03:00 AM\tMOBILE_MONEY\tMM-HIA-1-8\t+$26\nRCP-11d07c\tINV-11d049\t6/16/2026 03:00 AM\tMOBILE_MONEY\tMM-HIA-1-10\t+$55\nRCP-11d07d\tINV-11d04c\t6/16/2026 03:00 AM\tCASH\t-\t+$29\nRCP-11d07e\tINV-11d052\t6/16/2026 03:00 AM\tCASH\t-\t+$61\nRCP-11d07f\tINV-11d055\t6/16/2026 03:00 AM\tMOBILE_MONEY\tMM-HIA-1-14\t+$30.5\nRCP-11d080\tINV-11d05b\t6/16/2026 03:00 AM\tMOBILE_MONEY\tMM-HIA-1-16\t+$64\nRCP-11d081\tINV-11d05e\t6/16/2026 03:00 AM\tCASH",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/finance/salary-approvals",
+          "expectedText": "Salary approvals",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/finance/salary-approvals",
+            "title": "School Management Platform",
+            "heading": "Salary approvals",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Abdirizak Yusuf Noor\n\nFINANCE DIRECTOR\n\nA\n\nFINANCE MANAGEMENT\n\nFinance Dashboard\nPolicies\nFee Structures\nInvoices\nPayments\nSalary Approvals\nPayroll Approvals\nReports\nOutstanding\nReceipt Branding\nMy Profile\nLogout\nSalary approvals\n\nReview HR compensation requests before they affect payroll.\n\n0\npending\nPending\nApproved\nRejected\nNo pending requests\n\nCompensation requests from HR will appear here.",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/finance/payroll-approvals",
+          "expectedText": "Payroll",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/finance/payroll-approvals",
+            "title": "School Management Platform",
+            "heading": "Payroll",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Abdirizak Yusuf Noor\n\nFINANCE DIRECTOR\n\nA\n\nFINANCE MANAGEMENT\n\nFinance Dashboard\nPolicies\nFee Structures\nInvoices\nPayments\nSalary Approvals\nPayroll Approvals\nReports\nOutstanding\nReceipt Branding\nMy Profile\nLogout\nPayroll\n\nGenerate, review, approve, and record monthly staff salaries.\n\nJanuary\nFebruary\nMarch\nApril\nMay\nJune\nJuly\nAugust\nSeptember\nOctober\nNovember\nDecember\n2025\n2026\n2027\n\nTotal payroll\n\nUSD 0\n\nPaid\n\nUSD 0\n\nPending\n\nUSD 0\n\nNo payroll for this period\n\nGenerate payroll after employee salary profiles are complete.",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/finance/reports",
+          "expectedText": "Reports",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/finance/reports",
+            "title": "School Management Platform",
+            "heading": "Financial intelligence",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Abdirizak Yusuf Noor\n\nFINANCE DIRECTOR\n\nA\n\nFINANCE MANAGEMENT\n\nFinance Dashboard\nPolicies\nFee Structures\nInvoices\nPayments\nSalary Approvals\nPayroll Approvals\nReports\nOutstanding\nReceipt Branding\nMy Profile\nLogout\nFinancial intelligence\n\nAnalyze revenue streams and collection performance.\n\nInvoices\nPayments\nDebtors\nPrimary View (Group By)\nSelect Option\nBy Branch\nBy Class/Grade\nBy Academic Year\nFilter Branch\nSelect Option\nAll Branches\nCentral Campus\nRiverside Campus\nFilter Year\nSelect Option\nAll Years\n2024-2025\n2025-2026\nRevenue Visualization\n\nGraphical representation of fee statuses.\n\nBilledCollectedOutstanding\nRiverside Campus\nCentral Campus\n0\n400\n800\n1200\n1600\nDetailed Breakdown\n\nNumeric breakdown of billed and collected fees.\n\nCategory\tBilled\tCollected\tOutstanding\nRiverside Campus\t$1,428\t$702\t$726\nCentral Campus\t$1,428\t$702\t$726\n0",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/finance/outstanding",
+          "expectedText": "Outstanding",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/finance/outstanding",
+            "title": "School Management Platform",
+            "heading": "Outstanding balances",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Abdirizak Yusuf Noor\n\nFINANCE DIRECTOR\n\nA\n\nFINANCE MANAGEMENT\n\nFinance Dashboard\nPolicies\nFee Structures\nInvoices\nPayments\nSalary Approvals\nPayroll Approvals\nReports\nOutstanding\nReceipt Branding\nMy Profile\nLogout\nOutstanding balances\n\nMonitor unpaid dues and collection risks.\n\nFilter by Branch\nSelect Option\nCentral Campus\nRiverside Campus\nFilter by Year\nSelect Option\n2024-2025\n2025-2026\n\nTOTAL RECEIVABLES\n\n$1,452\n\n32 Unpaid Invoices\n\nBilling Operations\n\nUse due dates and the debtor list to coordinate invoice follow-up.\n\nActive outstanding invoice count: 32\n\nTop Debtors Watchlist\n\nStudents with the largest outstanding fee balances.\n\nStudent\tAdm No.\tBranch\tClass\tOldest Due Date\tBalance Due\nAnas Ahmed\tHIA-2026-CEN-024\tCentral Campus\tGrade 12\t6/10/2026\t$76\nIfrah Abdi\tHIA-2026-RIV-024\tRiverside Campus\tGrade 12\t6/10/2026\t$76\nAbdirahman Ibrahim\tHIA-2026-RIV-021\tRiverside Campus\tGrade 11\t6/10/2026\t$73\nRahma Said\tHIA-2026-CEN-021\tCentral Campus\tGrade 11\t6/10/2026\t$73\nMuna Aden\tHIA-2026-RIV-018\tRiverside Campus\tGrade 9\t6/10/2026\t$67\nAbdiqani Yusuf\tHIA-2026-CEN-018\tCentral Campus\tGrade 9\t6/10/2026\t$67\nFadumo Jama\tHIA-2026-CEN-015\tCentral Campus\tGrade 8\t6/10/2026\t$64\nMustafa Nur\tHIA-2026-RIV-0",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/finance/receipt-branding",
+          "expectedText": "Receipt",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/finance/receipt-branding",
+            "title": "School Management Platform",
+            "heading": "Receipt branding",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Abdirizak Yusuf Noor\n\nFINANCE DIRECTOR\n\nA\n\nFINANCE MANAGEMENT\n\nFinance Dashboard\nPolicies\nFee Structures\nInvoices\nPayments\nSalary Approvals\nPayroll Approvals\nReports\nOutstanding\nReceipt Branding\nMy Profile\nLogout\nReceipt branding\n\nPreview how receipts look for each branch.\n\nSelect Branch to Preview\nSelect Option\nCentral Campus\nRiverside Campus\nRECEIPT PREVIEW CANVAS\nCentral Campus\n\nMaka Al-Mukarama Road, Hodan, Mogadishu\n\n+252 61 555 1101\n\nReceipt #:\nRCP-00001\nDate:\n8/8/2026\nStudent:\nJohn Doe\nItem\tAmt\nTuition Fee\t$500.00\nBooks\t$150.00\nTotal Paid\n$650.00\n\nThank you for supporting learning at Horizon International Academy.",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/finance/profile",
+          "expectedText": "Profile",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/finance/profile",
+            "title": "School Management Platform",
+            "heading": "My Profile",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Abdirizak Yusuf Noor\n\nFINANCE DIRECTOR\n\nA\n\nFINANCE MANAGEMENT\n\nFinance Dashboard\nPolicies\nFee Structures\nInvoices\nPayments\nSalary Approvals\nPayroll Approvals\nReports\nOutstanding\nReceipt Branding\nMy Profile\nLogout\nMy Profile\n\nManage your personal details and profile image.\n\nChange password\nA\nAbdirizak Yusuf Noor\nFinance Director\nActive account\n\nPNG, JPEG, or WebP. Maximum size 2 MB.\n\nContact information\n\nContact details you can keep up to date.\n\nPhone\nAddress\nEmergency contact\n\nA trusted person the institution may contact when needed.\n\nContact name\nRelationship\nContact phone\nContact email\nOfficial and account information\n\nVerified fields are read-only.\n\nFull name\n\nAbdirizak Yusuf Noor\n\nDate of birth\n\nNot recorded\n\nGender\n\nNot recorded\n\nEmail\n\nfinance@horizonacademy.edu.so\n\nEmployee ID\n\nHIA-FD-001\n\nRole\n\nFinance Director\n\nAccess scope\n\nTenant\n\nContact an authorized administrator if your name, date of birth, gender, email, role, school, or branch information needs to change.",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        }
+      ],
+      "screenshot": "D:\\school-management-system\\e2e-artifacts\\full-lifecycle-20260808\\finance-dashboard.png"
+    },
+    {
+      "role": "cashier",
+      "login": {
+        "passed": true,
+        "expectedPath": "/cashier",
+        "snapshot": {
+          "url": "http://127.0.0.1:5181/cashier",
+          "title": "School Management Platform",
+          "heading": "Cashier Dashboard",
+          "alerts": [],
+          "globalOverflow": false,
+          "invalidControls": [],
+          "bodyExcerpt": "Maryan Hassan Jama\n\nCashier\n\nM\n\nCashier Menu\n\nDashboard\nInvoice Lookup\nRecord Payment\nPayment History\nSalary Payments\nMy Profile\nLogout\nCashier Dashboard\n\nOverview of today's payments, active transactions, and outstanding invoice balances.\n\nCollected Today\n\n$0\n\nTransactions Today\n\n0\n\nPending Invoices\n\n16\n\nBranch Outstanding Balance\n\n$726\n+ Record Payment\nLookup Invoice\nRecent Transactions\n$43\nCASH\nRef: N/A • 3:00:00 AM\n$21.5\nMOBILE_MONEY\nRef: MM-HIA-1-2 • 3:00:00 AM\n$46\nMOBILE_MONEY\nRef: MM-HIA-1-4 • 3:00:00 AM\n$24.5\nCASH\nRef: N/A • 3:00:00 AM\n$52\nCASH\nRef: N/A • 3:00:00 AM",
+          "unauthorized": false,
+          "blank": false
+        },
+        "errors": []
+      },
+      "pages": [
+        {
+          "route": "/cashier",
+          "expectedText": "Cashier",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/cashier",
+            "title": "School Management Platform",
+            "heading": "Cashier Dashboard",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Maryan Hassan Jama\n\nCashier\n\nM\n\nCashier Menu\n\nDashboard\nInvoice Lookup\nRecord Payment\nPayment History\nSalary Payments\nMy Profile\nLogout\nCashier Dashboard\n\nOverview of today's payments, active transactions, and outstanding invoice balances.\n\nCollected Today\n\n$0\n\nTransactions Today\n\n0\n\nPending Invoices\n\n16\n\nBranch Outstanding Balance\n\n$726\n+ Record Payment\nLookup Invoice\nRecent Transactions\n$43\nCASH\nRef: N/A • 3:00:00 AM\n$21.5\nMOBILE_MONEY\nRef: MM-HIA-1-2 • 3:00:00 AM\n$46\nMOBILE_MONEY\nRef: MM-HIA-1-4 • 3:00:00 AM\n$24.5\nCASH\nRef: N/A • 3:00:00 AM\n$52\nCASH\nRef: N/A • 3:00:00 AM",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/cashier/invoices",
+          "expectedText": "Invoice Lookup",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/cashier/invoices",
+            "title": "School Management Platform",
+            "heading": "Invoice Lookup",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Maryan Hassan Jama\n\nCashier\n\nM\n\nCashier Menu\n\nDashboard\nInvoice Lookup\nRecord Payment\nPayment History\nSalary Payments\nMy Profile\nLogout\nInvoice Lookup\n\nSearch and look up school invoices by admission number or invoice ID.\n\nAdmission Number\nInvoice ID\nSearch",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/cashier/payments/new",
+          "expectedText": "Record Payment",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/cashier/payments/new",
+            "title": "School Management Platform",
+            "heading": "Record Payment",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Maryan Hassan Jama\n\nCashier\n\nM\n\nCashier Menu\n\nDashboard\nInvoice Lookup\nRecord Payment\nPayment History\nSalary Payments\nMy Profile\nLogout\nRecord Payment\n\nSubmit a payment transaction for an outstanding student invoice.\n\nNo invoice selected. Please look up an invoice first to record a payment.\n\nFind Invoice",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/cashier/payments",
+          "expectedText": "Payment",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/cashier/payments",
+            "title": "School Management Platform",
+            "heading": "Payment History",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Maryan Hassan Jama\n\nCashier\n\nM\n\nCashier Menu\n\nDashboard\nInvoice Lookup\nRecord Payment\nPayment History\nSalary Payments\nMy Profile\nLogout\nPayment History\n\nView and manage history of all recorded branch transactions and payments.\n\nCashier day close\n\nOwn-drawer totals for the selected business day.\n\nClose Date\nExport close\n\nCOLLECTED\n\n$0\n\nREVERSED\n\n$0\n\nNET\n\n$0\n\nEXPECTED CASH\n\n$0\n\nTRANSACTIONS\n\n0\n\nFrom Date\nTo Date\nMethod\nAll\nCash\nZaad\nEVC Plus\nBank Transfer\nCard / POS\nOther\nFiltered Search\nDate/Time\tAmount\tMethod\tRef\tInvoice ID\tRecorded By\tStatus\tAction\n6/16/2026, 3:00:00 AM\t$43.00\tCASH\t-\t#e411d02e\tMaryan Hassan Jama\tActive\t\n\n6/16/2026, 3:00:00 AM\t$21.50\tMOBILE MONEY\tMM-HIA-1-2\t#e411d031\tMaryan Hassan Jama\tActive\t\n\n6/16/2026, 3:00:00 AM\t$46.00\tMOBILE MONEY\tMM-HIA-1-4\t#e411d037\tMaryan Hassan Jama\tActive\t\n\n6/16/2026, 3:00:00 AM\t$24.50\tCASH\t-\t#e411d03a\tMaryan Hassan Jama\tActive\t\n\n6/16/2026, 3:00:00 AM\t$52.00\tCASH\t-\t#e411d040\tMaryan Hassan Jama\tActive\t\n\n6/16/2026, 3:00:00 AM\t$26.00\tMOBILE MONEY\tMM-HIA-1-8\t#e411d043\tMaryan Hassan Jama\tActive\t\n\n6/16/2026, 3:00:00 AM\t$55.00\tMOBILE MONEY\tMM-HIA-1-10\t#e411d049\tMaryan Hassan Jama\tActive\t\n\n6/16/2026, 3:00:00 AM\t$29.00\tCASH\t-\t#e411d04c\tMaryan Hass",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/cashier/salary-payments",
+          "expectedText": "Payroll",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/cashier/salary-payments",
+            "title": "School Management Platform",
+            "heading": "Payroll",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Maryan Hassan Jama\n\nCashier\n\nM\n\nCashier Menu\n\nDashboard\nInvoice Lookup\nRecord Payment\nPayment History\nSalary Payments\nMy Profile\nLogout\nPayroll\n\nGenerate, review, approve, and record monthly staff salaries.\n\nJanuary\nFebruary\nMarch\nApril\nMay\nJune\nJuly\nAugust\nSeptember\nOctober\nNovember\nDecember\n2025\n2026\n2027\n\nTotal payroll\n\nUSD 0\n\nPaid\n\nUSD 0\n\nPending\n\nUSD 0\n\nNo payroll for this period\n\nGenerate payroll after employee salary profiles are complete.",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/cashier/profile",
+          "expectedText": "Profile",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/cashier/profile",
+            "title": "School Management Platform",
+            "heading": "My Profile",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Maryan Hassan Jama\n\nCashier\n\nM\n\nCashier Menu\n\nDashboard\nInvoice Lookup\nRecord Payment\nPayment History\nSalary Payments\nMy Profile\nLogout\nMy Profile\n\nManage your personal details and profile image.\n\nChange password\nM\nMaryan Hassan Jama\nCashier\nActive account\n\nPNG, JPEG, or WebP. Maximum size 2 MB.\n\nContact information\n\nContact details you can keep up to date.\n\nPhone\nAddress\nEmergency contact\n\nA trusted person the institution may contact when needed.\n\nContact name\nRelationship\nContact phone\nContact email\nOfficial and account information\n\nVerified fields are read-only.\n\nFull name\n\nMaryan Hassan Jama\n\nDate of birth\n\nNot recorded\n\nGender\n\nNot recorded\n\nEmail\n\ncentral.cashier@horizonacademy.edu.so\n\nEmployee ID\n\nHIA-1-CS-001\n\nRole\n\nCashier\n\nAccess scope\n\nBranch\n\nContact an authorized administrator if your name, date of birth, gender, email, role, school, or branch information needs to change.",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        }
+      ],
+      "screenshot": "D:\\school-management-system\\e2e-artifacts\\full-lifecycle-20260808\\cashier-dashboard.png"
+    },
+    {
+      "role": "branch-admin",
+      "login": {
+        "passed": true,
+        "expectedPath": "/branch",
+        "snapshot": {
+          "url": "http://127.0.0.1:5181/branch",
+          "title": "School Management Platform",
+          "heading": "Branch Console",
+          "alerts": [],
+          "globalOverflow": false,
+          "invalidControls": [],
+          "bodyExcerpt": "Hodan Mohamed Aden\n\nBranch Admin\n\nH\n\nBRANCH ADMINISTRATION\n\nDashboard\nClasses\nTimetable\nTeachers\nAdd teacher\nView and manage\nStaff\nAdd staff\nView and manage\nLeaves Manager\nStudents\nPromotions\nTransfers\nTeacher Assignments\nExams\nResults\nStudent Results\nReports\nMy Profile\nLogout\nBranch Console\n\nReal-time indicators & statistics for your branch.\n\nAcademic Year:\n2025-2026\n\nActive Students\n\n24\n\nCurrent Enrollments\n\n24\n\nTotal Invoiced\n\n$1,428\n\nTotal Collected\n\n$702\n\nCollection Rate: 49%\n\nFee Collection Trends\n\nMonthly collection rates comparison.\n\nCollectedInvoiced\nMar\nApr\nMay\nJun\nJul\nAug\n0\n400\n800\n1200\n1600\nEnrollment Metrics\n\nComparison of registrations.\n\nActive Students\nCurrent Enrollments\n0\n6\n12\n18\n24\nShortcuts & Operations\n\nYou have full authority to modify student catalogs, assign courses to teachers, and process school invoicing from the sidebar navigation console.\n\nTimetables\nPromotion Pipelines\nExams Console\nBranch Configuration\n\nEnsure academic parameters are properly initialized before student rosters are registered. Set grades policies to compute correct averages.\n\nSystem Checked\nOnline Status\n6",
+          "unauthorized": false,
+          "blank": false
+        },
+        "errors": []
+      },
+      "pages": [
+        {
+          "route": "/branch",
+          "expectedText": "Branch",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/branch",
+            "title": "School Management Platform",
+            "heading": "Branch Console",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Hodan Mohamed Aden\n\nBranch Admin\n\nH\n\nBRANCH ADMINISTRATION\n\nDashboard\nClasses\nTimetable\nTeachers\nAdd teacher\nView and manage\nStaff\nAdd staff\nView and manage\nLeaves Manager\nStudents\nPromotions\nTransfers\nTeacher Assignments\nExams\nResults\nStudent Results\nReports\nMy Profile\nLogout\nBranch Console\n\nReal-time indicators & statistics for your branch.\n\nAcademic Year:\n2025-2026\n\nActive Students\n\n24\n\nCurrent Enrollments\n\n24\n\nTotal Invoiced\n\n$1,428\n\nTotal Collected\n\n$702\n\nCollection Rate: 49%\n\nFee Collection Trends\n\nMonthly collection rates comparison.\n\nCollectedInvoiced\nMar\nApr\nMay\nJun\nJul\nAug\n0\n400\n800\n1200\n1600\nEnrollment Metrics\n\nComparison of registrations.\n\nActive Students\nCurrent Enrollments\n0\n6\n12\n18\n24\nShortcuts & Operations\n\nYou have full authority to modify student catalogs, assign courses to teachers, and process school invoicing from the sidebar navigation console.\n\nTimetables\nPromotion Pipelines\nExams Console\nBranch Configuration\n\nEnsure academic parameters are properly initialized before student rosters are registered. Set grades policies to compute correct averages.\n\nSystem Checked\nOnline Status\n6",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/branch/classes",
+          "expectedText": "Class",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/branch/classes",
+            "title": "School Management Platform",
+            "heading": "Academic Configuration",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Hodan Mohamed Aden\n\nBranch Admin\n\nH\n\nBRANCH ADMINISTRATION\n\nDashboard\nClasses\nTimetable\nTeachers\nAdd teacher\nView and manage\nStaff\nAdd staff\nView and manage\nLeaves Manager\nStudents\nPromotions\nTransfers\nTeacher Assignments\nExams\nResults\nStudent Results\nReports\nMy Profile\nLogout\nAcademic Configuration\n\nDefine the foundation of your school curriculum.\n\nAdd categorie\nCategories\nClasses\nSections\nMaster Subjects\nClass Curriculum\nCategory Profile\tDescription\tRegistration Date\n\nPrimary School\nACADEMIC DEPARTMENT\n\tGrades 1 through 6\t8/8/2026\n\nSecondary School\nACADEMIC DEPARTMENT\n\tGrades 7 through 12\t8/8/2026",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/branch/students",
+          "expectedText": "Students",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/branch/students",
+            "title": "School Management Platform",
+            "heading": "Student Directory",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Hodan Mohamed Aden\n\nBranch Admin\n\nH\n\nBRANCH ADMINISTRATION\n\nDashboard\nClasses\nTimetable\nTeachers\nAdd teacher\nView and manage\nStaff\nAdd staff\nView and manage\nLeaves Manager\nStudents\nPromotions\nTransfers\nTeacher Assignments\nExams\nResults\nStudent Results\nReports\nMy Profile\nLogout\nStudent Directory\n\nBrowse student rosters, classes, and registration status.\n\nSTUDENT ADMISSION AND PROFILE EDITING ARE HANDLED BY THE REGISTRAR.\n\nFilter by Class\nAll Classes\nGrade 1\nGrade 10\nGrade 11\nGrade 12\nGrade 2\nGrade 3\nGrade 4\nGrade 5\nGrade 6\nGrade 7\nGrade 8\nGrade 9\nStatus\nAll Statuses\nActive\nInactive\nTransferred\nGraduated\nSearch\nAdm. No.\tName\tCurrent class\tAcademic year\tStatus\tGuardian\tPhone\t\nHIA-2026-CEN-024\tAnas Ahmed\tGrade 12\t2025-2026\tActive\tOsman Said\t+252 61 555 3000\t\n\nHIA-2026-CEN-023\tMuna Abdullahi\tGrade 12\t2025-2026\tActive\tSahra Omar\t+252 61 555 3000\t\n\nHIA-2026-CEN-022\tBashir Ibrahim\tGrade 11\t2025-2026\tActive\tIbrahim Aden\t+252 61 555 3000\t\n\nHIA-2026-CEN-021\tRahma Said\tGrade 11\t2025-2026\tActive\tMaryan Yusuf\t+252 61 555 3000\t\n\nHIA-2026-CEN-020\tMustafa Omar\tGrade 10\t2025-2026\tActive\tYusuf Farah\t+252 61 555 3000\t\n\nHIA-2026-CEN-019\tUbah Aden\tGrade 10\t2025-2026\tActive\tHodan Nur\t+252 61 555 3000\t\n\nH",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/branch/transfers",
+          "expectedText": "Branch Transfer",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/branch/transfers",
+            "title": "School Management Platform",
+            "heading": "Branch Transfer",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [
+              "select-one",
+              "Reason for transfer"
+            ],
+            "bodyExcerpt": "Hodan Mohamed Aden\n\nBranch Admin\n\nH\n\nBRANCH ADMINISTRATION\n\nDashboard\nClasses\nTimetable\nTeachers\nAdd teacher\nView and manage\nStaff\nAdd staff\nView and manage\nLeaves Manager\nStudents\nPromotions\nTransfers\nTeacher Assignments\nExams\nResults\nStudent Results\nReports\nMy Profile\nLogout\nBranch Transfer\n\nMove a student from your branch while preserving academic and financial history.\n\nAcademic Year: 2025-2026\nFind student\nSearch\nDestination branch\nSelect branch\nRiverside Campus\nDestination class (same grade)\nSelect class\nDestination section\nNo sections configured\nReason\nTransfer effect: current enrollment becomes Transferred, a destination enrollment is created, and the student portal moves to the destination branch.\nTransfer student",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/branch/promotions",
+          "expectedText": "Promotion",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/branch/promotions",
+            "title": "School Management Platform",
+            "heading": "Student Promotions",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Hodan Mohamed Aden\n\nBranch Admin\n\nH\n\nBRANCH ADMINISTRATION\n\nDashboard\nClasses\nTimetable\nTeachers\nAdd teacher\nView and manage\nStaff\nAdd staff\nView and manage\nLeaves Manager\nStudents\nPromotions\nTransfers\nTeacher Assignments\nExams\nResults\nStudent Results\nReports\nMy Profile\nLogout\nStudent Promotions\n\nBatch promote student cohorts to their respective classes for the next academic cycle.\n\nPROMOTION RULE\n\nStudents who fail at least half their subjects remain in the same class. Complete results are required before a decision is applied.\n\nCreate the next academic year before running promotion.\n×\nCURRENT ACADEMIC YEAR\n2025-2026\nTarget Academic Year\nSelect Target Year\n\nOnly the immediate next academic year is available.\n\nCLASS MAPPING RULES\nGrade 1\nGrade 2\nGrade 10\nGrade 11\nGrade 11\nGrade 12\nGrade 12\nNo next grade configured\nGrade 2\nGrade 3\nGrade 3\nGrade 4\nGrade 4\nGrade 5\nGrade 5\nGrade 6\nGrade 6\nGrade 7\nGrade 7\nGrade 8\nGrade 8\nGrade 9\nGrade 9\nGrade 10\nRun Promotion Cycle",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/branch/staff",
+          "expectedText": "Staff",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/branch/staff",
+            "title": "School Management Platform",
+            "heading": "Staff",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Hodan Mohamed Aden\n\nBranch Admin\n\nH\n\nBRANCH ADMINISTRATION\n\nDashboard\nClasses\nTimetable\nTeachers\nAdd teacher\nView and manage\nStaff\nAdd staff\nView and manage\nLeaves Manager\nStudents\nPromotions\nTransfers\nTeacher Assignments\nExams\nResults\nStudent Results\nReports\nMy Profile\nLogout\nStaff\n\nManage registrar and cashier accounts for this branch.\n\nAdd Staff\nFilter by Role\nAll Roles\nRegistrar\nCashier\nName\tEmail\tRole\tStatus\tActions\nMaryan Hassan Jama\tcentral.cashier@horizonacademy.edu.so\tcashier\tActive\t\n\nKhadar Ali Osman\tcentral.registrar@horizonacademy.edu.so\tregistrar\tActive\t",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/branch/exams",
+          "expectedText": "Exam",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/branch/exams",
+            "title": "School Management Platform",
+            "heading": "Academic Oversight",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Hodan Mohamed Aden\n\nBranch Admin\n\nH\n\nBRANCH ADMINISTRATION\n\nDashboard\nClasses\nTimetable\nTeachers\nAdd teacher\nView and manage\nStaff\nAdd staff\nView and manage\nLeaves Manager\nStudents\nPromotions\nTransfers\nTeacher Assignments\nExams\nResults\nStudent Results\nReports\nMy Profile\nLogout\nAcademic Oversight\n\nConfigure examination structures and manage grading sessions.\n\nAuthorize Exam\nExams\nTemplates\nExam Identity\tScope (Class/Sub)\tTimeline\tAvailability\tStandards\tActions\n\nTerm Assessment\n\t\nGrade 1\nPhysical Education\n\t\n\nFlexible Date\n\nTERM THREE\n\n\t\nOpen\t\n100\nPTS\n\t\nCLOSE ENTRY\n\n\nTerm Assessment\n\t\nGrade 1\nComputer Studies\n\t\n\nFlexible Date\n\nTERM THREE\n\n\t\nOpen\t\n100\nPTS\n\t\nCLOSE ENTRY\n\n\nTerm Assessment\n\t\nGrade 1\nIslamic Studies\n\t\n\nFlexible Date\n\nTERM THREE\n\n\t\nOpen\t\n100\nPTS\n\t\nCLOSE ENTRY\n\n\nTerm Assessment\n\t\nGrade 1\nSocial Studies\n\t\n\nFlexible Date\n\nTERM THREE\n\n\t\nOpen\t\n100\nPTS\n\t\nCLOSE ENTRY\n\n\nTerm Assessment\n\t\nGrade 1\nIntegrated Science\n\t\n\nFlexible Date\n\nTERM THREE\n\n\t\nOpen\t\n100\nPTS\n\t\nCLOSE ENTRY\n\n\nTerm Assessment\n\t\nGrade 12\nMathematics\n\t\n\nFlexible Date\n\nTERM THREE\n\n\tClosed\t\n100\nPTS\n\t\nREOPEN ENTRY\n\n\nTerm Assessment\n\t\nGrade 12\nEnglish Language\n\t\n\nFlexible Date\n\nTERM THREE\n\n\tClosed\t\n100\nPTS\n\t\nREOPEN ENTRY\n",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/branch/results",
+          "expectedText": "Result",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/branch/results",
+            "title": "School Management Platform",
+            "heading": "Result Analytics",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Hodan Mohamed Aden\n\nBranch Admin\n\nH\n\nBRANCH ADMINISTRATION\n\nDashboard\nClasses\nTimetable\nTeachers\nAdd teacher\nView and manage\nStaff\nAdd staff\nView and manage\nLeaves Manager\nStudents\nPromotions\nTransfers\nTeacher Assignments\nExams\nResults\nStudent Results\nReports\nMy Profile\nLogout\nResult Analytics\n\nComprehensive oversight of institutional academic performance.\n\nExport Batch Ledger\nAcademic Year\nSelect Year\n2025-2026\nAcademic Scope (Class)\nAll Classes\nGrade 1\nGrade 10\nGrade 11\nGrade 12\nGrade 2\nGrade 3\nGrade 4\nGrade 5\nGrade 6\nGrade 7\nGrade 8\nGrade 9\nSubject\nSelect Subject\nComputer Studies\nEnglish Language\nIntegrated Science\nIslamic Studies\nMathematics\nPhysical Education\nSocial Studies\nSomali Language\n\nSELECT YEAR, CLASS, AND SUBJECT PARAMETERS TO LOAD LEDGER.",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        }
+      ],
+      "screenshot": "D:\\school-management-system\\e2e-artifacts\\full-lifecycle-20260808\\branch-admin-dashboard.png"
+    },
+    {
+      "role": "registrar",
+      "login": {
+        "passed": true,
+        "expectedPath": "/registrar",
+        "snapshot": {
+          "url": "http://127.0.0.1:5181/registrar",
+          "title": "School Management Platform",
+          "heading": "Registrar Dashboard",
+          "alerts": [],
+          "globalOverflow": false,
+          "invalidControls": [],
+          "bodyExcerpt": "Khadar Ali Osman\n\nRegistrar\n\nK\n\nREGISTRAR MENU\n\nDashboard\nNew Admission\nStudents Directory\nRe-Enrollment\nMy Profile\nLogout\nRegistrar Dashboard\n\nOverview of branch-level student enrollment and statistics.\n\nAcademic Year:\n2025-2026\n\nTotal Students\n\n25\n\nActive Students\n\n24\n\nNew Admissions (Month)\n\n25\n\nTransferred Students\n\n0\n\nGraduated Students\n\n1\n\nInactive Students\n\n0\n\nNew Admission\n\nRegister a new student in the system",
+          "unauthorized": false,
+          "blank": false
+        },
+        "errors": []
+      },
+      "pages": [
+        {
+          "route": "/registrar",
+          "expectedText": "Registrar",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/registrar",
+            "title": "School Management Platform",
+            "heading": "Registrar Dashboard",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Khadar Ali Osman\n\nRegistrar\n\nK\n\nREGISTRAR MENU\n\nDashboard\nNew Admission\nStudents Directory\nRe-Enrollment\nMy Profile\nLogout\nRegistrar Dashboard\n\nOverview of branch-level student enrollment and statistics.\n\nAcademic Year:\n2025-2026\n\nTotal Students\n\n25\n\nActive Students\n\n24\n\nNew Admissions (Month)\n\n25\n\nTransferred Students\n\n0\n\nGraduated Students\n\n1\n\nInactive Students\n\n0\n\nNew Admission\n\nRegister a new student in the system",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/registrar/admissions",
+          "expectedText": "Admission",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/registrar/admissions",
+            "title": "School Management Platform",
+            "heading": "New Admission",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [
+              "classId",
+              "firstName",
+              "lastName",
+              "DOB",
+              "guardianName",
+              "guardianPhone",
+              "guardianEmail",
+              "guardianAddress"
+            ],
+            "bodyExcerpt": "Khadar Ali Osman\n\nRegistrar\n\nK\n\nREGISTRAR MENU\n\nDashboard\nNew Admission\nStudents Directory\nRe-Enrollment\nMy Profile\nLogout\nNew Admission\n\nRegister a new student and assign them to a class.\n\nAcademic Year:\n2025-2026\nStudent Details\n\nProvide student profile and initial grade placements.\n\nStudent ID is auto-generated when you submit (format: STD-001, STD-002, ...).\nClass to Join\n-- Select Class --\nGrade 1\nGrade 10\nGrade 11\nGrade 12\nGrade 2\nGrade 3\nGrade 4\nGrade 5\nGrade 6\nGrade 7\nGrade 8\nGrade 9\nSection (Optional)\n-- Select Existing Section --\nFirst Name\nMiddle Name\nLast Name\nDate of Birth\nAdmission Date\nNationality\nPrevious School\nGender\nMale\nFemale\nCreate New Section (Optional)\nGuardian Info\n\nRequired contact person details for notifications and billing.\n\nGuardian Name\nPhone Number\nGuardian Email\n\nUsed to create or link the parent portal account\n\nRelationship\nAddress\nParent access is automatic. A new account will be created, or an existing parent with the same email will be linked to this student.\nEmergency Contact Name\nEmergency Contact Phone\nMedical Alerts or Notes\nComplete Admission",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/registrar/students",
+          "expectedText": "Students",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/registrar/students",
+            "title": "School Management Platform",
+            "heading": "Students Directory",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Khadar Ali Osman\n\nRegistrar\n\nK\n\nREGISTRAR MENU\n\nDashboard\nNew Admission\nStudents Directory\nRe-Enrollment\nMy Profile\nLogout\nStudents Directory\n\nBrowse, search and filter all registered student profiles in this branch.\n\nTemplate\nImport CSV\nExport CSV\nAll Classes\nAll Statuses\nActive\nInactive\nTransferred\nGraduated",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/registrar/enrollments/new",
+          "expectedText": "Enrollment",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/registrar/enrollments/new",
+            "title": "School Management Platform",
+            "heading": "Re-Enrollment",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Khadar Ali Osman\n\nRegistrar\n\nK\n\nREGISTRAR MENU\n\nDashboard\nNew Admission\nStudents Directory\nRe-Enrollment\nMy Profile\nLogout\nRe-Enrollment\n\nEnroll an existing student into a class for the active academic year.\n\nAcademic Year:\n2025-2026\n1. Find Student\nSearch\n2. Select Class\n-- Choose Class --\nGrade 1\nGrade 10\nGrade 11\nGrade 12\nGrade 2\nGrade 3\nGrade 4\nGrade 5\nGrade 6\nGrade 7\nGrade 8\nGrade 9\nConfirm Enrollment",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        }
+      ],
+      "screenshot": "D:\\school-management-system\\e2e-artifacts\\full-lifecycle-20260808\\registrar-dashboard.png"
+    },
+    {
+      "role": "teacher",
+      "login": {
+        "passed": true,
+        "expectedPath": "/teacher",
+        "snapshot": {
+          "url": "http://127.0.0.1:5181/teacher",
+          "title": "School Management Platform",
+          "heading": "Welcome back, Yusuf Abdullahi Nur",
+          "alerts": [],
+          "globalOverflow": false,
+          "invalidControls": [],
+          "bodyExcerpt": "Yusuf Abdullahi Nur\n\nTeacher\n\nY\n\nTeacher Portal\n\nDashboard\nMy Schedule\nOpen Attendance\nLeaves Request\nTemplates\nCategories\nExams List\nEnter Results\nResults Viewer\nGrading Policy\nMy Profile\nLogout\nWelcome back, Yusuf Abdullahi Nur\n\nReview assigned classes, open exams, result entry tasks, and the grading policy from one clean workspace.\n\nEnter Results\nMy Schedule\n\nOpen Exams\n\n1\n\nAssigned Classes\n\n12\n\nSubjects\n\n1\n\nGrade Rules\n\n8\n\nMy Teaching Assignments\n12 classes\n\nClass\n\nGrade 1\n\nSection A\n\nSubjects\n\nMathematics\nAttendance\nEnter Results\n\nClass\n\nGrade 2\n\nSection A\n\nSubjects\n\nMathematics\nAttendance\nEnter Results\n\nClass\n\nGrade 3\n\nSection A\n\nSubjects\n\nMathematics\nAttendance\nEnter Results\n\nClass\n\nGrade 4\n\nSection A\n\nSubjects\n\nMathematics\nAttendance\nEnter Results\n\nClass\n\nGrade 5\n\nSection A\n\nSubjects\n\nMathematics\nAttendance\nEnter Results\n\nClass\n\nGrade 6\n\nSection A\n\nSubjects\n\nMathematics\nAttendance\nEnter Results\n\nClass\n\nGrade 7\n\nSection A\n\nSubjects\n\nMathematics\nAttendance\nEnter Results\n\nClass\n\nGrade 8\n\nSection A\n\nSubjects\n\nMathematics\nAttendance\nEnter Results\n\nClass\n\nGrade 9\n\nSection A\n\nSubjects\n\nMathematics\nAttendance\nEnter Results\n\nClass\n\nGrade 10\n\nSection A\n\nSubjects\n\nMathematics\nAttendan",
+          "unauthorized": false,
+          "blank": false
+        },
+        "errors": []
+      },
+      "pages": [
+        {
+          "route": "/teacher",
+          "expectedText": "Teacher",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/teacher",
+            "title": "School Management Platform",
+            "heading": "Welcome back, Yusuf Abdullahi Nur",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Yusuf Abdullahi Nur\n\nTeacher\n\nY\n\nTeacher Portal\n\nDashboard\nMy Schedule\nOpen Attendance\nLeaves Request\nTemplates\nCategories\nExams List\nEnter Results\nResults Viewer\nGrading Policy\nMy Profile\nLogout\nWelcome back, Yusuf Abdullahi Nur\n\nReview assigned classes, open exams, result entry tasks, and the grading policy from one clean workspace.\n\nEnter Results\nMy Schedule\n\nOpen Exams\n\n1\n\nAssigned Classes\n\n12\n\nSubjects\n\n1\n\nGrade Rules\n\n8\n\nMy Teaching Assignments\n12 classes\n\nClass\n\nGrade 1\n\nSection A\n\nSubjects\n\nMathematics\nAttendance\nEnter Results\n\nClass\n\nGrade 2\n\nSection A\n\nSubjects\n\nMathematics\nAttendance\nEnter Results\n\nClass\n\nGrade 3\n\nSection A\n\nSubjects\n\nMathematics\nAttendance\nEnter Results\n\nClass\n\nGrade 4\n\nSection A\n\nSubjects\n\nMathematics\nAttendance\nEnter Results\n\nClass\n\nGrade 5\n\nSection A\n\nSubjects\n\nMathematics\nAttendance\nEnter Results\n\nClass\n\nGrade 6\n\nSection A\n\nSubjects\n\nMathematics\nAttendance\nEnter Results\n\nClass\n\nGrade 7\n\nSection A\n\nSubjects\n\nMathematics\nAttendance\nEnter Results\n\nClass\n\nGrade 8\n\nSection A\n\nSubjects\n\nMathematics\nAttendance\nEnter Results\n\nClass\n\nGrade 9\n\nSection A\n\nSubjects\n\nMathematics\nAttendance\nEnter Results\n\nClass\n\nGrade 10\n\nSection A\n\nSubjects\n\nMathematics\nAttendan",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/teacher/exams",
+          "expectedText": "Exam",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/teacher/exams",
+            "title": "School Management Platform",
+            "heading": "Exams",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Yusuf Abdullahi Nur\n\nTeacher\n\nY\n\nTeacher Portal\n\nDashboard\nMy Schedule\nOpen Attendance\nLeaves Request\nTemplates\nCategories\nExams List\nEnter Results\nResults Viewer\nGrading Policy\nMy Profile\nLogout\nExams\n\nAssigned exams created by Branch Admin\n\nAcademic Year\nAll Years\n2025-2026\nClass\nAll Classes\nGrade 1 (1)\nGrade 2 (2)\nGrade 3 (3)\nGrade 4 (4)\nGrade 5 (5)\nGrade 6 (6)\nGrade 7 (7)\nGrade 8 (8)\nGrade 9 (9)\nGrade 10 (10)\nGrade 11 (11)\nGrade 12 (12)\nSubject\nAll Subjects\nMathematics (MATH)\nFilter\nCategory\tTemplate (Max)\tSubject\tClass\tYear\tTerm\tStatus\tAction\nTerm Assessment\t\nStandard 100-Mark Assessment\n100\n\tMathematics\tGrade 11\t2025-2026\tTerm Three\tClosed\t\nEnter Results\nView Results\n\nTerm Assessment\t\nStandard 100-Mark Assessment\n100\n\tMathematics\tGrade 12\t2025-2026\tTerm Three\tClosed\t\nEnter Results\nView Results\n\nTerm Assessment\t\nStandard 100-Mark Assessment\n100\n\tMathematics\tGrade 9\t2025-2026\tTerm Three\tClosed\t\nEnter Results\nView Results\n\nTerm Assessment\t\nStandard 100-Mark Assessment\n100\n\tMathematics\tGrade 10\t2025-2026\tTerm Three\tClosed\t\nEnter Results\nView Results\n\nTerm Assessment\t\nStandard 100-Mark Assessment\n100\n\tMathematics\tGrade 7\t2025-2026\tTerm Three\tClosed\t\nEnter Results\nView Results\n\nTer",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/teacher/results-entry",
+          "expectedText": "Result",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/teacher/results-entry",
+            "title": "School Management Platform",
+            "heading": "Enter Results",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Yusuf Abdullahi Nur\n\nTeacher\n\nY\n\nTeacher Portal\n\nDashboard\nMy Schedule\nOpen Attendance\nLeaves Request\nTemplates\nCategories\nExams List\nEnter Results\nResults Viewer\nGrading Policy\nMy Profile\nLogout\nEnter Results\n\nSelect an open exam and record student scores.\n\nStudents\n\n0\n\nRecorded\n\n0\n\nClass\nSelect class\nGrade 1\nGrade 2\nGrade 3\nGrade 4\nGrade 5\nGrade 6\nGrade 7\nGrade 8\nGrade 9\nGrade 10\nGrade 11\nGrade 12\nSubject\nSelect subject\nExam\nSelect exam\nTerm Three Mathematics Assessment (Term Three)\nTerm Three Mathematics Assessment (Term Three)\nTerm Three Mathematics Assessment (Term Three)\nTerm Three Mathematics Assessment (Term Three)\nTerm Three Mathematics Assessment (Term Three)\nTerm Three Mathematics Assessment (Term Three)\nTerm Three Mathematics Assessment (Term Three)\nTerm Three Mathematics Assessment (Term Three)\nTerm Three Mathematics Assessment (Term Three)\nTerm Three Mathematics Assessment (Term Three)\nTerm Three Mathematics Assessment (Term Three)\nE2E Grade 1 11cd7e Assessment (Term Three)\nChoose an exam to begin\n\nPick the class, subject, and exam above. Only open exams allow score entry.",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/teacher/schedule",
+          "expectedText": "Schedule",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/teacher/schedule",
+            "title": "School Management Platform",
+            "heading": "My Schedule",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Yusuf Abdullahi Nur\n\nTeacher\n\nY\n\nTeacher Portal\n\nDashboard\nMy Schedule\nOpen Attendance\nLeaves Request\nTemplates\nCategories\nExams List\nEnter Results\nResults Viewer\nGrading Policy\nMy Profile\nLogout\nMy Schedule\n\nToday and weekly timetable with attendance lock checks.\n\nSchool Year\nSelect Option\n2025-2026\nToday\nWeek\nToday (Saturday)\n\nMathematics\n\n08:00 - 08:45\n\nGrade 6 • Section A\n\nRoom P-06\n\nNo scheduled class now. Attendance is locked.\n\nMathematics\n\n09:40 - 10:25\n\nGrade 12 • Section A\n\nRoom S-12\n\nNo scheduled class now. Attendance is locked.\n\nMathematics\n\n11:56 - 12:31\n\nGrade 1 • Section A\n\nRoom E2E Attendance\n\nTake Attendance",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": [
+            {
+              "type": "http-error",
+              "status": 403,
+              "url": "http://127.0.0.1:5058/api/tenant/academic-years"
+            },
+            {
+              "type": "console-error",
+              "message": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+            },
+            {
+              "type": "http-error",
+              "status": 403,
+              "url": "http://127.0.0.1:5058/api/branch/academic-years/current"
+            },
+            {
+              "type": "console-error",
+              "message": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+            },
+            {
+              "type": "http-error",
+              "status": 403,
+              "url": "http://127.0.0.1:5058/api/tenant/academic-years"
+            },
+            {
+              "type": "console-error",
+              "message": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+            },
+            {
+              "type": "http-error",
+              "status": 403,
+              "url": "http://127.0.0.1:5058/api/branch/academic-years/current"
+            },
+            {
+              "type": "console-error",
+              "message": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+            }
+          ]
+        },
+        {
+          "route": "/teacher/attendance",
+          "expectedText": "Attendance",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/teacher/attendance",
+            "title": "School Management Platform",
+            "heading": "Open Attendance",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Yusuf Abdullahi Nur\n\nTeacher\n\nY\n\nTeacher Portal\n\nDashboard\nMy Schedule\nOpen Attendance\nLeaves Request\nTemplates\nCategories\nExams List\nEnter Results\nResults Viewer\nGrading Policy\nMy Profile\nLogout\nOpen Attendance\n\nToday and weekly timetable with attendance lock checks.\n\nSchool Year\nSelect Option\n2025-2026\nToday\nWeek\nToday (Saturday)\n\nMathematics\n\n08:00 - 08:45\n\nGrade 6 • Section A\n\nRoom P-06\n\nNo scheduled class now. Attendance is locked.\n\nMathematics\n\n09:40 - 10:25\n\nGrade 12 • Section A\n\nRoom S-12\n\nNo scheduled class now. Attendance is locked.\n\nMathematics\n\n11:56 - 12:31\n\nGrade 1 • Section A\n\nRoom E2E Attendance\n\nTake Attendance",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": [
+            {
+              "type": "http-error",
+              "status": 403,
+              "url": "http://127.0.0.1:5058/api/tenant/academic-years"
+            },
+            {
+              "type": "console-error",
+              "message": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+            },
+            {
+              "type": "http-error",
+              "status": 403,
+              "url": "http://127.0.0.1:5058/api/branch/academic-years/current"
+            },
+            {
+              "type": "console-error",
+              "message": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+            },
+            {
+              "type": "http-error",
+              "status": 403,
+              "url": "http://127.0.0.1:5058/api/tenant/academic-years"
+            },
+            {
+              "type": "console-error",
+              "message": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+            },
+            {
+              "type": "http-error",
+              "status": 403,
+              "url": "http://127.0.0.1:5058/api/branch/academic-years/current"
+            },
+            {
+              "type": "console-error",
+              "message": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+            }
+          ]
+        },
+        {
+          "route": "/teacher/leaves",
+          "expectedText": "Leave",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/teacher/leaves",
+            "title": "School Management Platform",
+            "heading": "My Leave Requests",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Yusuf Abdullahi Nur\n\nTeacher\n\nY\n\nTeacher Portal\n\nDashboard\nMy Schedule\nOpen Attendance\nLeaves Request\nTemplates\nCategories\nExams List\nEnter Results\nResults Viewer\nGrading Policy\nMy Profile\nLogout\nMy Leave Requests\n\nSubmit leave requests and monitor approvals history.\n\nREQUEST TIME OFF\nType\tStart Date\tEnd Date\tReason\tStatus\tApprover Remarks\nSick\t5/12/2026\t5/13/2026\tMedical recovery\tAPPROVED\tApproved with lesson cover arranged\nBy Hodan Mohamed Aden",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        }
+      ],
+      "screenshot": "D:\\school-management-system\\e2e-artifacts\\full-lifecycle-20260808\\teacher-dashboard.png"
+    },
+    {
+      "role": "parent",
+      "login": {
+        "passed": true,
+        "expectedPath": "/parent",
+        "snapshot": {
+          "url": "http://127.0.0.1:5181/parent",
+          "title": "School Management Platform",
+          "heading": "Parent Dashboard",
+          "alerts": [],
+          "globalOverflow": false,
+          "invalidControls": [],
+          "bodyExcerpt": "A\n\nAhmed Ali\n\nParent\n\nParent Portal\n\nDashboard\nGrades & Ranks\nAttendance\nFees & Invoices\nMy Profile\nLogout\nParent Dashboard\n\nMonitor your children's educational progress and financial accounts.\n\nAyaan Farah\n\nCode: HIA-CEN-001 | Admission: HIA-2026-CEN-001\n\nClass Section\n\nGrade 1\n\nSchool Year\n\n2025-2026\n\nAttendance\n\n100.0%\n\nOutstanding Fees\n\n$0\n\nView Grades\nView Attendance\nFees Details\nHodan Osman\n\nCode: HIA-CEN-013 | Admission: HIA-2026-CEN-013\n\nClass Section\n\nGrade 7\n\nSchool Year\n\n2025-2026\n\nAttendance\n\n100.0%\n\nOutstanding Fees\n\n$0\n\nView Grades\nView Attendance\nFees Details",
+          "unauthorized": false,
+          "blank": false
+        },
+        "errors": []
+      },
+      "pages": [
+        {
+          "route": "/parent",
+          "expectedText": "Parent",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/parent",
+            "title": "School Management Platform",
+            "heading": "Parent Dashboard",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "A\n\nAhmed Ali\n\nParent\n\nParent Portal\n\nDashboard\nGrades & Ranks\nAttendance\nFees & Invoices\nMy Profile\nLogout\nParent Dashboard\n\nMonitor your children's educational progress and financial accounts.\n\nAyaan Farah\n\nCode: HIA-CEN-001 | Admission: HIA-2026-CEN-001\n\nClass Section\n\nGrade 1\n\nSchool Year\n\n2025-2026\n\nAttendance\n\n100.0%\n\nOutstanding Fees\n\n$0\n\nView Grades\nView Attendance\nFees Details\nHodan Osman\n\nCode: HIA-CEN-013 | Admission: HIA-2026-CEN-013\n\nClass Section\n\nGrade 7\n\nSchool Year\n\n2025-2026\n\nAttendance\n\n100.0%\n\nOutstanding Fees\n\n$0\n\nView Grades\nView Attendance\nFees Details",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/parent/grades",
+          "expectedText": "Grade",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/parent/grades?studentId=6a76f0488f048679e411ce6a",
+            "title": "School Management Platform",
+            "heading": "Grades & Results",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "A\n\nAhmed Ali\n\nParent\n\nParent Portal\n\nDashboard\nGrades & Ranks\nAttendance\nFees & Invoices\nMy Profile\nLogout\nGrades & Results\n\nReview report cards, exam scores, and academic standings.\n\nPrint\nDownload\nStudent:\nAyaan Farah\nHodan Osman\nAcademic Year:\n2025-2026 (Current)\nClass Rank\n\n1 / 2\n\nTotal Marks\n\n263\n\nStatus\n\nFAIL\n\nAcademic Context\n\nGrade 1 (2025-2026)\n\nExam Report Card for Ayaan Farah\n\nClass Section: Grade 1 | Academic Year: 2025-2026\n\nExam Name\tSubject\tCategory\tClass/Enrollment\tScore Obtained\tGrade / Status\tRemarks\nE2E Grade 1 11cd80 Assessment\tSomali Language\tTerm Assessment\tGrade 1\t\n83\n/ 100\n(83%)\n\tPASS\tExcellent progress\nE2E Grade 1 11cd7f Assessment\tEnglish Language\tTerm Assessment\tGrade 1\t\n88\n/ 100\n(88%)\n\tPASS\tExcellent progress\nE2E Grade 1 11cd7e Assessment\tMathematics\tTerm Assessment\tGrade 1\t\n92\n/ 100\n(92%)\n\tPASS\tExcellent progress",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/parent/attendance",
+          "expectedText": "Attendance",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/parent/attendance?studentId=6a76f0488f048679e411ce6a",
+            "title": "School Management Platform",
+            "heading": "Attendance Logs",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "A\n\nAhmed Ali\n\nParent\n\nParent Portal\n\nDashboard\nGrades & Ranks\nAttendance\nFees & Invoices\nMy Profile\nLogout\nAttendance Logs\n\nMonitor class attendance details and arrival timestamps.\n\nStudent:\nAyaan Farah\nHodan Osman\nAcademic Year:\n2025-2026 (Current)\nAttendance Rate\n\n100.0%\n\nPresent Days\n\n1\n\nLate Arrivals\n\n0\n\nAbsent Days\n\n0\n\nAttendance History for Ayaan Farah\n\nTotal sessions logged: 1 | Selected academic year\n\nDate\tPeriod\tInstructor\tStatus\nMonday, June 15, 2026\tPeriod Morning registration\tYusuf Abdullahi Nur\t\nPRESENT",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/parent/invoices",
+          "expectedText": "Fees & Payments",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/parent/invoices?studentId=6a76f0488f048679e411ce6a",
+            "title": "School Management Platform",
+            "heading": "Fees & Payments",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "A\n\nAhmed Ali\n\nParent\n\nParent Portal\n\nDashboard\nGrades & Ranks\nAttendance\nFees & Invoices\nMy Profile\nLogout\nFees & Payments\n\nReview school invoices, payments history, and fee statements.\n\nStudent:\nAyaan Farah\nHodan Osman\nAcademic Year:\n2025-2026 (Current)\nAccount Settled\n\nTotal outstanding school fees for Ayaan (selected year)\n\nOutstanding amount\n$0\nInvoices Directory\nInvoice #11D02E\nPAID\n\nCreated: 8/8/2026\n\nJUN | Due 6/10/2026\n\nTuition: $34.4Activities and resources: $8.6\nTotal / Balance\n$43\n$0 remaining\nReceipt History\n$43\nPAID\n\n6/16/2026 | CASH\n\nRef: N/A",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/parent/profile",
+          "expectedText": "Profile",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/parent/profile",
+            "title": "School Management Platform",
+            "heading": "My Profile",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "A\n\nAhmed Ali\n\nParent\n\nParent Portal\n\nDashboard\nGrades & Ranks\nAttendance\nFees & Invoices\nMy Profile\nLogout\nMy Profile\n\nManage your personal details and profile image.\n\nChange password\nA\nAhmed Ali\nParent\nActive account\n\nPNG, JPEG, or WebP. Maximum size 2 MB.\n\nContact information\n\nContact details you can keep up to date.\n\nPhone\nAddress\nEmergency contact\n\nA trusted person the institution may contact when needed.\n\nContact name\nRelationship\nContact phone\nContact email\nOfficial and account information\n\nVerified fields are read-only.\n\nFull name\n\nAhmed Ali\n\nDate of birth\n\nNot recorded\n\nGender\n\nNot recorded\n\nEmail\n\nguardian.central.01@horizonacademy.edu.so\n\nRole\n\nParent\n\nAccess scope\n\nTenant\n\nContact an authorized administrator if your name, date of birth, gender, email, role, school, or branch information needs to change.",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        }
+      ],
+      "screenshot": "D:\\school-management-system\\e2e-artifacts\\full-lifecycle-20260808\\parent-dashboard.png"
+    },
+    {
+      "role": "student",
+      "login": {
+        "passed": true,
+        "expectedPath": "/student",
+        "snapshot": {
+          "url": "http://127.0.0.1:5181/student",
+          "title": "School Management Platform",
+          "heading": "Hello, Ayaan!",
+          "alerts": [],
+          "globalOverflow": false,
+          "invalidControls": [],
+          "bodyExcerpt": "Ayaan Osman Farah\n\nHIA-CEN-001\n\nA\n\nStudent portal\n\nDashboard\nMy Results\nMy Rank\nMy Schedule\nAttendance\nProfile\nChange Password\nLogout\nHello, Ayaan!\n\nTrack your academic progress and performance in real time.\n\n2025-2026 - Grade 1\n\nClass\n\nGrade 1\n\n2025-2026\n\nTotal marks\n\n263/800\n\nOverall status\n\nFAIL\n\nPass ≥ 400\n\nClass rank\n\n1 / 2\n\nTotal subjects\n\n8\nSubject Status\n\nMathematics\n\n92/100\n\nPass\n\nEnglish Language\n\n88/100\n\nPass\n\nSomali Language\n\n83/100\n\nPass\n\nIntegrated Science\n\n0/100\n\nFail\n\nSocial Studies\n\n0/100\n\nFail\n\nIslamic Studies\n\n0/100\n\nFail\n\nComputer Studies\n\n0/100\n\nFail\n\nPhysical Education\n\n0/100\n\nFail",
+          "unauthorized": false,
+          "blank": false
+        },
+        "errors": []
+      },
+      "pages": [
+        {
+          "route": "/student",
+          "expectedText": "Student",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/student",
+            "title": "School Management Platform",
+            "heading": "Hello, Ayaan!",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Ayaan Osman Farah\n\nHIA-CEN-001\n\nA\n\nStudent portal\n\nDashboard\nMy Results\nMy Rank\nMy Schedule\nAttendance\nProfile\nChange Password\nLogout\nHello, Ayaan!\n\nTrack your academic progress and performance in real time.\n\n2025-2026 - Grade 1\n\nClass\n\nGrade 1\n\n2025-2026\n\nTotal marks\n\n263/800\n\nOverall status\n\nFAIL\n\nPass ≥ 400\n\nClass rank\n\n1 / 2\n\nTotal subjects\n\n8\nSubject Status\n\nMathematics\n\n92/100\n\nPass\n\nEnglish Language\n\n88/100\n\nPass\n\nSomali Language\n\n83/100\n\nPass\n\nIntegrated Science\n\n0/100\n\nFail\n\nSocial Studies\n\n0/100\n\nFail\n\nIslamic Studies\n\n0/100\n\nFail\n\nComputer Studies\n\n0/100\n\nFail\n\nPhysical Education\n\n0/100\n\nFail",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/student/results",
+          "expectedText": "Result",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/student/results",
+            "title": "School Management Platform",
+            "heading": "Results",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Ayaan Osman Farah\n\nHIA-CEN-001\n\nA\n\nStudent portal\n\nDashboard\nMy Results\nMy Rank\nMy Schedule\nAttendance\nProfile\nChange Password\nLogout\nResults\n\nSubject-wise performance summary\n\nPrint\nDownload\n2025-2026\n\nGraded total\n\n263 / 800\nFail\nSubject\tTerm Assessment / 100\tPercentage\tTotal\tGrade\nMathematics\t92\t92%\t92 / 100\tPass\nEnglish Language\t88\t88%\t88 / 100\tPass\nSomali Language\t83\t83%\t83 / 100\tPass\nIntegrated Science\t0\t0%\t0 / 100\tFail\nSocial Studies\t0\t0%\t0 / 100\tFail\nIslamic Studies\t0\t0%\t0 / 100\tFail\nComputer Studies\t0\t0%\t0 / 100\tFail\nPhysical Education\t0\t0%\t0 / 100\tFail\n\nTip: To filter by term, contact your school administrator.",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/student/rank",
+          "expectedText": "Rank",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/student/rank",
+            "title": "School Management Platform",
+            "heading": "Class Rank",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Ayaan Osman Farah\n\nHIA-CEN-001\n\nA\n\nStudent portal\n\nDashboard\nMy Results\nMy Rank\nMy Schedule\nAttendance\nProfile\nChange Password\nLogout\nClass Rank\n\nYour standing among classmates\n\n2025-2026\n\nRank\n\n1 / 2\nFail\nTotal marks: 263",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/student/attendance",
+          "expectedText": "Attendance",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/student/attendance",
+            "title": "School Management Platform",
+            "heading": "Attendance Tracking",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Ayaan Osman Farah\n\nHIA-CEN-001\n\nA\n\nStudent portal\n\nDashboard\nMy Results\nMy Rank\nMy Schedule\nAttendance\nProfile\nChange Password\nLogout\nAttendance Tracking\n\nReview your daily attendance records and consistency report.\n\n2025-2026\n\nOverall presence\n\n100%\n\nDays present\n\n1\n\nDays absent\n\n0\n\nLate arrivals\n\n0\nAll\nPresent\nAbsent\nLate\n\nJUN\n\n15\n\nMorning registration\n6/15/2026\nTeacher: Yusuf Abdullahi Nur\nPresent",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/student/schedule",
+          "expectedText": "Schedule",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/student/schedule",
+            "title": "School Management Platform",
+            "heading": "My Schedule",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Ayaan Osman Farah\n\nHIA-CEN-001\n\nA\n\nStudent portal\n\nDashboard\nMy Results\nMy Rank\nMy Schedule\nAttendance\nProfile\nChange Password\nLogout\nMy Schedule\n\nYour class timetable by day and week.\n\n2025-2026\nToday\nWeek\nToday you have 1 subjects\n\n11:56 - 12:31\n\nE2E Attendance\n\nMathematics\n\nTeacher: Yusuf Abdullahi Nur\n\nGrade 1 • Section A",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/student/profile",
+          "expectedText": "Profile",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/student/profile",
+            "title": "School Management Platform",
+            "heading": "My Profile",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Ayaan Osman Farah\n\nHIA-CEN-001\n\nA\n\nStudent portal\n\nDashboard\nMy Results\nMy Rank\nMy Schedule\nAttendance\nProfile\nChange Password\nLogout\nMy Profile\n\nManage your personal details and profile image.\n\nChange password\nA\nAyaan Osman Farah\nStudent\nActive account\n\nPNG, JPEG, or WebP. Maximum size 2 MB.\n\nContact information\n\nContact details you can keep up to date.\n\nPhone\nAddress\nEmergency contact\n\nA trusted person the institution may contact when needed.\n\nContact name\nRelationship\nContact phone\nContact email\nOfficial and account information\n\nVerified fields are read-only.\n\nFull name\n\nAyaan Osman Farah\n\nDate of birth\n\n1/15/2019\n\nGender\n\nFemale\n\nEmail\n\nNot provided\n\nUsername\n\nHIA-CEN-001\n\nRole\n\nStudent\n\nAccess scope\n\nBranch\n\nContact an authorized administrator if your name, date of birth, gender, email, role, school, or branch information needs to change.",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        }
+      ],
+      "screenshot": "D:\\school-management-system\\e2e-artifacts\\full-lifecycle-20260808\\student-dashboard.png"
+    },
+    {
+      "role": "super-admin",
+      "login": {
+        "passed": true,
+        "expectedPath": "/tenant",
+        "snapshot": {
+          "url": "http://127.0.0.1:5181/tenant",
+          "title": "School Management Platform",
+          "heading": "School dashboard",
+          "alerts": [],
+          "globalOverflow": false,
+          "invalidControls": [],
+          "bodyExcerpt": "Safiya Ali Warsame\n\nSUPER ADMIN\n\nS\n\nSCHOOL MANAGEMENT\n\nDashboard\nBranding\nBranches\nStudents\nAdministrators\nStaff Permissions\nAcademic Years\nAcademic Policy\nReports\nPromotion\nTransfer\nAudit Logs\nMy Profile\nLogout\nSchool dashboard\n\nA concise view of operations, finance, and recent activity.\n\n2025-2026\nView reports\n\nBranches\n\n2\n\nActive school locations\n\nStaff\n\n4\n\nAccounts across all roles\n\nStudents\n\n49\n\nRegistered learners\n\nCollected\n\n$1,404\n\nProjected $2,856\n\nFinancial performance\n\nCollected fees compared with projected invoices.\n\nMar\nApr\nMay\nJun\nJul\nAug\n0\n750\n1500\n2250\n3000\nRecent activity\n\nLatest staff actions.\n\nSCHOOL_SETUP_COMPLETED\nSafiya Ali Warsame (super_admin)\n8/8/2026, 12:00:59 PM\nACADEMIC_SETUP_COMPLETED\nAbdirahman Said Ali (branch_admin)\n8/8/2026, 12:00:58 PM\nSTUDENT_ADMISSIONS_COMPLETED\nHibo Mohamed Nur (registrar)\n8/8/2026, 12:00:58 PM\nFEE_PAYMENTS_RECORDED\nBashir Ahmed Osman (cashier)\n8/8/2026, 12:00:58 PM\nBranch network\n\nCurrent status and student distribution.\n\nManage branches\nBranch\tCode\tStudents\tStatus\n\nCentral Campus\n\tCENTRAL\t25\t\nActive\n\nRiverside Campus\n\tRIVERSIDE\t24\t\nActive\n0",
+          "unauthorized": false,
+          "blank": false
+        },
+        "errors": []
+      },
+      "pages": [
+        {
+          "route": "/tenant",
+          "expectedText": "School",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/tenant",
+            "title": "School Management Platform",
+            "heading": "School dashboard",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Safiya Ali Warsame\n\nSUPER ADMIN\n\nS\n\nSCHOOL MANAGEMENT\n\nDashboard\nBranding\nBranches\nStudents\nAdministrators\nStaff Permissions\nAcademic Years\nAcademic Policy\nReports\nPromotion\nTransfer\nAudit Logs\nMy Profile\nLogout\nSchool dashboard\n\nA concise view of operations, finance, and recent activity.\n\n2025-2026\nView reports\n\nBranches\n\n2\n\nActive school locations\n\nStaff\n\n4\n\nAccounts across all roles\n\nStudents\n\n49\n\nRegistered learners\n\nCollected\n\n$1,404\n\nProjected $2,856\n\nFinancial performance\n\nCollected fees compared with projected invoices.\n\nMar\nApr\nMay\nJun\nJul\nAug\n0\n750\n1500\n2250\n3000\nRecent activity\n\nLatest staff actions.\n\nSCHOOL_SETUP_COMPLETED\nSafiya Ali Warsame (super_admin)\n8/8/2026, 12:00:59 PM\nACADEMIC_SETUP_COMPLETED\nAbdirahman Said Ali (branch_admin)\n8/8/2026, 12:00:58 PM\nSTUDENT_ADMISSIONS_COMPLETED\nHibo Mohamed Nur (registrar)\n8/8/2026, 12:00:58 PM\nFEE_PAYMENTS_RECORDED\nBashir Ahmed Osman (cashier)\n8/8/2026, 12:00:58 PM\nBranch network\n\nCurrent status and student distribution.\n\nManage branches\nBranch\tCode\tStudents\tStatus\n\nCentral Campus\n\tCENTRAL\t25\t\nActive\n\nRiverside Campus\n\tRIVERSIDE\t24\t\nActive\n0",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/tenant/branches",
+          "expectedText": "Branch",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/tenant/branches",
+            "title": "School Management Platform",
+            "heading": "Branches",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Safiya Ali Warsame\n\nSUPER ADMIN\n\nS\n\nSCHOOL MANAGEMENT\n\nDashboard\nBranding\nBranches\nStudents\nAdministrators\nStaff Permissions\nAcademic Years\nAcademic Policy\nReports\nPromotion\nTransfer\nAudit Logs\nMy Profile\nLogout\nBranches\n\nManage school locations, contact details, and branch administrators.\n\nAdd branch\nAll statuses\nActive\nInactive\n2 of 2 branches\nActive\nCentral Campus\nCode CENTRAL\nMaka Al-Mukarama Road, Hodan, Mogadishu\n+252 61 555 1101\nEdit details\nDeactivate\nActive\nRiverside Campus\nCode RIVERSIDE\nJidka Warshadaha, Wadajir, Mogadishu\n+252 61 555 1102\nEdit details\nDeactivate",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/tenant/users",
+          "expectedText": "User",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/tenant/users",
+            "title": "School Management Platform",
+            "heading": "Administrators",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Safiya Ali Warsame\n\nSUPER ADMIN\n\nS\n\nSCHOOL MANAGEMENT\n\nDashboard\nBranding\nBranches\nStudents\nAdministrators\nStaff Permissions\nAcademic Years\nAcademic Policy\nReports\nPromotion\nTransfer\nAudit Logs\nMy Profile\nLogout\nAdministrators\n\nManage branch administrators and the school finance director.\n\nAdd administrator\nAll Branches\nCentral Campus\nRiverside Campus\nAny Role\nFinance Director\nHR & Payroll Manager\nBranch Admin\nUser\tRole and scope\tBranch\tStatus\tActions\n\nA\n\nAbdirizak Yusuf Noor\n\nfinance@horizonacademy.edu.so\n\n\t\nFinance Director\n\ntenant scope\n\n\t\nEntire Institution\n\t\nActive\t\nSuspend\n\n\nN\n\nNadiifa Mohamed Ali\n\nhr@horizonacademy.edu.so\n\n\t\nHr Payroll_manager\n\ntenant scope\n\n\t\nEntire Institution\n\t\nActive\t\nSuspend\n\n\nH\n\nHodan Mohamed Aden\n\ncentral.admin@horizonacademy.edu.so\n\n\t\nBranch Admin\n\nbranch scope\n\n\t\nCentral Campus\n\t\nActive\t\nSuspend\n\n\nA\n\nAbdirahman Said Ali\n\nriverside.admin@horizonacademy.edu.so\n\n\t\nBranch Admin\n\nbranch scope\n\n\t\nRiverside Campus\n\t\nActive\t\nSuspend",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/tenant/academic-years",
+          "expectedText": "Academic",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/tenant/academic-years",
+            "title": "School Management Platform",
+            "heading": "Academic Timeline",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Safiya Ali Warsame\n\nSUPER ADMIN\n\nS\n\nSCHOOL MANAGEMENT\n\nDashboard\nBranding\nBranches\nStudents\nAdministrators\nStaff Permissions\nAcademic Years\nAcademic Policy\nReports\nPromotion\nTransfer\nAudit Logs\nMy Profile\nLogout\nAcademic Timeline\n\nConfigure institutional sessions and the primary operational cycle.\n\nINITIALIZE SESSION\n2024-2025\n\nACADEMIC TERM\n\nDURATION RANGE\n\n9/1/2024 → 6/30/2025\n\nACTIVATE SESSION\nCURRENT SESSION\n2025-2026\n\nACADEMIC TERM\n\nDURATION RANGE\n\n9/1/2025 → 6/30/2026\n\nSYSTEM PRIMARY",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/tenant/enrollments/transfer",
+          "expectedText": "Transfer",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/tenant/enrollments/transfer",
+            "title": "School Management Platform",
+            "heading": "Branch transfer",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [
+              "Search by name or admission number",
+              "select-one",
+              "select-one",
+              "select-one"
+            ],
+            "bodyExcerpt": "Safiya Ali Warsame\n\nSUPER ADMIN\n\nS\n\nSCHOOL MANAGEMENT\n\nDashboard\nBranding\nBranches\nStudents\nAdministrators\nStaff Permissions\nAcademic Years\nAcademic Policy\nReports\nPromotion\nTransfer\nAudit Logs\nMy Profile\nLogout\nBranch transfer\n\nMove a student to another branch while preserving academic and financial history.\n\nFind student\nSearch\nCurrent branch\nSource Campus\nCentral Campus\nRiverside Campus\nDestination branch\nDestination Campus\nCentral Campus\nRiverside Campus\nDestination class (same grade)\nSelect target class\nAcademic year\nSelect Target Year\n2024-2025\n2025-2026\n\nTransfer effect\n\nThe current enrollment moves to transferred status and a new enrollment is created at the destination. Invoices and historical grades remain linked to the student.\n\nTransfer student",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/tenant/reports",
+          "expectedText": "Report",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/tenant/reports",
+            "title": "School Management Platform",
+            "heading": "Reports",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Safiya Ali Warsame\n\nSUPER ADMIN\n\nS\n\nSCHOOL MANAGEMENT\n\nDashboard\nBranding\nBranches\nStudents\nAdministrators\nStaff Permissions\nAcademic Years\nAcademic Policy\nReports\nPromotion\nTransfer\nAudit Logs\nMy Profile\nLogout\nReports\n\nReview academic performance, enrollment, and financial totals.\n\nAggregate – All Branches\nCentral Campus\nRiverside Campus\nSelect Timeline\n2024-2025\n2025-2026 (Current)\nLive\n\nStudent Body\n\n49\n\nUnique Identities Registered\n\nLive\n\nEnrollment Depth\n\n48\n\nActive Seats for Period\n\nLive\n\nRevenue Liquid\n\n$1,404\n\nTotal Liquid Collections\n\nLive\n\nProjected Yield\n\n$2,856\n\nInstitutional Revenue Pipeline\n\nAcademic performance\n\nResults in the selected branch and academic year.\n\n75.8%\n\nAverage grade\n\n144\n\nRecorded results\n\nFinancial health\n\nCollection ratio for the selected period.\n\n49.2%\n\nRevenue collected\n\nCollected\n$ 1,404\nOutstanding\n$ 1,452",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        },
+        {
+          "route": "/tenant/audit-logs",
+          "expectedText": "Audit",
+          "passed": true,
+          "snapshot": {
+            "url": "http://127.0.0.1:5181/tenant/audit-logs",
+            "title": "School Management Platform",
+            "heading": "Audit logs",
+            "alerts": [],
+            "globalOverflow": false,
+            "invalidControls": [],
+            "bodyExcerpt": "Safiya Ali Warsame\n\nSUPER ADMIN\n\nS\n\nSCHOOL MANAGEMENT\n\nDashboard\nBranding\nBranches\nStudents\nAdministrators\nStaff Permissions\nAcademic Years\nAcademic Policy\nReports\nPromotion\nTransfer\nAudit Logs\nMy Profile\nLogout\nAudit logs\n\nReview staff actions, account changes, and security events.\n\nTotal events\n7\nRecorded changes\n3\nSecurity events\n0\nAll\nSecurity & Suspension\nWarnings\nUpdates & Changes\nInfo\n7 entries\nAction\tPerformed by\tTarget resource\tTime\n\n\nSCHOOL_SETUP_COMPLETED\n\nChange\n\t\nSA\nSafiya Ali Warsame\n\tTenant (6a76f0478f048679e411cd1c)\t\n8/8/2026, 12:00:59 PM\n\n\n\nACADEMIC_SETUP_COMPLETED\n\nChange\n\t\nAS\nAbdirahman Said Ali\n\tBranch (6a76f0478f048679e411cd1f)\t\n8/8/2026, 12:00:58 PM\n\n\n\nSTUDENT_ADMISSIONS_COMPLETED\n\nInfo\n\t\nHM\nHibo Mohamed Nur\n\tStudent\t\n8/8/2026, 12:00:58 PM\n\n\n\nFEE_PAYMENTS_RECORDED\n\nInfo\n\t\nBA\nBashir Ahmed Osman\n\tPayment\t\n8/8/2026, 12:00:58 PM\n\n\n\nFEE_PAYMENTS_RECORDED\n\nInfo\n\t\nMH\nMaryan Hassan Jama\n\tPayment\t\n8/8/2026, 12:00:57 PM\n\n\n\nACADEMIC_SETUP_COMPLETED\n\nChange\n\t\nHM\nHodan Mohamed Aden\n\tBranch (6a76f0478f048679e411cd1e)\t\n8/8/2026, 12:00:57 PM\n\n\n\nSTUDENT_ADMISSIONS_COMPLETED\n\nInfo\n\t\nKA\nKhadar Ali Osman\n\tStudent\t\n8/8/2026, 12:00:57 PM",
+            "unauthorized": false,
+            "blank": false
+          },
+          "errors": []
+        }
+      ],
+      "screenshot": "D:\\school-management-system\\e2e-artifacts\\full-lifecycle-20260808\\super-admin-dashboard.png"
+    }
+  ],
+  "actions": [
+    {
+      "name": "HR submits compensation request",
+      "passed": true,
+      "modalSnapshot": {
+        "url": "http://127.0.0.1:5181/hr/employees",
+        "title": "School Management Platform",
+        "heading": "Employees",
+        "alerts": [],
+        "globalOverflow": false,
+        "invalidControls": [
+          "Explain why this compensation change is required"
+        ],
+        "bodyExcerpt": "Nadiifa Mohamed Ali\n\nHR & PAYROLL MANAGER\n\nN\n\nPEOPLE MANAGEMENT\n\nHR Dashboard\nEmployees\nLeave Management\nPayroll\nReports\nMy Profile\nLogout\nEmployees\n\nView approved compensation and submit changes for Finance approval.\n\n24\nemployees\nAll locations\nCentral Campus\nHead office\nRiverside Campus\nEmployee\tRole\tLocation\tBasic salary\tRecurring net\tChange status\tProfile\n\n\nAbdiqani Warsame Omar\n\nHIA-1-TR-003\n\n\tTeacher\tCentral Campus\tUSD 700\tUSD 750\tNo pending change\tRequest change\n\n\nAbdirahman Said Ali\n\nHIA-2-BA-001\n\n\tBranch Admin\tRiverside Campus\tUSD 900\tUSD 1,000\tNo pending change\tRequest change\n\n\nAbdirizak Yusuf Noor\n\nHIA-FD-001\n\n\tFinance Director\tHead office\tUSD 1,200\tUSD 1,300\tNo pending change\tRequest change\n\n\nAbdullahi Omar Ali\n\nHIA-2-TR-006\n\n\tTeacher\tRiverside Campus\tUSD 700\tUSD 750\tNo pending change\tRequest change\n\n\nAhmed Ali Farah\n\nHIA-2-TR-002\n\n\tTeacher\tRiverside Campus\tUSD 700\tUSD 750\tNo pending change\tRequest change\n\n\nAmina Yusuf Hassan\n\nHIA-2-TR-001\n\n\tTeacher\tRiverside Campus\tUSD 700\tUSD 750\tNo pending change\tRequest change\n\n\nBashir Ahmed Osman\n\nHIA-2-CS-001\n\n\tCashier\tRiverside Campus\tUSD 600\tUSD 700\tNo pending change\tRequest change\n\n\nFadumo Ibrahim Ali\n\nHIA-1-TR-002\n\n\tTeacher\tCe",
+        "unauthorized": false,
+        "blank": false
+      },
+      "snapshot": {
+        "url": "http://127.0.0.1:5181/hr/employees",
+        "title": "School Management Platform",
+        "heading": "Employees",
+        "alerts": [],
+        "globalOverflow": false,
+        "invalidControls": [],
+        "bodyExcerpt": "Compensation change submitted for Finance approval.\n\nNadiifa Mohamed Ali\n\nHR & PAYROLL MANAGER\n\nN\n\nPEOPLE MANAGEMENT\n\nHR Dashboard\nEmployees\nLeave Management\nPayroll\nReports\nMy Profile\nLogout\nEmployees\n\nView approved compensation and submit changes for Finance approval.\n\n24\nemployees\nAll locations\nCentral Campus\nHead office\nRiverside Campus\nEmployee\tRole\tLocation\tBasic salary\tRecurring net\tChange status\tProfile\n\n\nAbdiqani Warsame Omar\n\nHIA-1-TR-003\n\n\tTeacher\tCentral Campus\tUSD 700\tUSD 750\t\nPending Finance\tView request\n\n\nAbdirahman Said Ali\n\nHIA-2-BA-001\n\n\tBranch Admin\tRiverside Campus\tUSD 900\tUSD 1,000\tNo pending change\tRequest change\n\n\nAbdirizak Yusuf Noor\n\nHIA-FD-001\n\n\tFinance Director\tHead office\tUSD 1,200\tUSD 1,300\tNo pending change\tRequest change\n\n\nAbdullahi Omar Ali\n\nHIA-2-TR-006\n\n\tTeacher\tRiverside Campus\tUSD 700\tUSD 750\tNo pending change\tRequest change\n\n\nAhmed Ali Farah\n\nHIA-2-TR-002\n\n\tTeacher\tRiverside Campus\tUSD 700\tUSD 750\tNo pending change\tRequest change\n\n\nAmina Yusuf Hassan\n\nHIA-2-TR-001\n\n\tTeacher\tRiverside Campus\tUSD 700\tUSD 750\tNo pending change\tRequest change\n\n\nBashir Ahmed Osman\n\nHIA-2-CS-001\n\n\tCashier\tRiverside Campus\tUSD 600\tUSD 700\tNo pending change\tRequest chan",
+        "unauthorized": false,
+        "blank": false
+      },
+      "errors": []
+    },
+    {
+      "name": "Finance approves compensation request",
+      "passed": true,
+      "snapshot": {
+        "url": "http://127.0.0.1:5181/finance/salary-approvals",
+        "title": "School Management Platform",
+        "heading": "Salary approvals",
+        "alerts": [],
+        "globalOverflow": false,
+        "invalidControls": [],
+        "bodyExcerpt": "Abdirizak Yusuf Noor\n\nFINANCE DIRECTOR\n\nA\n\nFINANCE MANAGEMENT\n\nFinance Dashboard\nPolicies\nFee Structures\nInvoices\nPayments\nSalary Approvals\nPayroll Approvals\nReports\nOutstanding\nReceipt Branding\nMy Profile\nLogout\nSalary approvals\n\nReview HR compensation requests before they affect payroll.\n\n0\napproved\nPending\nApproved\nRejected\nNo approved requests\n\nCompensation requests from HR will appear here.\n\nCompensation request\n\nReview the approved and proposed recurring amounts.\n\nAbdiqani Warsame Omar\n\nTeacher · Central Campus\n\nPending\nMonthly compensation comparison\nItem\tCurrent\tProposed\nBasic salary\tUSD 700\tUSD 701\nAllowance\tUSD 50\tUSD 50\nDeductions\tUSD 0\tUSD 0\nNet recurring\tUSD 750\tUSD 751\n\nEmployment type\n\nPermanent to Permanent\n\nPayment method\n\nBank to Bank\n\nHR reason\n\nBrowser E2E compensation approval test\n\nRequested by Nadiifa Mohamed Ali on 8/8/2026\n\nReview remarks\nClose\nReject\nApprove",
+        "unauthorized": false,
+        "blank": false
+      },
+      "errors": []
+    },
+    {
+      "name": "hr payroll Review",
+      "passed": true,
+      "skipped": false,
+      "snapshot": {
+        "url": "http://127.0.0.1:5181/hr/payroll",
+        "title": "School Management Platform",
+        "heading": "Payroll",
+        "alerts": [],
+        "globalOverflow": false,
+        "invalidControls": [],
+        "bodyExcerpt": "Payroll generated successfully\n\nPayroll reviewed.\n\nNadiifa Mohamed Ali\n\nHR & PAYROLL MANAGER\n\nN\n\nPEOPLE MANAGEMENT\n\nHR Dashboard\nEmployees\nLeave Management\nPayroll\nReports\nMy Profile\nLogout\nPayroll\n\nGenerate, review, approve, and record monthly staff salaries.\n\nJanuary\nFebruary\nMarch\nApril\nMay\nJune\nJuly\nAugust\nSeptember\nOctober\nNovember\nDecember\n2025\n2026\n2027\nGenerate payroll\n\nTotal payroll\n\nUSD 19,300\n\nPaid\n\nUSD 0\n\nPending\n\nUSD 19,300\n\nEmployee\tBasic\tAllowances\tDeductions\tNet salary\tStatus\tAction\n\n\nAbdirizak Yusuf Noor\n\nFinance Director · Head Office\n\n\tUSD 1,200\tUSD 100\tUSD 0\tUSD 1,300\tDraft\tReview\n\n\nNadiifa Mohamed Ali\n\nHr Payroll Manager · Head Office\n\n\tUSD 1,000\tUSD 100\tUSD 0\tUSD 1,100\tDraft\tReview\n\n\nHodan Mohamed Aden\n\nBranch Admin · Central Campus\n\n\tUSD 900\tUSD 100\tUSD 0\tUSD 1,000\tReviewed\tNo action\n\n\nKhadar Ali Osman\n\nRegistrar · Central Campus\n\n\tUSD 650\tUSD 100\tUSD 0\tUSD 750\tDraft\tReview\n\n\nMaryan Hassan Jama\n\nCashier · Central Campus\n\n\tUSD 600\tUSD 100\tUSD 0\tUSD 700\tDraft\tReview\n\n\nYusuf Abdullahi Nur\n\nTeacher · Central Campus\n\n\tUSD 700\tUSD 50\tUSD 0\tUSD 750\tDraft\tReview\n\n\nFadumo Ibrahim Ali\n\nTeacher · Central Campus\n\n\tUSD 700\tUSD 50\tUSD 0\tUSD 750\tDraft\tReview\n\n\nAbdiqani Wars",
+        "unauthorized": false,
+        "blank": false
+      },
+      "errors": []
+    },
+    {
+      "name": "finance payroll Approve",
+      "passed": true,
+      "skipped": false,
+      "snapshot": {
+        "url": "http://127.0.0.1:5181/finance/payroll-approvals",
+        "title": "School Management Platform",
+        "heading": "Payroll",
+        "alerts": [],
+        "globalOverflow": false,
+        "invalidControls": [],
+        "bodyExcerpt": "Payroll approveed.\n\nAbdirizak Yusuf Noor\n\nFINANCE DIRECTOR\n\nA\n\nFINANCE MANAGEMENT\n\nFinance Dashboard\nPolicies\nFee Structures\nInvoices\nPayments\nSalary Approvals\nPayroll Approvals\nReports\nOutstanding\nReceipt Branding\nMy Profile\nLogout\nPayroll\n\nGenerate, review, approve, and record monthly staff salaries.\n\nJanuary\nFebruary\nMarch\nApril\nMay\nJune\nJuly\nAugust\nSeptember\nOctober\nNovember\nDecember\n2025\n2026\n2027\n\nTotal payroll\n\nUSD 19,300\n\nPaid\n\nUSD 0\n\nPending\n\nUSD 19,300\n\nEmployee\tBasic\tAllowances\tDeductions\tNet salary\tStatus\tAction\n\n\nAbdirizak Yusuf Noor\n\nFinance Director · Head Office\n\n\tUSD 1,200\tUSD 100\tUSD 0\tUSD 1,300\tDraft\tNo action\n\n\nNadiifa Mohamed Ali\n\nHr Payroll Manager · Head Office\n\n\tUSD 1,000\tUSD 100\tUSD 0\tUSD 1,100\tDraft\tNo action\n\n\nHodan Mohamed Aden\n\nBranch Admin · Central Campus\n\n\tUSD 900\tUSD 100\tUSD 0\tUSD 1,000\tApproved\tNo action\n\n\nKhadar Ali Osman\n\nRegistrar · Central Campus\n\n\tUSD 650\tUSD 100\tUSD 0\tUSD 750\tDraft\tNo action\n\n\nMaryan Hassan Jama\n\nCashier · Central Campus\n\n\tUSD 600\tUSD 100\tUSD 0\tUSD 700\tDraft\tNo action\n\n\nYusuf Abdullahi Nur\n\nTeacher · Central Campus\n\n\tUSD 700\tUSD 50\tUSD 0\tUSD 750\tDraft\tNo action\n\n\nFadumo Ibrahim Ali\n\nTeacher · Central Campus\n\n\tUSD 700\tUSD 50\tU",
+        "unauthorized": false,
+        "blank": false
+      },
+      "errors": []
+    },
+    {
+      "name": "cashier payroll Mark paid",
+      "passed": true,
+      "skipped": false,
+      "snapshot": {
+        "url": "http://127.0.0.1:5181/cashier/salary-payments",
+        "title": "School Management Platform",
+        "heading": "Payroll",
+        "alerts": [],
+        "globalOverflow": false,
+        "invalidControls": [],
+        "bodyExcerpt": "Payroll marked paid.\n\nMaryan Hassan Jama\n\nCashier\n\nM\n\nCashier Menu\n\nDashboard\nInvoice Lookup\nRecord Payment\nPayment History\nSalary Payments\nMy Profile\nLogout\nPayroll\n\nGenerate, review, approve, and record monthly staff salaries.\n\nJanuary\nFebruary\nMarch\nApril\nMay\nJune\nJuly\nAugust\nSeptember\nOctober\nNovember\nDecember\n2025\n2026\n2027\n\nTotal payroll\n\nUSD 8,450\n\nPaid\n\nUSD 1,000\n\nPending\n\nUSD 7,450\n\nEmployee\tBasic\tAllowances\tDeductions\tNet salary\tStatus\tAction\n\n\nHodan Mohamed Aden\n\nBranch Admin · Central Campus\n\n\tUSD 900\tUSD 100\tUSD 0\tUSD 1,000\tPaid\t8/8/2026\n\n\nKhadar Ali Osman\n\nRegistrar · Central Campus\n\n\tUSD 650\tUSD 100\tUSD 0\tUSD 750\tDraft\tNo action\n\n\nMaryan Hassan Jama\n\nCashier · Central Campus\n\n\tUSD 600\tUSD 100\tUSD 0\tUSD 700\tDraft\tNo action\n\n\nYusuf Abdullahi Nur\n\nTeacher · Central Campus\n\n\tUSD 700\tUSD 50\tUSD 0\tUSD 750\tDraft\tNo action\n\n\nFadumo Ibrahim Ali\n\nTeacher · Central Campus\n\n\tUSD 700\tUSD 50\tUSD 0\tUSD 750\tDraft\tNo action\n\n\nAbdiqani Warsame Omar\n\nTeacher · Central Campus\n\n\tUSD 700\tUSD 50\tUSD 0\tUSD 750\tDraft\tNo action\n\n\nNimo Ahmed Hassan\n\nTeacher · Central Campus\n\n\tUSD 700\tUSD 50\tUSD 0\tUSD 750\tDraft\tNo action\n\n\nIsmail Osman Jama\n\nTeacher · Central Campus\n\n\tUSD 700\tUSD 50\tUSD 0\tUSD 7",
+        "unauthorized": false,
+        "blank": false
+      },
+      "errors": []
+    },
+    {
+      "name": "Cashier searches invoice and records payment",
+      "passed": true,
+      "snapshot": {
+        "url": "http://127.0.0.1:5181/cashier/receipts/6a76f187a714cee86655fedc",
+        "title": "School Management Platform",
+        "heading": "Receipt Details",
+        "alerts": [],
+        "globalOverflow": false,
+        "invalidControls": [],
+        "bodyExcerpt": "Maryan Hassan Jama\n\nCashier\n\nM\n\nCashier Menu\n\nDashboard\nInvoice Lookup\nRecord Payment\nPayment History\nSalary Payments\nMy Profile\nLogout\nReceipt Details\n\nOfficial statement of receipt for transaction payment.\n\nBack to Invoice\nNew Payment\nPrint Receipt\nCentral Campus\n\nMaka Al-Mukarama Road, Hodan, Mogadishu\n\nDate: 8/8/2026, 12:06:15 PM\n\nReceipt #: C-000001\n\nRef: N/A\n\nReceived From:\n\nAnas Ahmed\n\n(HIA-2026-CEN-024)\n\nAmount paid\n$1.00\nMethod: CASH\nAccount status (Inv #11d073)\nTotal Invoice:\n$76.00\nTotal Paid:\n$1.00\nBalance Due:\n$75.00\n\nThank you for supporting learning at Horizon International Academy.\n\nRecorded By: Maryan Hassan Jama",
+        "unauthorized": false,
+        "blank": false
+      },
+      "errors": []
+    },
+    {
+      "name": "Branch transfer filters destination classes by student grade",
+      "passed": true,
+      "classOptions": [
+        "Grade 1"
+      ],
+      "snapshot": {
+        "url": "http://127.0.0.1:5181/branch/transfers",
+        "title": "School Management Platform",
+        "heading": "Branch Transfer",
+        "alerts": [],
+        "globalOverflow": false,
+        "invalidControls": [
+          "select-one",
+          "Reason for transfer"
+        ],
+        "bodyExcerpt": "Hodan Mohamed Aden\n\nBranch Admin\n\nH\n\nBRANCH ADMINISTRATION\n\nDashboard\nClasses\nTimetable\nTeachers\nAdd teacher\nView and manage\nStaff\nAdd staff\nView and manage\nLeaves Manager\nStudents\nPromotions\nTransfers\nTeacher Assignments\nExams\nResults\nStudent Results\nReports\nMy Profile\nLogout\nBranch Transfer\n\nMove a student from your branch while preserving academic and financial history.\n\nAcademic Year: 2025-2026\nFind student\nSearch\n\nAyaan Farah\n\nHIA-2026-CEN-001\n\nChange\nDestination branch\nSelect branch\nRiverside Campus\nDestination class (same grade)\nSelect class\nGrade 1\nDestination section\nNo sections configured\nReason\nTransfer effect: current enrollment becomes Transferred, a destination enrollment is created, and the student portal moves to the destination branch.\nTransfer student",
+        "unauthorized": false,
+        "blank": false
+      },
+      "errors": []
+    },
+    {
+      "name": "Registrar admits student and creates linked portal accounts",
+      "scope": "full-lifecycle",
+      "passed": true,
+      "admissionNumber": "STD-026",
+      "parentAccountCreated": true,
+      "snapshot": {
+        "url": "http://127.0.0.1:5181/registrar/students/6a76f193a714cee86655fee7",
+        "title": "School Management Platform",
+        "heading": "New Admission",
+        "alerts": [],
+        "globalOverflow": false,
+        "invalidControls": [],
+        "bodyExcerpt": "Khadar Ali Osman\n\nRegistrar\n\nK\n\nREGISTRAR MENU\n\nDashboard\nNew Admission\nStudents Directory\nRe-Enrollment\nMy Profile\nLogout\nNew Admission\n\nRegister a new student and assign them to a class.\n\nAcademic Year:\n2025-2026\nStudent admitted successfully. Parent portal account created.\n×\nAdmission credentials\n\nRecord these temporary credentials before leaving this page.\n\nStudent ID\nSTD-026\nStudent login\nSTD-026\nStudent temporary password\n61323065\nParent login\nbrowser.e2e.parent@horizonacademy.edu.so\nParent account\nNew account created\nParent temporary password\n92250948\nView student\nStudent Details\n\nProvide student profile and initial grade placements.\n\nStudent ID is auto-generated when you submit (format: STD-001, STD-002, ...).\nClass to Join\n-- Select Class --\nGrade 1\nGrade 10\nGrade 11\nGrade 12\nGrade 2\nGrade 3\nGrade 4\nGrade 5\nGrade 6\nGrade 7\nGrade 8\nGrade 9\nSection (Optional)\n-- Select Existing Section --\nA\nFirst Name\nMiddle Name\nLast Name\nDate of Birth\nAdmission Date\nNationality\nPrevious School\nGender\nMale\nFemale\nCreate New Section (Optional)\nGuardian Info\n\nRequired contact person details for notifications and billing.\n\nGuardian Name\nPhone Number\nGuardian Email\n\nUsed to create or link the p",
+        "unauthorized": false,
+        "blank": false
+      },
+      "errors": [],
+      "screenshot": "D:\\school-management-system\\e2e-artifacts\\full-lifecycle-20260808\\full-lifecycle-admission.png"
+    },
+    {
+      "name": "Teacher opens, records, and submits attendance",
+      "scope": "full-lifecycle",
+      "passed": false,
+      "snapshot": {
+        "url": "http://127.0.0.1:5181/teacher/attendance/6a76f19aa714cee86655fef8",
+        "title": "School Management Platform",
+        "heading": "Attendance Session",
+        "alerts": [],
+        "globalOverflow": false,
+        "invalidControls": [],
+        "bodyExcerpt": "Yusuf Abdullahi Nur\n\nTeacher\n\nY\n\nTeacher Portal\n\nDashboard\nMy Schedule\nOpen Attendance\nLeaves Request\nTemplates\nCategories\nExams List\nEnter Results\nResults Viewer\nGrading Policy\nMy Profile\nLogout\nAttendance Session\n\nRecord and submit student attendance for this session.\n\nSubmitted\n\nClass: Class\n\nSubject: Subject\n\nDate: 2026-08-08\n\nTime: --:-- - --:--\n\nStudent\tStudent ID\tStatus\nAbdirahman Yusuf\tHIA-CEN-002\t\nSelect status\nPresent\nAbsent\nLate\nExcused\n\nAyaan Farah\tHIA-CEN-001\t\nSelect status\nPresent\nAbsent\nLate\nExcused\n\nBrowser Student\tSTD-026\t\nSelect status\nPresent\nAbsent\nLate\nExcused\nClose session after submit\nBack to Schedule\nSubmitted\nSubmitted successfully\n×",
+        "unauthorized": false,
+        "blank": false
+      },
+      "errors": [
+        {
+          "type": "http-error",
+          "status": 403,
+          "url": "http://127.0.0.1:5058/api/tenant/academic-years"
+        },
+        {
+          "type": "console-error",
+          "message": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+        },
+        {
+          "type": "http-error",
+          "status": 403,
+          "url": "http://127.0.0.1:5058/api/branch/academic-years/current"
+        },
+        {
+          "type": "console-error",
+          "message": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+        },
+        {
+          "type": "http-error",
+          "status": 403,
+          "url": "http://127.0.0.1:5058/api/tenant/academic-years"
+        },
+        {
+          "type": "console-error",
+          "message": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+        },
+        {
+          "type": "http-error",
+          "status": 403,
+          "url": "http://127.0.0.1:5058/api/branch/academic-years/current"
+        },
+        {
+          "type": "console-error",
+          "message": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+        }
+      ],
+      "screenshot": "D:\\school-management-system\\e2e-artifacts\\full-lifecycle-20260808\\full-lifecycle-attendance.png"
+    },
+    {
+      "name": "Teachers record complete Grade 1 results across eight subjects",
+      "scope": "full-lifecycle",
+      "passed": false,
+      "teacherRuns": [
+        {
+          "email": "central.teacher01@horizonacademy.edu.so",
+          "passed": false,
+          "scoreCount": 3,
+          "errors": [
+            {
+              "type": "http-error",
+              "status": 403,
+              "url": "http://127.0.0.1:5058/api/teacher/exam-results/bulk"
+            },
+            {
+              "type": "console-error",
+              "message": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+            }
+          ]
+        },
+        {
+          "email": "central.teacher02@horizonacademy.edu.so",
+          "passed": false,
+          "scoreCount": 3,
+          "errors": [
+            {
+              "type": "http-error",
+              "status": 403,
+              "url": "http://127.0.0.1:5058/api/teacher/exam-results/bulk"
+            },
+            {
+              "type": "console-error",
+              "message": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+            }
+          ]
+        },
+        {
+          "email": "central.teacher03@horizonacademy.edu.so",
+          "passed": false,
+          "scoreCount": 3,
+          "errors": [
+            {
+              "type": "http-error",
+              "status": 403,
+              "url": "http://127.0.0.1:5058/api/teacher/exam-results/bulk"
+            },
+            {
+              "type": "console-error",
+              "message": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+            }
+          ]
+        },
+        {
+          "email": "central.teacher04@horizonacademy.edu.so",
+          "passed": false,
+          "scoreCount": 3,
+          "errors": [
+            {
+              "type": "http-error",
+              "status": 403,
+              "url": "http://127.0.0.1:5058/api/teacher/exam-results/bulk"
+            },
+            {
+              "type": "console-error",
+              "message": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+            }
+          ]
+        },
+        {
+          "email": "central.teacher05@horizonacademy.edu.so",
+          "passed": false,
+          "scoreCount": 3,
+          "errors": [
+            {
+              "type": "http-error",
+              "status": 403,
+              "url": "http://127.0.0.1:5058/api/teacher/exam-results/bulk"
+            },
+            {
+              "type": "console-error",
+              "message": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+            }
+          ]
+        },
+        {
+          "email": "central.teacher06@horizonacademy.edu.so",
+          "passed": false,
+          "scoreCount": 3,
+          "errors": [
+            {
+              "type": "http-error",
+              "status": 403,
+              "url": "http://127.0.0.1:5058/api/teacher/exam-results/bulk"
+            },
+            {
+              "type": "console-error",
+              "message": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+            }
+          ]
+        },
+        {
+          "email": "central.teacher07@horizonacademy.edu.so",
+          "passed": false,
+          "scoreCount": 3,
+          "errors": [
+            {
+              "type": "http-error",
+              "status": 403,
+              "url": "http://127.0.0.1:5058/api/teacher/exam-results/bulk"
+            },
+            {
+              "type": "console-error",
+              "message": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+            }
+          ]
+        },
+        {
+          "email": "central.teacher08@horizonacademy.edu.so",
+          "passed": false,
+          "scoreCount": 3,
+          "errors": [
+            {
+              "type": "http-error",
+              "status": 403,
+              "url": "http://127.0.0.1:5058/api/teacher/exam-results/bulk"
+            },
+            {
+              "type": "console-error",
+              "message": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "url": "http://127.0.0.1:5181/teacher/results-entry",
+        "title": "School Management Platform",
+        "heading": "Enter Results",
+        "alerts": [],
+        "globalOverflow": false,
+        "invalidControls": [],
+        "bodyExcerpt": "Sahra Aden Farah\n\nTeacher\n\nS\n\nTeacher Portal\n\nDashboard\nMy Schedule\nOpen Attendance\nLeaves Request\nTemplates\nCategories\nExams List\nEnter Results\nResults Viewer\nGrading Policy\nMy Profile\nLogout\nEnter Results\n\nSelect an open exam and record student scores.\n\nStudents\n\n3\n\nRecorded\n\n0\n\nClass\nSelect class\nGrade 1\nGrade 2\nGrade 3\nGrade 4\nGrade 5\nGrade 6\nGrade 7\nGrade 8\nGrade 9\nGrade 10\nGrade 11\nGrade 12\nSubject\nSelect subject\nPhysical Education\nExam\nSelect exam\nE2E Grade 1 11cd85 Assessment (Term Three)\n\nExam\n\nE2E Grade 1 11cd85 Assessment\n\nGrade 1 - Physical Education\n\nMax Score\n\n100\n\nStatus\n\nOPEN\nStudent Marksheet\n\nMark absent students and enter scores for present students.\n\n3 students\nStudent\tAttendance\tScore\tRemarks\n\nAY\n\nAbdirahman Yusuf\n\n#HIA-2026-CEN-002\n\n\t\nPresent\n\t\n\t\n\nAF\n\nAyaan Farah\n\n#HIA-2026-CEN-001\n\n\t\nPresent\n\t\n\t\n\nBS\n\nBrowser Student\n\n#STD-026\n\n\t\nPresent\n\t\n\t\n\nReview scores before saving. Saved scores update existing records for this exam.\n\nSave Results\nOnly branch-admin created exams can be graded\n×",
+        "unauthorized": false,
+        "blank": false
+      },
+      "screenshot": "D:\\school-management-system\\e2e-artifacts\\full-lifecycle-20260808\\full-lifecycle-results.png"
+    },
+    {
+      "name": "Finance generates the admitted student invoice",
+      "scope": "full-lifecycle",
+      "passed": true,
+      "snapshot": {
+        "url": "http://127.0.0.1:5181/finance/invoices/generate",
+        "title": "School Management Platform",
+        "heading": "",
+        "alerts": [],
+        "globalOverflow": false,
+        "invalidControls": [],
+        "bodyExcerpt": "Abdirizak Yusuf Noor\n\nFINANCE DIRECTOR\n\nA\n\nFINANCE MANAGEMENT\n\nFinance Dashboard\nPolicies\nFee Structures\nInvoices\nPayments\nSalary Approvals\nPayroll Approvals\nReports\nOutstanding\nReceipt Branding\nMy Profile\nLogout\nInvoices Generated!\n\nThe system has successfully processed your request.\n\nView Invoices\nGenerate More",
+        "unauthorized": false,
+        "blank": false
+      },
+      "errors": [],
+      "screenshot": "D:\\school-management-system\\e2e-artifacts\\full-lifecycle-20260808\\full-lifecycle-invoice-generated.png"
+    },
+    {
+      "name": "Cashier records payment, opens receipt, and reverses payment",
+      "scope": "full-lifecycle",
+      "passed": false,
+      "paymentId": "6a76f215a714cee866560093",
+      "receiptScreenshot": "D:\\school-management-system\\e2e-artifacts\\full-lifecycle-20260808\\full-lifecycle-payment-receipt.png",
+      "snapshot": {
+        "url": "http://127.0.0.1:5181/cashier/invoices/6a76f215a714cee866560093",
+        "title": "School Management Platform",
+        "heading": "Invoice Details",
+        "alerts": [],
+        "globalOverflow": false,
+        "invalidControls": [],
+        "bodyExcerpt": "Maryan Hassan Jama\n\nCashier\n\nM\n\nCashier Menu\n\nDashboard\nInvoice Lookup\nRecord Payment\nPayment History\nSalary Payments\nMy Profile\nLogout\nInvoice Details\n\nView detailed breakdown of invoice items, payment status, and balances.\n\nBack\n2025-2026 Invoice\n\n#6a76f215a714cee866560093\n\nUnpaid\n\nCreated: 8/8/2026\n\nStudent Details\n\nBrowser Student\n\nSTD-026\n\nBrowser E2E Parent\n\n+252615559999\n\nDescription\tAmount\nTuition\t$28.67\nActivities and resources\t$7.17\nPayment Summary\nTotal Amount\n$35.84\nPaid Amount\n-$0.00\nBalance Due\n$35.84\nRecord Payment",
+        "unauthorized": false,
+        "blank": false
+      },
+      "errors": [],
+      "screenshot": "D:\\school-management-system\\e2e-artifacts\\full-lifecycle-20260808\\full-lifecycle-payment-reversed.png"
+    },
+    {
+      "name": "New parent changes password and views child fees",
+      "scope": "full-lifecycle",
+      "passed": false,
+      "parentEmail": "browser.e2e.parent@horizonacademy.edu.so",
+      "snapshot": {
+        "url": "http://127.0.0.1:5181/parent/invoices?studentId=6a76f193a714cee86655fee7",
+        "title": "School Management Platform",
+        "heading": "Fees & Payments",
+        "alerts": [],
+        "globalOverflow": false,
+        "invalidControls": [],
+        "bodyExcerpt": "1\nB\n\nBrowser E2E Parent\n\nParent\n\nParent Portal\n\nDashboard\nGrades & Ranks\nAttendance\nFees & Invoices\nMy Profile\nLogout\nFees & Payments\n\nReview school invoices, payments history, and fee statements.\n\nAcademic Year:\n2025-2026 (Current)\nPending Fee Balance\n\nTotal outstanding school fees for Browser (selected year)\n\nOutstanding amount\n$35.84\nInvoices Directory\nInvoice #560093\nUNPAID\n\nCreated: 8/8/2026\n\nMonth 1 | Due 8/31/2026\n\nTuition: $28.67Activities and resources: $7.17\nTotal / Balance\n$35.84\n$35.84 remaining\nReceipt History\n\nNo payments recorded.",
+        "unauthorized": false,
+        "blank": false
+      },
+      "errors": [],
+      "screenshot": "D:\\school-management-system\\e2e-artifacts\\full-lifecycle-20260808\\full-lifecycle-parent-fees.png"
+    },
+    {
+      "name": "New student changes password and views results",
+      "scope": "full-lifecycle",
+      "passed": false,
+      "admissionNumber": "STD-026",
+      "snapshot": {
+        "url": "http://127.0.0.1:5181/student/results",
+        "title": "School Management Platform",
+        "heading": "Results",
+        "alerts": [],
+        "globalOverflow": false,
+        "invalidControls": [],
+        "bodyExcerpt": "Browser Student\n\nSTD-026\n\nB\n\nStudent portal\n\nDashboard\nMy Results\nMy Rank\nMy Schedule\nAttendance\nProfile\nChange Password\nLogout\nResults\n\nSubject-wise performance summary\n\nPrint\nDownload\n2025-2026\n\nGraded total\n\n0 / 800\nFail\nSubject\tTerm Assessment / 100\tPercentage\tTotal\tGrade\nMathematics\t0\t0%\t0 / 100\tFail\nEnglish Language\t0\t0%\t0 / 100\tFail\nSomali Language\t0\t0%\t0 / 100\tFail\nIntegrated Science\t0\t0%\t0 / 100\tFail\nSocial Studies\t0\t0%\t0 / 100\tFail\nIslamic Studies\t0\t0%\t0 / 100\tFail\nComputer Studies\t0\t0%\t0 / 100\tFail\nPhysical Education\t0\t0%\t0 / 100\tFail\n\nTip: To filter by term, contact your school administrator.",
+        "unauthorized": false,
+        "blank": false
+      },
+      "errors": [],
+      "screenshot": "D:\\school-management-system\\e2e-artifacts\\full-lifecycle-20260808\\full-lifecycle-student-results.png"
+    },
+    {
+      "name": "Branch Admin submits same-grade branch transfer",
+      "scope": "full-lifecycle",
+      "passed": true,
+      "snapshot": {
+        "url": "http://127.0.0.1:5181/branch/transfers",
+        "title": "School Management Platform",
+        "heading": "Branch Transfer",
+        "alerts": [],
+        "globalOverflow": false,
+        "invalidControls": [],
+        "bodyExcerpt": "Hodan Mohamed Aden\n\nBranch Admin\n\nH\n\nBRANCH ADMINISTRATION\n\nDashboard\nClasses\nTimetable\nTeachers\nAdd teacher\nView and manage\nStaff\nAdd staff\nView and manage\nLeaves Manager\nStudents\nPromotions\nTransfers\nTeacher Assignments\nExams\nResults\nStudent Results\nReports\nMy Profile\nLogout\nBranch Transfer\n\nMove a student from your branch while preserving academic and financial history.\n\nAcademic Year: 2025-2026\nTransfer complete\n\nThe student now belongs to the destination branch.\n\nStart another transfer",
+        "unauthorized": false,
+        "blank": false
+      },
+      "errors": [],
+      "screenshot": "D:\\school-management-system\\e2e-artifacts\\full-lifecycle-20260808\\full-lifecycle-transfer-complete.png"
+    },
+    {
+      "name": "Transferred student portal resolves destination branch",
+      "scope": "full-lifecycle",
+      "passed": false,
+      "snapshot": {
+        "url": "http://127.0.0.1:5181/student/profile",
+        "title": "School Management Platform",
+        "heading": "My Profile",
+        "alerts": [],
+        "globalOverflow": false,
+        "invalidControls": [],
+        "bodyExcerpt": "Browser Student\n\nSTD-026\n\nB\n\nStudent portal\n\nDashboard\nMy Results\nMy Rank\nMy Schedule\nAttendance\nProfile\nChange Password\nLogout\nMy Profile\n\nManage your personal details and profile image.\n\nChange password\nB\nBrowser E2E Student\nStudent\nActive account\n\nPNG, JPEG, or WebP. Maximum size 2 MB.\n\nContact information\n\nContact details you can keep up to date.\n\nPhone\nAddress\nEmergency contact\n\nA trusted person the institution may contact when needed.\n\nContact name\nRelationship\nContact phone\nContact email\nOfficial and account information\n\nVerified fields are read-only.\n\nFull name\n\nBrowser E2E Student\n\nDate of birth\n\n2/14/2018\n\nGender\n\nMale\n\nEmail\n\nNot provided\n\nUsername\n\nSTD-026\n\nRole\n\nStudent\n\nAccess scope\n\nBranch\n\nContact an authorized administrator if your name, date of birth, gender, email, role, school, or branch information needs to change.",
+        "unauthorized": false,
+        "blank": false
+      },
+      "errors": []
+    },
+    {
+      "name": "Super Admin creates the next academic year",
+      "scope": "full-lifecycle",
+      "passed": true,
+      "snapshot": {
+        "url": "http://127.0.0.1:5181/tenant/academic-years",
+        "title": "School Management Platform",
+        "heading": "Academic Timeline",
+        "alerts": [],
+        "globalOverflow": false,
+        "invalidControls": [],
+        "bodyExcerpt": "Safiya Ali Warsame\n\nSUPER ADMIN\n\nS\n\nSCHOOL MANAGEMENT\n\nDashboard\nBranding\nBranches\nStudents\nAdministrators\nStaff Permissions\nAcademic Years\nAcademic Policy\nReports\nPromotion\nTransfer\nAudit Logs\nMy Profile\nLogout\nAcademic Timeline\n\nConfigure institutional sessions and the primary operational cycle.\n\nINITIALIZE SESSION\n2024-2025\n\nACADEMIC TERM\n\nDURATION RANGE\n\n9/1/2024 → 6/30/2025\n\nACTIVATE SESSION\n2026-2027\n\nACADEMIC TERM\n\nDURATION RANGE\n\n9/1/2026 → 6/30/2027\n\nACTIVATE SESSION\nCURRENT SESSION\n2025-2026\n\nACADEMIC TERM\n\nDURATION RANGE\n\n9/1/2025 → 6/30/2026\n\nSYSTEM PRIMARY",
+        "unauthorized": false,
+        "blank": false
+      },
+      "errors": [],
+      "screenshot": "D:\\school-management-system\\e2e-artifacts\\full-lifecycle-20260808\\full-lifecycle-next-academic-year.png"
+    },
+    {
+      "name": "Branch Admin promotes the fully graded Grade 1 cohort",
+      "scope": "full-lifecycle",
+      "passed": false,
+      "outcome": {
+        "Promoted": 0,
+        "Retained": 0,
+        "Incomplete": 22,
+        "Already enrolled": 0
+      },
+      "snapshot": {
+        "url": "http://127.0.0.1:5181/branch/promotions",
+        "title": "School Management Platform",
+        "heading": "Student Promotions",
+        "alerts": [],
+        "globalOverflow": false,
+        "invalidControls": [],
+        "bodyExcerpt": "Hodan Mohamed Aden\n\nBranch Admin\n\nH\n\nBRANCH ADMINISTRATION\n\nDashboard\nClasses\nTimetable\nTeachers\nAdd teacher\nView and manage\nStaff\nAdd staff\nView and manage\nLeaves Manager\nStudents\nPromotions\nTransfers\nTeacher Assignments\nExams\nResults\nStudent Results\nReports\nMy Profile\nLogout\nStudent Promotions\n\nBatch promote student cohorts to their respective classes for the next academic cycle.\n\nPROMOTION RULE\n\nStudents who fail at least half their subjects remain in the same class. Complete results are required before a decision is applied.\n\nPromotion complete: 0 promoted, 0 retained, 22 incomplete, 0 processing errors.\n×\nPromotion outcome\n\n0\n\nPromoted\n\n0\n\nRetained\n\n22\n\nIncomplete\n\n0\n\nAlready enrolled\n\nCURRENT ACADEMIC YEAR\n2025-2026\nTarget Academic Year\nSelect Target Year\n2026-2027\n\nOnly the immediate next academic year is available.\n\nCLASS MAPPING RULES\nGrade 1\nGrade 2\nGrade 10\nGrade 11\nGrade 11\nGrade 12\nGrade 12\nNo next grade configured\nGrade 2\nGrade 3\nGrade 3\nGrade 4\nGrade 4\nGrade 5\nGrade 5\nGrade 6\nGrade 6\nGrade 7\nGrade 7\nGrade 8\nGrade 8\nGrade 9\nGrade 9\nGrade 10\nRun Promotion Cycle",
+        "unauthorized": false,
+        "blank": false
+      },
+      "errors": [],
+      "screenshot": "D:\\school-management-system\\e2e-artifacts\\full-lifecycle-20260808\\full-lifecycle-promotion-outcome.png"
+    }
+  ],
+  "completedAt": "2026-08-08T09:09:49.103Z",
+  "summary": {
+    "loginPassed": 10,
+    "loginTotal": 10,
+    "pagePassed": 66,
+    "pageTotal": 67,
+    "actionPassed": 11,
+    "actionTotal": 18,
+    "actionSkipped": 0
+  }
+}

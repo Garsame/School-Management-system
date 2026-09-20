@@ -1,0 +1,20 @@
+{
+  "startedAt": "2026-08-08T10:04:26.055Z",
+  "scenario": "cashier-payment-reversal",
+  "completedAt": "2026-08-08T10:04:32.378Z",
+  "passed": true,
+  "paymentId": "6a76ff2e96ad98883a92040c",
+  "snapshot": {
+    "url": "http://127.0.0.1:5181/cashier/receipts/6a76ff2e96ad98883a92040c",
+    "title": "School Management Platform",
+    "heading": "Receipt Details",
+    "alerts": [],
+    "globalOverflow": false,
+    "invalidControls": [],
+    "bodyExcerpt": "Maryan Hassan Jama\n\nCashier\n\nM\n\nCashier Menu\n\nDashboard\nInvoice Lookup\nRecord Payment\nPayment History\nSalary Payments\nMy Profile\nLogout\nPayment reversed successfully.\n×\nReceipt Details\n\nOfficial statement of receipt for transaction payment.\n\nBack to Invoice\nNew Payment\nPrint Receipt\nCentral Campus\n\nMaka Al-Mukarama Road, Hodan, Mogadishu\n\nDate: 8/8/2026, 1:04:30 PM\n\nReceipt #: 3A92040C\n\nRef: N/A\n\nReceived From:\n\nAnas Ahmed\n\n(HIA-2026-CEN-024)\n\nAmount reversed\n$1.00\nMethod: CASH (Reversed)\nAccount status (Inv #baaa14)\nTotal Invoice:\n$76.00\nTotal Paid:\n$1.00\nBalance Due:\n$75.00\n\nThank you for supporting learning at Horizon International Academy.\n\nRecorded By: Maryan Hassan Jama • Reversed Reason: Targeted browser regression verification",
+    "unauthorized": false,
+    "blank": false
+  },
+  "errors": [],
+  "screenshot": "D:\\school-management-system\\e2e-artifacts\\cashier-reversal-targeted\\cashier-reversed-receipt.png"
+}
