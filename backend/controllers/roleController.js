@@ -1,12 +1,16 @@
 const asyncHandler = require('express-async-handler');
 const Role = require('../models/Role');
 const User = require('../models/User');
+const Tenant = require('../models/Tenant');
 const { logActivity } = require('../utils/logger');
 const {
     findEscalatedPermissions,
+    findUnassignablePermissions,
+    getAssignablePermissions,
     getUserPermissionParts,
-    sanitizePermissions
+    sanitizeAssignablePermissionsForScope
 } = require('../utils/permissions');
+const { findNewDutyConflicts } = require('../utils/segregationOfDuties');
 const { normalizeRole } = require('../utils/rolePolicy');
 
 const fail = (message, statusCode) => {
@@ -36,26 +40,30 @@ const ensureTenantRole = async (req, roleId) => {
 };
 
 /**
- * What the actor may put in a role.
+ * The administrative ceiling for a role's permissions.
  *
- * A super admin delegates permissions they never hold themselves, so this is not a
- * "must hold it" check. The boundary today is the catalog's allowedRoles whitelist,
- * enforced via the role's own key, plus a hard block on platform permissions — a school
- * must never be able to mint itself platform-owner access.
- *
- * Phase 2 replaces this with a scope- and plan-tier ceiling once the catalog is unboxed.
+ * A super admin delegates permissions they never hold themselves, so this is deliberately
+ * not a "must hold it" check — that would break delegation, which is the role's whole
+ * purpose. The boundary is scope, plan tier, and the platform wall, all enforced by
+ * getAssignablePermissions. Rejections name the exact permission and reason rather than
+ * failing opaquely, so the user can fix the request.
  */
-const assertAssignable = (permissions) => {
-    const sanitized = sanitizePermissions(permissions);
-    const unknown = permissions.filter((permission) => !sanitized.includes(permission));
-    if (unknown.length) {
-        throw fail(`Unknown permissions: ${unknown.join(', ')}`, 400);
+const assertAssignable = async (req, scope, permissions) => {
+    if (!Array.isArray(permissions)) throw fail('permissions must be an array', 400);
+
+    const planTier = await resolveTenantPlanTier(req.tenantId);
+    const rejected = findUnassignablePermissions({ scope, planTier, values: permissions });
+    if (rejected.length) {
+        const detail = rejected.map((item) => `${item.key} (${item.reason})`).join('; ');
+        const isPlanLimit = rejected.every((item) => /plan/.test(item.reason));
+        throw fail(`These permissions cannot be granted: ${detail}`, isPlanLimit ? 402 : 403);
     }
-    const platform = sanitized.filter((permission) => permission.startsWith('platform.'));
-    if (platform.length) {
-        throw fail(`Platform permissions cannot be granted by a school: ${platform.join(', ')}`, 403);
-    }
-    return sanitized;
+    return sanitizeAssignablePermissionsForScope(scope, permissions, planTier);
+};
+
+const resolveTenantPlanTier = async (tenantId) => {
+    const tenant = await Tenant.findById(tenantId).select('plan').lean();
+    return tenant?.plan || 'basic';
 };
 
 const getRoles = asyncHandler(async (req, res) => {
@@ -91,7 +99,8 @@ const createRole = asyncHandler(async (req, res) => {
     const existing = await Role.findOne({ tenantId: req.tenantId, key }).select('_id').lean();
     if (existing) throw fail(`A role with key ${key} already exists in this school`, 409);
 
-    const permissions = assertAssignable(req.body.permissions || []);
+    const permissions = await assertAssignable(req, scope, req.body.permissions || []);
+    const dutyConflicts = findNewDutyConflicts([], permissions);
 
     const role = await Role.create({
         tenantId: req.tenantId,
@@ -112,10 +121,12 @@ const createRole = asyncHandler(async (req, res) => {
         action: 'ROLE_CREATED',
         entityType: 'Role',
         entityId: role._id.toString(),
-        after: serializeRole(role)
+        after: { ...serializeRole(role), dutyConflicts }
     });
 
-    res.status(201).json(serializeRole(role));
+    // Warnings travel with the response so the UI can show them at the moment of the
+    // change. They never block: a small school may genuinely have nobody to delegate to.
+    res.status(201).json({ ...serializeRole(role), dutyConflicts });
 });
 
 const updateRole = asyncHandler(async (req, res) => {
@@ -138,9 +149,10 @@ const updateRole = asyncHandler(async (req, res) => {
     if (req.body.description !== undefined) role.description = String(req.body.description).trim();
     if (req.body.dataScope !== undefined) role.dataScope = req.body.dataScope;
 
+    let dutyConflicts = [];
     if (req.body.permissions !== undefined) {
-        if (!Array.isArray(req.body.permissions)) throw fail('permissions must be an array', 400);
-        const next = assertAssignable(req.body.permissions);
+        const next = await assertAssignable(req, role.scope, req.body.permissions);
+        dutyConflicts = findNewDutyConflicts(role.permissions, next);
 
         // Editing your own role is the self-escalation path: it would let an admin restore
         // a permission that was deliberately taken away from them.
@@ -174,10 +186,10 @@ const updateRole = asyncHandler(async (req, res) => {
         entityType: 'Role',
         entityId: role._id.toString(),
         before,
-        after: serializeRole(role)
+        after: { ...serializeRole(role), dutyConflicts }
     });
 
-    res.json(serializeRole(role));
+    res.json({ ...serializeRole(role), dutyConflicts });
 });
 
 /**
@@ -272,10 +284,40 @@ const assignRole = asyncHandler(async (req, res) => {
     res.json({ message: `${targetUser.name} is now ${role.name}`, userId: targetUser._id, roleId: role._id });
 });
 
+/**
+ * Everything this school may put in a role at the given scope, grouped for the picker.
+ * The UI must build from this rather than the raw catalog, so it never offers a permission
+ * the ceiling would reject.
+ */
+const getAssignableCatalog = asyncHandler(async (req, res) => {
+    const scope = req.query.scope === 'branch' ? 'branch' : 'tenant';
+    const planTier = await resolveTenantPlanTier(req.tenantId);
+    const assignable = getAssignablePermissions({ scope, planTier });
+
+    const groups = assignable.reduce((acc, permission) => {
+        (acc[permission.group] = acc[permission.group] || []).push({
+            key: permission.key,
+            label: permission.label,
+            description: permission.description,
+            requiredScope: permission.requiredScope,
+            suggestedRoles: permission.suggestedRoles
+        });
+        return acc;
+    }, {});
+
+    res.json({
+        scope,
+        planTier,
+        total: assignable.length,
+        groups: Object.entries(groups).map(([name, permissions]) => ({ name, permissions }))
+    });
+});
+
 module.exports = {
     assignRole,
     createRole,
     deleteRole,
+    getAssignableCatalog,
     getRoleById,
     getRoles,
     updateRole

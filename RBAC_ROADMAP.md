@@ -207,27 +207,44 @@ Safety rails shipped with 1.5:
 - An inactive role grants nothing, rather than falling back to the defaults it was built from.
 
 
-#### Phase 2 — Unbox the permission catalog · **M** · after Phase 1
+#### Phase 2 — Unbox the permission catalog · **M** · after Phase 1 · **DONE**
 
-The phase that makes your org expressible.
+**Your target org is now expressible.** Verified: 204 of 204 users resolve to identical
+permissions, so unboxing widened only what a school *may grant*, never what anyone already
+has. 181/181 tests pass.
 
-| # | Task |
-| --- | --- |
-| 2.1 | Migrate 152 catalog entries from `allowedRoles[]` to `{ requiredScope, suggestedRoles, minPlanTier }` |
-| 2.2 | `sanitizeAssignablePermissionsForRole` → `sanitizeAssignablePermissionsForScope` |
-| 2.3 | Plan ceiling — no grant above the tenant's tier, including via custom roles |
-| 2.4 | SoD warnings at tick time — warn and require acknowledgement, never block |
+| # | Task | Status |
+| --- | --- | --- |
+| 2.1 | `allowedRoles[]` → `{ requiredScope, suggestedRoles, minPlanTier }` | Done — derived, not hand-edited |
+| 2.2 | Scope-based assignability | Done — `getAssignablePermissions({ scope, planTier })` |
+| 2.3 | Plan ceiling | Mechanism done; **no tiers set — your pricing decision** |
+| 2.4 | Segregation-of-duties warnings | Done — 5 conflicts, warn only |
 
-**Unlocks:** Super Admin gets `payroll.approve`. Finance gets `payroll.pay`. Admission Manager
-gets all seven branch permissions.
+**How the migration was done.** The scope is *derived* from the roles that hold each
+permission today, rather than 157 hand edits, so it is exact by construction. A test asserts
+that every role still satisfies the scope of every permission it holds, which is what proves
+nobody silently lost access.
 
-SoD conflict set for 2.4 (your own payroll chain triggers none of these):
-- `payroll.generate` + `payroll.approve` + `payroll.pay`
-- `finance.invoices.generate` + `cashier.payments.create` + `cashier.payments.reverse`
-- `students.create` + `students.password.reset`
-- `tenant.users.create` + `tenant.users.permissions.update`
+**35 of 157 permissions are `requiredScope: 'any'`** — already held by both tenant- and
+branch-scoped roles. A single required scope would have been wrong for them.
 
----
+**What is now grantable:** 99 permissions at tenant scope, 71 at branch scope, and **zero**
+platform permissions at either. The ceiling has three limits: scope must match, platform is
+sealed off from schools entirely, and the plan tier caps what can be reached.
+
+**Plan tiers are not populated.** `minPlanTier` is implemented and enforced, but no permission
+sets it — which tier unlocks what is a pricing decision, not a default the platform should
+invent. A test asserts this is empty so it cannot drift unnoticed.
+
+**Segregation of duties warns, never blocks.** Refusing would put the platform's judgement
+above the school's, and a one-teacher school genuinely has nobody to delegate to. Warnings
+ride along in the response and the audit log. Five conflicts ship: full payroll cycle,
+invoice-to-payment, identity takeover, unobserved admin, and role self-service. **Your chain
+triggers none of them** — HR generates and reviews, Super Admin approves, Finance pays.
+
+**The Phase 1 gap is closed.** Phase 1 noted that removing the `allowedRoles` boxing would
+leave granting-to-another-account unbounded. `getAssignablePermissions` is that bound.
+
 
 #### Phase 3 — Retire the blanket role gates · **S** · after Phase 2
 

@@ -1,15 +1,78 @@
+const { ROLE_SCOPE } = require('./rolePolicy');
+
 const normalizePermissionList = (values = []) => {
     if (!Array.isArray(values)) return [];
     return [...new Set(values.map((value) => String(value || '').trim()).filter(Boolean))];
 };
 
-const createPermission = (key, label, group, description, allowedRoles = []) => ({
+/**
+ * Plan tiers, weakest first. A permission carrying `minPlanTier` can only be granted by a
+ * school on that tier or higher, so a custom role can never be used to reach past what the
+ * school pays for.
+ */
+const PLAN_TIER_ORDER = Object.freeze(['basic', 'pro', 'enterprise']);
+
+const planTierRank = (slug) => {
+    const index = PLAN_TIER_ORDER.indexOf(String(slug || '').trim().toLowerCase());
+    return index === -1 ? 0 : index;
+};
+
+/**
+ * Phase 2 — a permission's hard constraint is SCOPE, not role.
+ *
+ * `allowedRoles` used to decide who could ever hold a permission, which made it impossible
+ * to build a role the platform had not anticipated — a Branch Admin who approves invoices,
+ * or an Admission Manager who also manages classes. But the real constraint was never the
+ * role. `branch.students.view` is meaningless to a tenant-scoped user with no branch; it is
+ * perfectly sensible for any branch-scoped role.
+ *
+ * So the role list becomes `suggestedRoles`, a UI grouping hint with no enforcement power,
+ * and `requiredScope` carries the constraint:
+ *
+ *   'platform'  only platform-scoped users
+ *   'tenant'    needs school-wide context
+ *   'branch'    needs a branch context
+ *   'any'       works at either tenant or branch scope
+ *
+ * The scope is derived from the roles that hold the permission today, so the migration is
+ * exact by construction rather than 157 hand edits. Where a permission is already held by
+ * both tenant- and branch-scoped roles it becomes 'any' — that is 35 of them, including
+ * every branch.* permission a super admin can already use.
+ */
+const deriveRequiredScope = (roles = []) => {
+    const scopes = [...new Set(roles.map((role) => ROLE_SCOPE[role]).filter(Boolean))];
+    if (!scopes.length) return 'any';
+    if (scopes.includes('platform')) return 'platform';
+    return scopes.length > 1 ? 'any' : scopes[0];
+};
+
+const createPermission = (key, label, group, description, suggestedRoles = [], options = {}) => ({
     key,
     label,
     group,
     description,
-    allowedRoles
+    // Which roles hold this by default. A hint for grouping the picker — it no longer
+    // decides who may be granted the permission.
+    suggestedRoles,
+    requiredScope: options.requiredScope || deriveRequiredScope(suggestedRoles),
+    minPlanTier: options.minPlanTier || null,
+    // Retained so anything still reading allowedRoles keeps working. Deprecated: read
+    // suggestedRoles for display and requiredScope for enforcement.
+    allowedRoles: suggestedRoles
 });
+
+/**
+ * Can a role of `scope` hold a permission requiring `requiredScope`?
+ *
+ * Platform is a hard boundary in both directions: a school must never grant itself platform
+ * access, and a platform owner does not operate inside one school's branch.
+ */
+const isScopeCompatible = (requiredScope, scope) => {
+    if (requiredScope === 'platform') return scope === 'platform';
+    if (scope === 'platform') return false;
+    if (requiredScope === 'any') return scope === 'tenant' || scope === 'branch';
+    return requiredScope === scope;
+};
 
 const PERMISSION_CATALOG = Object.freeze([
     createPermission('platform.dashboard.view', 'View platform dashboard', 'Platform', 'View global platform health and summary metrics.', ['platform_owner']),
@@ -214,14 +277,74 @@ const isKnownPermission = (permission) => PERMISSION_KEYS.has(permission);
 
 const sanitizePermissions = (values = []) => normalizePermissionList(values).filter(isKnownPermission);
 
+/**
+ * Deprecated. Kept so existing callers keep working while they migrate to the scope-based
+ * catalog. It answers "which permissions does this role hold by default", which is a
+ * display question, not an authorization one.
+ */
 const getPermissionCatalogForRole = (role = '') => {
     const normalizedRole = String(role || '').trim().toLowerCase();
-    return PERMISSION_CATALOG.filter((permission) => permission.allowedRoles.includes(normalizedRole));
+    return PERMISSION_CATALOG.filter((permission) => permission.suggestedRoles.includes(normalizedRole));
 };
 
-const sanitizeAssignablePermissionsForRole = (role = '', values = []) => {
-    const allowed = new Set(getPermissionCatalogForRole(role).map((permission) => permission.key));
+/**
+ * The administrative ceiling: every permission a school on `planTier` may grant to a role
+ * or user of `scope`.
+ *
+ * This replaces the old allowedRoles whitelist as the enforcement boundary. Phase 1's
+ * escalation guard noted that removing the whitelist leaves granting-to-another-account
+ * unbounded; this ceiling is what bounds it now. Three limits apply:
+ *
+ *   1. Scope must match, so a branch role never holds a school-wide permission.
+ *   2. Platform permissions are never grantable by a school, at any tier.
+ *   3. The school's plan tier caps what can be reached, so a custom role cannot be used
+ *      to obtain a capability the school has not paid for.
+ */
+const getAssignablePermissions = ({ scope = 'tenant', planTier = null } = {}) => {
+    const rank = planTierRank(planTier);
+    return PERMISSION_CATALOG.filter((permission) => {
+        if (permission.requiredScope === 'platform') return false;
+        if (!isScopeCompatible(permission.requiredScope, scope)) return false;
+        if (permission.minPlanTier && planTierRank(permission.minPlanTier) > rank) return false;
+        return true;
+    });
+};
+
+const sanitizeAssignablePermissionsForScope = (scope = 'tenant', values = [], planTier = null) => {
+    const allowed = new Set(getAssignablePermissions({ scope, planTier }).map((permission) => permission.key));
     return sanitizePermissions(values).filter((permission) => allowed.has(permission));
+};
+
+/**
+ * Which of `values` a school on `planTier` may not grant at `scope`, and why. Returned so
+ * callers can tell the user exactly what was rejected rather than failing opaquely.
+ */
+const findUnassignablePermissions = ({ scope = 'tenant', planTier = null, values = [] } = {}) => {
+    const rank = planTierRank(planTier);
+    const byKey = new Map(PERMISSION_CATALOG.map((permission) => [permission.key, permission]));
+
+    return normalizePermissionList(values).reduce((rejected, key) => {
+        const permission = byKey.get(key);
+        if (!permission) {
+            rejected.push({ key, reason: 'unknown permission' });
+        } else if (permission.requiredScope === 'platform') {
+            rejected.push({ key, reason: 'platform permissions cannot be granted by a school' });
+        } else if (!isScopeCompatible(permission.requiredScope, scope)) {
+            rejected.push({ key, reason: `requires ${permission.requiredScope} scope, but the role is ${scope}-scoped` });
+        } else if (permission.minPlanTier && planTierRank(permission.minPlanTier) > rank) {
+            rejected.push({ key, reason: `requires the ${permission.minPlanTier} plan or higher` });
+        }
+        return rejected;
+    }, []);
+};
+
+/**
+ * Deprecated. The old role-boxed filter. Phase 2 moved enforcement to scope, but user-level
+ * allow/deny still routes through here until those call sites move to the scope form.
+ */
+const sanitizeAssignablePermissionsForRole = (role = '', values = []) => {
+    const scope = ROLE_SCOPE[String(role || '').trim().toLowerCase()] || 'tenant';
+    return sanitizeAssignablePermissionsForScope(scope, values);
 };
 
 /**
@@ -279,12 +402,19 @@ const findEscalatedPermissions = (actorPermissions = [], requestedPermissions = 
 module.exports = {
     DEFAULT_ROLE_PERMISSIONS,
     PERMISSION_CATALOG,
+    PLAN_TIER_ORDER,
+    deriveRequiredScope,
     findEscalatedPermissions,
+    findUnassignablePermissions,
+    getAssignablePermissions,
     getDefaultPermissionsForRole,
     getEffectivePermissions,
     getPermissionCatalogForRole,
     getUserPermissionParts,
+    isScopeCompatible,
+    planTierRank,
     resolveRoleDefaults,
     sanitizeAssignablePermissionsForRole,
+    sanitizeAssignablePermissionsForScope,
     sanitizePermissions
 };

@@ -97,15 +97,36 @@ test('custom permission deny overrides defaults', () => {
     assert.equal(parts.effective.includes('teacher.results.enter'), false);
 });
 
-test('cross-role custom permissions are ignored', () => {
-    const permissions = getEffectivePermissions({
+test('permissions are bounded by scope, not by role', () => {
+    // Phase 2 removed the allowedRoles boxing. A permission another role holds by default
+    // is now grantable as long as the scope fits, which is what lets a school build roles
+    // the platform never anticipated — a super admin who approves payroll, or an admission
+    // manager who also manages classes.
+    const superAdmin = getEffectivePermissions({
         role: 'super_admin',
-        permissions: {
-            allow: ['finance.dashboard.view']
-        }
+        permissions: { allow: ['finance.dashboard.view'] }
     });
+    assert.equal(superAdmin.includes('finance.dashboard.view'), true,
+        'a tenant-scoped role can hold a tenant-scoped permission from another role');
 
-    assert.equal(permissions.includes('finance.dashboard.view'), false);
+    // Scope is still a hard boundary: school-wide permissions are meaningless to a
+    // branch-scoped user, so they cannot be granted.
+    const cashier = getEffectivePermissions({
+        role: 'cashier',
+        permissions: { allow: ['finance.dashboard.view', 'tenant.users.create'] }
+    });
+    assert.equal(cashier.includes('finance.dashboard.view'), false);
+    assert.equal(cashier.includes('tenant.users.create'), false);
+
+    // Platform stays sealed off from schools at every scope.
+    for (const role of ['super_admin', 'branch_admin', 'cashier']) {
+        const permissions = getEffectivePermissions({
+            role,
+            permissions: { allow: ['platform.tenants.create'] }
+        });
+        assert.equal(permissions.includes('platform.tenants.create'), false,
+            `${role} must never reach a platform permission`);
+    }
 });
 
 test('finance role authorization rejects school super admins', () => {
@@ -7139,4 +7160,128 @@ test('seeded system roles mirror the built-in role permissions exactly', () => {
     assert.equal(dataScopeFor('teacher').branches, 'assigned');
     assert.equal(dataScopeFor('super_admin').branches, 'all');
     assert.equal(dataScopeFor('cashier').branches, 'own');
+});
+
+test('the target org is expressible once the catalog is unboxed', () => {
+    const { findUnassignablePermissions } = require('../utils/permissions');
+
+    const grantable = (scope, values) =>
+        findUnassignablePermissions({ scope, planTier: 'basic', values }).length === 0;
+
+    // Super Admin approves payroll; payroll.approve used to be boxed to finance_director.
+    assert.ok(grantable('tenant', ['payroll.approve']));
+    // Finance pays; payroll.pay used to be boxed to super_admin and cashier.
+    assert.ok(grantable('tenant', ['payroll.pay']));
+
+    // Admission Manager is branch-scoped and needs seven permissions previously boxed to
+    // branch_admin, on top of what registrar already held.
+    assert.ok(grantable('branch', [
+        'students.create', 'students.view', 'students.detail', 'students.update',
+        'enrollments.create', 'branch.classes.view', 'branch.classes.create',
+        'branch.classes.update', 'branch.sections.manage', 'branch.subjects.manage',
+        'branch.results.view', 'branch.timetable.view', 'branch.promotions.run',
+        'branch.transfers.run'
+    ]));
+
+    // HR stays tenant-scoped and student-free.
+    assert.ok(grantable('tenant', [
+        'hr.leaves.view', 'hr.leaves.review', 'hr.employees.view', 'hr.employees.update',
+        'payroll.view', 'payroll.generate', 'payroll.review'
+    ]));
+});
+
+test('the administrative ceiling blocks platform, scope, and plan-tier overreach', () => {
+    const { findUnassignablePermissions, getAssignablePermissions } = require('../utils/permissions');
+
+    // A school can never mint itself platform access, at any scope or tier.
+    for (const scope of ['tenant', 'branch']) {
+        const rejected = findUnassignablePermissions({
+            scope, planTier: 'enterprise', values: ['platform.tenants.create']
+        });
+        assert.equal(rejected.length, 1);
+        assert.match(rejected[0].reason, /platform permissions cannot be granted/);
+    }
+
+    // Scope is a hard boundary in both directions.
+    const branchOverreach = findUnassignablePermissions({
+        scope: 'branch', planTier: 'enterprise', values: ['tenant.users.create']
+    });
+    assert.equal(branchOverreach.length, 1);
+    assert.match(branchOverreach[0].reason, /requires tenant scope/);
+
+    // Unknown keys are named, not silently dropped.
+    const unknown = findUnassignablePermissions({ scope: 'tenant', values: ['not.a.permission'] });
+    assert.equal(unknown[0].reason, 'unknown permission');
+
+    // No platform permission is ever assignable to a school.
+    for (const scope of ['tenant', 'branch']) {
+        const assignable = getAssignablePermissions({ scope, planTier: 'enterprise' });
+        assert.equal(assignable.some((p) => p.key.startsWith('platform.')), false);
+    }
+});
+
+test('plan tier caps what a school can reach', () => {
+    const { planTierRank, findUnassignablePermissions, PERMISSION_CATALOG } = require('../utils/permissions');
+
+    assert.ok(planTierRank('basic') < planTierRank('pro'));
+    assert.ok(planTierRank('pro') < planTierRank('enterprise'));
+    // An unknown or missing plan must not grant more than the lowest tier.
+    assert.equal(planTierRank(undefined), planTierRank('basic'));
+    assert.equal(planTierRank('nonsense'), planTierRank('basic'));
+
+    // The mechanism works even though no permission currently sets minPlanTier: pricing
+    // tiers are the school's business decision, not a default the platform should invent.
+    const tiered = { ...PERMISSION_CATALOG[0], minPlanTier: 'enterprise' };
+    assert.ok(planTierRank(tiered.minPlanTier) > planTierRank('basic'));
+    assert.equal(PERMISSION_CATALOG.filter((p) => p.minPlanTier).length, 0,
+        'no tier restrictions are set yet; populate minPlanTier when pricing is decided');
+
+    // Scope rejections still fire regardless of tier.
+    assert.equal(findUnassignablePermissions({ scope: 'branch', planTier: 'basic', values: ['tenant.users.create'] }).length, 1);
+});
+
+test('segregation of duties warns on conflicting grants without blocking them', () => {
+    const { findDutyConflicts, findNewDutyConflicts } = require('../utils/segregationOfDuties');
+
+    // The full payroll cycle in one role is the headline conflict.
+    const fullCycle = findDutyConflicts(['payroll.generate', 'payroll.approve', 'payroll.pay']);
+    assert.equal(fullCycle.length, 1);
+    assert.equal(fullCycle[0].key, 'payroll_full_cycle');
+
+    // The target org splits it across three people, so it must NOT warn.
+    assert.deepEqual(findDutyConflicts(['payroll.generate', 'payroll.review']), []);
+    assert.deepEqual(findDutyConflicts(['payroll.approve']), []);
+    assert.deepEqual(findDutyConflicts(['payroll.pay']), []);
+
+    // Holding part of a conflict is the split we are recommending, so it stays quiet.
+    assert.deepEqual(findDutyConflicts(['students.create']), []);
+    assert.equal(findDutyConflicts(['students.create', 'students.password.reset']).length, 1);
+
+    // A school that already accepted a conflict is not re-warned for an unrelated edit.
+    const before = ['payroll.generate', 'payroll.approve', 'payroll.pay'];
+    const after = [...before, 'hr.leaves.view'];
+    assert.deepEqual(findNewDutyConflicts(before, after), []);
+
+    // A change that introduces one does warn.
+    const introduced = findNewDutyConflicts(['payroll.generate'], ['payroll.generate', 'payroll.approve', 'payroll.pay']);
+    assert.equal(introduced.length, 1);
+    assert.equal(introduced[0].key, 'payroll_full_cycle');
+});
+
+test('every catalog permission has a usable scope, and suggestedRoles agree with it', () => {
+    const { PERMISSION_CATALOG, isScopeCompatible } = require('../utils/permissions');
+    const { ROLE_SCOPE } = require('../utils/rolePolicy');
+
+    for (const permission of PERMISSION_CATALOG) {
+        assert.ok(['platform', 'tenant', 'branch', 'any'].includes(permission.requiredScope),
+            `${permission.key} has an invalid requiredScope: ${permission.requiredScope}`);
+
+        // Every role that holds a permission today must still be able to hold it, or the
+        // migration would silently strip access from an existing user.
+        for (const role of permission.suggestedRoles) {
+            const roleScope = ROLE_SCOPE[role];
+            assert.ok(isScopeCompatible(permission.requiredScope, roleScope),
+                `${role} (${roleScope}) holds ${permission.key} but requiredScope is ${permission.requiredScope}`);
+        }
+    }
 });

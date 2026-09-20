@@ -74,6 +74,7 @@ router.put('/users/:userId/permissions', requirePermission('tenant.users.permiss
 
 // C2) Role Management
 router.get('/roles', requirePermission('tenant.roles.view'), roleController.getRoles);
+router.get('/roles/assignable-catalog', requirePermission('tenant.roles.view'), roleController.getAssignableCatalog);
 router.post('/roles', requirePermission('tenant.roles.create'), roleController.createRole);
 router.get('/roles/:roleId', requirePermission('tenant.roles.view'), roleController.getRoleById);
 router.put('/roles/:roleId', requirePermission('tenant.roles.update'), roleController.updateRole);
