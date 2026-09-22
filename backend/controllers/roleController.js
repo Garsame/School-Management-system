@@ -150,6 +150,7 @@ const updateRole = asyncHandler(async (req, res) => {
     let dutyConflicts = [];
     if (req.body.permissions !== undefined) {
         const next = await assertAssignable(req, role.scope, req.body.permissions);
+        await assertRoleManagementSurvives(req, role, next);
         dutyConflicts = findNewDutyConflicts(role.permissions, next);
 
         // No self-escalation check here, deliberately.
@@ -212,6 +213,24 @@ const assertRoleIsRemovable = async (req, role, verb) => {
         if (otherAdminRoles === 0) {
             throw fail(`Cannot ${verb} the last role that can manage access for this school`, 409);
         }
+    }
+};
+
+/**
+ * Unticking "change roles" on the only role that has it would leave nobody able to give it
+ * back. Deactivation is guarded the same way in assertRoleIsRemovable.
+ */
+const assertRoleManagementSurvives = async (req, role, nextPermissions) => {
+    const MANAGE = 'tenant.roles.update';
+    if (!role.permissions.includes(MANAGE) || nextPermissions.includes(MANAGE)) return;
+    const others = await Role.countDocuments({
+        tenantId: req.tenantId,
+        _id: { $ne: role._id },
+        isActive: true,
+        permissions: MANAGE
+    });
+    if (others === 0) {
+        throw fail(`${role.name} is the only role that can change roles, so it must keep that permission`, 409);
     }
 };
 

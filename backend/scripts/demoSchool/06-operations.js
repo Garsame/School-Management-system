@@ -8,7 +8,9 @@
  */
 const { loginTenant, step, unwrap } = require('./lib');
 
-const FEES_BY_GRADE = { 1: 260, 2: 260, 3: 280, 4: 300, 5: 320, 6: 340 };
+// What one student pays each month, by grade.
+const MONTHLY_FEE_BY_GRADE = { 1: 45, 2: 45, 3: 50, 4: 55, 5: 60, 6: 65 };
+const BILLED_MONTHS = ['2026-09', '2026-10'];
 
 const run = async () => {
     const admin = await loginTenant('super admin', 'admin@nuur-al-ilm.school');
@@ -86,44 +88,39 @@ const run = async () => {
     console.log(`   ${registers} registers, ${marked} student marks`);
     console.log(`   school attendance rate: ${summary.totals.attendanceRate}%`);
 
-    step(3, 'Finance Officer sets the fees and invoices the school');
+    step(3, 'Finance Officer sets the monthly fees and bills the school');
     const structures = [];
     for (const klass of classes) {
-        const amount = FEES_BY_GRADE[klass.gradeLevel] || 280;
+        const amount = MONTHLY_FEE_BY_GRADE[klass.gradeLevel] || 50;
         const created = await finance.post('/tenant/finance/fee-structures', {
-            name: `${klass.name} tuition 2026/2027`,
+            name: `${klass.name} monthly fee`,
             branchId: branch._id,
             classId: klass._id,
             targetType: 'CLASS',
             academicYearId: year._id,
-            billingFrequency: 'TERM',
+            // Every item is charged in full each month.
             feeItems: [
-                { name: 'Tuition', amount: amount - 40 },
-                { name: 'Materials', amount: 25 },
-                { name: 'Activities', amount: 15 }
+                { name: 'Tuition', amount: amount - 10 },
+                { name: 'Materials', amount: 6 },
+                { name: 'Activities', amount: 4 }
             ]
         });
         structures.push(created);
     }
-    console.log(`   ${structures.length} fee structures`);
+    console.log(`   ${structures.length} monthly fee structures`);
 
+    // One click per month for the whole school, each checked by a preview first, which is
+    // exactly what the Generate page does.
     let invoiced = 0;
-    for (const klass of classes) {
-        try {
-            const result = await finance.post('/tenant/finance/invoices/generate', {
-                branchId: branch._id,
-                academicYearId: year._id,
-                classId: klass._id,
-                // TERM splits the year into three, so the run has to say which one it is
-                // billing. Without a key the generator refuses rather than guessing.
-                billingPeriodKey: 'TERM_1',
-                dueDate: '2026-10-15'
-            });
-            invoiced += result.created ?? result.generated ?? result.data?.created ?? 0;
-        } catch (error) {
-            console.log(`   invoice run failed for ${klass.name}: ${error.status} ${error.body?.message}`);
-        }
+    for (const month of BILLED_MONTHS) {
+        const request = { academicYearId: year._id, month, dueDate: `${month}-10` };
+        const preview = unwrap(await finance.post('/tenant/finance/invoices/generate', { ...request, dryRun: true }));
+        const result = unwrap(await finance.post('/tenant/finance/invoices/generate', request));
+        invoiced += result.created;
+        console.log(`   ${result.month.label}: previewed ${preview.toBill}, created ${result.created}, ${result.skippedClasses.length} classes skipped`);
     }
+    const again = unwrap(await finance.post('/tenant/finance/invoices/generate', { academicYearId: year._id, month: BILLED_MONTHS[0] }));
+    console.log(`   billing ${again.month.label} again created ${again.created}, already billed ${again.alreadyBilled}`);
     const invoices = unwrap(await finance.get('/tenant/finance/invoices?limit=500'));
     console.log(`   ${invoices.length} invoices raised (generator reported ${invoiced})`);
 

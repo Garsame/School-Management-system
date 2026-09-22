@@ -53,3 +53,19 @@ export const getDashboardStats = async () => {
     const response = await http.get('/cashier/dashboard/stats');
     return response.data;
 };
+
+// --- Student accounts: pay for a student, oldest month first ---
+export const searchStudentAccounts = async (q) => {
+    const response = await http.get('/cashier/students/search', { params: { q } });
+    return response.data;
+};
+
+export const getStudentAccount = async (studentId) => {
+    const response = await http.get(`/cashier/students/${studentId}/account`);
+    return response.data;
+};
+
+export const createStudentPayment = async (data) => {
+    const response = await http.post('/cashier/payments/student', data);
+    return response.data;
+};

@@ -1,4 +1,5 @@
 import React, { useCallback, useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { getFinanceClasses, getFinanceSections, getOutstanding } from '../../services/api/finance.api';
 import { getBranches, getAcademicYears } from '../../services/api/tenant.api';
 import { Select } from '../../components/ui';
@@ -149,7 +150,7 @@ const Outstanding = () => {
                                     </tr>
                                 ) : data.debtors?.slice(0, 10).map((d, i) => (
                                     <tr key={i} className="hover:bg-slate-50 transition-colors">
-                                        <td className="px-4 py-3 font-bold text-slate-800">{d.studentName}</td>
+                                        <td className="px-4 py-3 font-bold text-slate-800">{d.studentId ? <Link to={`/finance/students/${d.studentId}`} className="hover:text-[var(--primary)] hover:underline">{d.studentName}</Link> : d.studentName}</td>
                                         <td className="px-4 py-3 text-slate-600 font-mono text-xs">{d.admissionNumber || '-'}</td>
                                         <td className="px-4 py-3 text-slate-500">{d.branchName || '-'}</td>
                                         <td className="px-4 py-3 text-slate-500">{d.className || '-'}</td>

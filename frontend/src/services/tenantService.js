@@ -37,6 +37,11 @@ const tenantService = {
   getUserPermissions: (id) => api.get(`/tenant/users/${id}/permissions`),
   updateUserPermissions: (id, data) => api.put(`/tenant/users/${id}/permissions`, data),
 
+  // Roles: what each role can do. Roles are fixed; their names, features and on/off are the school's.
+  getRoles: () => api.get('/tenant/roles'),
+  getRoleCatalog: (scope) => api.get('/tenant/roles/assignable-catalog', { params: { scope } }),
+  updateRole: (id, data) => api.put(`/tenant/roles/${id}`, data),
+
   // Academic Years
   getAcademicYears: () => api.get('/tenant/academic-years'),
   createAcademicYear: (data) => api.post('/tenant/academic-years', data),

@@ -10,8 +10,12 @@ const AcademicYear = require('../models/AcademicYear');
 const Student = require('../models/Student');
 const Enrollment = require('../models/Enrollment');
 const { logActivity } = require('../utils/logger');
-const { generateBulkInvoices, getRevenueReport } = require('../services/financeService');
-const { normalizeBillingSchedule, resolveBillingPeriod } = require('../utils/billingPeriods');
+const { getRevenueReport } = require('../services/financeService');
+const { generateMonthlyInvoices } = require('../services/monthlyBillingService');
+const { listAcademicYearMonths } = require('../utils/billingMonths');
+const { getMonthlyCollection, getStudentPaymentRecord } = require('../services/studentAccountService');
+const { XLSX_CONTENT_TYPE, buildWorkbook } = require('../utils/xlsxWriter');
+const Tenant = require('../models/Tenant');
 const exportService = require('../services/exportService');
 const mongoose = require('mongoose');
 const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -67,8 +71,22 @@ const validateFinanceContext = async ({ tenantId, branchId, classId, academicYea
 // A) Fee Structure Management
 // ==========================================
 
+const invalidFeeItems = (feeItems) => !Array.isArray(feeItems)
+    || feeItems.length === 0
+    || feeItems.some((item) => !item?.name || !Number.isFinite(Number(item.amount)) || Number(item.amount) < 0);
+
+const toMonthlyItems = (feeItems) => feeItems.map((item) => ({
+    name: String(item.name).trim(),
+    amount: Math.round(Number(item.amount) * 100) / 100
+}));
+
+const sumItems = (items) => items.reduce((sum, item) => sum + Math.round(item.amount * 100), 0) / 100;
+
+// Every fee structure is a monthly fee: its items are what a student pays each month.
+const MONTHLY_SCHEDULE = Object.freeze({ billingFrequency: 'MONTHLY', billingPeriods: [], amountsArePerMonth: true });
+
 const createFeeStructure = asyncHandler(async (req, res) => {
-    const { name, branchId, classId, categoryId, gradeLevel, targetType = 'CLASS', academicYearId, feeItems, billingFrequency, billingPeriods } = req.body;
+    const { name, branchId, classId, categoryId, gradeLevel, targetType = 'CLASS', academicYearId, feeItems } = req.body;
     const normalizedTarget = String(targetType).toUpperCase();
 
     const missingTarget = normalizedTarget === 'SCHOOL_GRADE' ? !gradeLevel : (normalizedTarget === 'CLASS' ? !classId : !categoryId);
@@ -76,7 +94,7 @@ const createFeeStructure = asyncHandler(async (req, res) => {
         res.status(400);
         throw new Error('Please provide a branch, academic year, fee items, and fee target');
     }
-    if (!Array.isArray(feeItems) || feeItems.length === 0 || feeItems.some((item) => !item.name || Number(item.amount) < 0)) {
+    if (invalidFeeItems(feeItems)) {
         res.status(400);
         throw new Error('feeItems must contain valid names and non-negative amounts');
     }
@@ -89,14 +107,9 @@ const createFeeStructure = asyncHandler(async (req, res) => {
         }
     }
 
-    const totalAmount = feeItems.reduce((acc, item) => acc + (parseFloat(item.amount) || 0), 0);
-    let schedule;
-    try {
-        schedule = normalizeBillingSchedule({ billingFrequency, billingPeriods, totalAmount });
-    } catch (error) {
-        res.status(400);
-        throw error;
-    }
+    const monthlyItems = toMonthlyItems(feeItems);
+    const totalAmount = sumItems(monthlyItems);
+    const isOpen = req.body.isOpen !== false;
 
     try {
         if (normalizedTarget === 'SCHOOL_GRADE' && String(gradeLevel).toUpperCase() === 'ALL') {
@@ -106,8 +119,9 @@ const createFeeStructure = asyncHandler(async (req, res) => {
                 gradeLevel: String(index + 1),
                 academicYearId,
                 name: `${String(name || '').trim() || 'Standard School Fees'} - Grade ${index + 1}`,
-                ...schedule,
-                feeItems,
+                ...MONTHLY_SCHEDULE,
+                isOpen,
+                feeItems: monthlyItems,
                 totalAmount
             })));
             await logActivity({
@@ -127,8 +141,9 @@ const createFeeStructure = asyncHandler(async (req, res) => {
             categoryId: normalizedTarget === 'CATEGORY' ? categoryId : undefined,
             academicYearId,
             name: String(name || '').trim() || 'Standard Fee Structure',
-            ...schedule,
-            feeItems,
+            ...MONTHLY_SCHEDULE,
+            isOpen,
+            feeItems: monthlyItems,
             totalAmount
         });
 
@@ -191,34 +206,22 @@ const updateFeeStructure = asyncHandler(async (req, res) => {
         throw new Error('Access denied for this finance resource.');
     }
 
-    const { name, feeItems, billingFrequency, billingPeriods } = req.body;
+    const { name, feeItems } = req.body;
     const before = JSON.parse(JSON.stringify(structure));
 
     if (name !== undefined) {
         structure.name = String(name).trim() || 'Standard Fee Structure';
     }
-    if (feeItems) {
-        if (!Array.isArray(feeItems) || feeItems.length === 0 || feeItems.some((item) => !item.name || Number(item.amount) < 0)) {
+    if (feeItems !== undefined) {
+        if (invalidFeeItems(feeItems)) {
             res.status(400);
             throw new Error('feeItems must contain valid names and non-negative amounts');
         }
-        structure.feeItems = feeItems;
-        structure.totalAmount = feeItems.reduce((acc, item) => acc + (parseFloat(item.amount) || 0), 0);
-    }
-    if (billingFrequency !== undefined || billingPeriods !== undefined || feeItems) {
-        let schedule;
-        try {
-            schedule = normalizeBillingSchedule({
-                billingFrequency: billingFrequency ?? structure.billingFrequency,
-                billingPeriods: billingPeriods ?? structure.billingPeriods,
-                totalAmount: structure.totalAmount
-            });
-        } catch (error) {
-            res.status(400);
-            throw error;
-        }
-        structure.billingFrequency = schedule.billingFrequency;
-        structure.billingPeriods = schedule.billingPeriods;
+        // Saving items makes them the monthly fee, which is also how a structure from before
+        // monthly billing becomes billable again.
+        structure.feeItems = toMonthlyItems(feeItems);
+        structure.totalAmount = sumItems(structure.feeItems);
+        Object.assign(structure, MONTHLY_SCHEDULE);
     }
 
     await structure.save();
@@ -254,6 +257,38 @@ const deleteFeeStructure = asyncHandler(async (req, res) => {
     res.json({ success: true, message: 'Fee structure removed' });
 });
 
+/**
+ * Open or close a fee structure. A closed structure is skipped by invoice generation;
+ * invoices it already produced stay as they are. This is part of the finance policy, so it
+ * is gated by the policy permission rather than by fee structure editing.
+ */
+const setFeeStructureOpen = asyncHandler(async (req, res) => {
+    if (typeof req.body?.isOpen !== 'boolean') {
+        res.status(400);
+        throw new Error('isOpen must be true or false');
+    }
+    const structure = await FeeStructure.findOne({ _id: req.params.id, tenantId: req.tenantId });
+    if (!structure) {
+        res.status(404);
+        throw new Error('Fee structure not found in this school');
+    }
+
+    const before = { isOpen: structure.isOpen };
+    structure.isOpen = req.body.isOpen;
+    await structure.save();
+
+    await logActivity({
+        req,
+        action: structure.isOpen ? 'FEE_STRUCTURE_OPENED' : 'FEE_STRUCTURE_CLOSED',
+        entityType: 'FeeStructure',
+        entityId: structure._id.toString(),
+        before,
+        after: { isOpen: structure.isOpen }
+    });
+
+    res.json({ success: true, data: structure });
+});
+
 // ==========================================
 // B) Invoice Governance & Policies
 // ==========================================
@@ -267,7 +302,14 @@ const getFinancePolicies = asyncHandler(async (req, res) => {
 });
 
 const updateFinancePolicies = asyncHandler(async (req, res) => {
-    const { autoInvoiceMode, isEnabled } = req.body;
+    const { dueDay } = req.body;
+    if (dueDay !== undefined) {
+        const day = Number(dueDay);
+        if (!Number.isInteger(day) || day < 1 || day > 28) {
+            res.status(400);
+            throw new Error('The due day must be a whole number from 1 to 28');
+        }
+    }
     let policy = await FinancePolicy.findOne({ tenantId: req.tenantId });
 
     if (!policy) {
@@ -275,8 +317,7 @@ const updateFinancePolicies = asyncHandler(async (req, res) => {
     }
 
     const before = JSON.parse(JSON.stringify(policy));
-    if (autoInvoiceMode) policy.autoInvoiceMode = autoInvoiceMode;
-    if (isEnabled !== undefined) policy.isEnabled = isEnabled;
+    if (dueDay !== undefined) policy.dueDay = Number(dueDay);
 
     await policy.save();
 
@@ -292,96 +333,67 @@ const updateFinancePolicies = asyncHandler(async (req, res) => {
     res.json({ success: true, data: policy });
 });
 
-const triggerBulkInvoices = asyncHandler(async (req, res) => {
-    const { branchId, academicYearId, classId, studentId, feeStructureId, billingPeriodKey, dueDate } = req.body;
-
-    if (!academicYearId) {
-        res.status(400);
-        throw new Error('academicYearId is required for invoice generation');
+/**
+ * The months an academic year can be billed for, e.g. September 2026 to June 2027.
+ */
+const getBillingMonths = asyncHandler(async (req, res) => {
+    const { academicYearId } = req.query;
+    const academicYear = academicYearId
+        ? await AcademicYear.findOne({ _id: academicYearId, tenantId: req.tenantId }).lean()
+        : await AcademicYear.findOne({ tenantId: req.tenantId, isCurrent: true }).lean();
+    if (!academicYear) {
+        res.status(404);
+        throw new Error('Academic year not found in this school');
     }
-
-    // Check target: must have classId or studentId. If both are missing, fail.
-    if (!classId && !studentId) {
-        res.status(400);
-        throw new Error('Invalid invoice generation target.');
-    }
-
-    // Validate dueDate if provided
-    if (dueDate && isNaN(Date.parse(dueDate))) {
-        res.status(400);
-        throw new Error('Invalid due date format.');
-    }
-
-    try {
-        await validateFinanceContext({ tenantId: req.tenantId, branchId, classId, academicYearId, studentId });
-    } catch (error) {
-        if (error.status === 403) {
-            throw error; // keep 403 Access denied
+    res.json({
+        success: true,
+        data: {
+            academicYear: { _id: academicYear._id, name: academicYear.name },
+            months: listAcademicYearMonths(academicYear)
         }
-        res.status(400);
-        throw new Error('Invalid invoice generation target.');
-    }
+    });
+});
 
-    let selectedFeeStructure = null;
-    if (feeStructureId) {
-        const structureQuery = {
-            _id: feeStructureId,
-            tenantId: req.tenantId,
-            academicYearId
-        };
-        if (branchId) structureQuery.$or = [{ branchId }, { targetType: 'SCHOOL_GRADE' }];
-        selectedFeeStructure = await FeeStructure.findOne(structureQuery);
-        if (!selectedFeeStructure) {
-            res.status(403);
-            throw new Error('Access denied for this finance resource.');
-        }
-
-        if (studentId) {
-            const targetClassIds = selectedFeeStructure.targetType === 'SCHOOL_GRADE'
-                ? await require('../models/Class').find({ tenantId: req.tenantId, gradeLevel: selectedFeeStructure.gradeLevel }).distinct('_id')
-                : selectedFeeStructure.targetType === 'CATEGORY'
-                ? await require('../models/Class').find({ tenantId: req.tenantId, branchId: selectedFeeStructure.branchId, categoryId: selectedFeeStructure.categoryId }).distinct('_id')
-                : [selectedFeeStructure.classId];
-            const matchingEnrollment = await Enrollment.exists({
-                tenantId: req.tenantId,
-                studentId,
-                academicYearId,
-                branchId: selectedFeeStructure.branchId,
-                classId: { $in: targetClassIds }
-            });
-            if (!matchingEnrollment) {
-                res.status(400);
-                throw new Error('Selected fee structure does not match the student enrollment.');
-            }
-        }
-
-        try {
-            resolveBillingPeriod(selectedFeeStructure, billingPeriodKey);
-        } catch (error) {
-            res.status(400);
-            throw error;
-        }
-    }
-
-    const result = await generateBulkInvoices({
+/**
+ * Bill one month: the whole school, one campus, or one student.
+ *
+ * With dryRun the same summary comes back and nothing is written, which is what the page
+ * shows before the finance officer confirms.
+ */
+const generateInvoices = asyncHandler(async (req, res) => {
+    const { academicYearId, month, branchId, studentId, dueDate, dryRun } = req.body || {};
+    const { summary, notify } = await generateMonthlyInvoices({
         tenantId: req.tenantId,
-        branchId: branchId || selectedFeeStructure?.branchId,
         academicYearId,
-        classId,
-        studentId,
-        feeStructureId,
-        billingPeriodKey,
-        dueDate
+        month,
+        branchId: branchId || null,
+        studentId: studentId || null,
+        dueDate: dueDate || null,
+        dryRun: dryRun === true
     });
 
-    await logActivity({
-        req,
-        action: 'INVOICES_GENERATED_BULK',
-        entityType: 'Invoice',
-        details: { ...req.body, ...result }
-    });
+    if (!summary.dryRun) {
+        await logActivity({
+            req,
+            action: 'INVOICES_GENERATED_MONTHLY',
+            entityType: 'Invoice',
+            details: {
+                academicYearId,
+                month: summary.month.key,
+                branchId: branchId || null,
+                studentId: studentId || null,
+                created: summary.created,
+                alreadyBilled: summary.alreadyBilled,
+                totalAmount: summary.totalAmount
+            }
+        });
+    }
 
-    res.json({ success: true, ...result });
+    res.json({ success: true, data: summary });
+
+    if (!summary.dryRun) {
+        notify().catch((error) => console.error('[FINANCE] Invoice notifications failed:', error.message));
+    }
 });
 
 // ==========================================
@@ -652,6 +664,7 @@ const buildOutstandingReport = async ({ req, limit = 10 }) => {
     const formattedDebtors = debtors.map((d) => {
         const enrollment = enrollmentMap.get(`${d.studentId?._id}:${d.academicYearId?._id || d.academicYearId}`);
         return {
+            studentId: d.studentId?._id || null,
             studentName: d.studentId ? `${d.studentId.firstName} ${d.studentId.lastName}` : 'Unknown Student',
             admissionNumber: d.studentId ? d.studentId.admissionNumber : '-',
             branchName: d.branchId ? d.branchId.name : '-',
@@ -707,6 +720,150 @@ const getFinanceSections = asyncHandler(async (req, res) => {
     res.json({ success: true, data: await Section.find(query).select('name classId branchId').sort({ name: 1 }) });
 });
 
+/**
+ * Find a student to bill on their own: by name or admission number, with their class in
+ * the chosen year so the finance officer can tell two students of the same name apart.
+ */
+const searchBillingStudents = asyncHandler(async (req, res) => {
+    const tokens = String(req.query.q || '').trim().split(/\s+/).filter(Boolean).slice(0, 4);
+    if (!tokens.length || tokens.join('').length < 2) return res.json({ success: true, data: [] });
+
+    const students = await Student.find({
+        tenantId: req.tenantId,
+        $and: tokens.map((token) => {
+            const pattern = { $regex: escapeRegex(token).slice(0, 40), $options: 'i' };
+            return { $or: [{ firstName: pattern }, { lastName: pattern }, { admissionNumber: pattern }] };
+        })
+    }).select('firstName lastName admissionNumber status').limit(20).lean();
+
+    const academicYearId = mongoose.isValidObjectId(req.query.academicYearId) ? req.query.academicYearId : null;
+    const enrollments = academicYearId
+        ? await Enrollment.find({ tenantId: req.tenantId, academicYearId, isCurrent: true, studentId: { $in: students.map((student) => student._id) } })
+            .populate('classId', 'name')
+            .select('studentId classId')
+            .lean()
+        : [];
+    const classByStudent = new Map(enrollments.map((enrollment) => [String(enrollment.studentId), enrollment.classId?.name || null]));
+
+    res.json({
+        success: true,
+        data: students.map((student) => ({
+            _id: student._id,
+            name: `${student.firstName} ${student.lastName}`.trim(),
+            admissionNumber: student.admissionNumber,
+            status: student.status,
+            className: classByStudent.get(String(student._id)) || null
+        }))
+    });
+});
+
+// ==========================================
+// E2) Monthly collection and student payment records
+// ==========================================
+
+const monthlyCollectionQuery = (req) => ({
+    tenantId: req.tenantId,
+    academicYearId: req.query.academicYearId,
+    month: req.query.month,
+    branchId: req.query.branchId || null,
+    classId: req.query.classId || null,
+    status: req.query.status || null,
+    q: req.query.q || ''
+});
+
+/**
+ * One month for the whole school: who paid, who paid part, who has not paid, and what each
+ * student still owes from earlier months.
+ */
+const getMonthlyCollectionReport = asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await getMonthlyCollection(monthlyCollectionQuery(req)) });
+});
+
+const STATUS_WORDS = { PAID: 'Paid', PARTIALLY_PAID: 'Part paid', UNPAID: 'Not paid' };
+
+/**
+ * The same month as an Excel file: a summary sheet and one row per student, with the same
+ * filters the page has applied.
+ */
+const exportMonthlyCollection = asyncHandler(async (req, res) => {
+    const report = await getMonthlyCollection(monthlyCollectionQuery(req));
+    const tenant = await Tenant.findById(req.tenantId).select('name').lean();
+    const { totals, rows, month } = report;
+
+    const header = ['Student', 'Admission no.', 'Class', 'Billed', 'Paid', 'Still owed (month)', 'Status', 'Due date', 'Late', 'Earlier months owed', 'Total owed']
+        .map((label) => ({ v: label, style: 'header' }));
+    const studentRows = rows.map((row) => [
+        row.studentName,
+        row.admissionNumber,
+        row.className,
+        { v: row.billed, style: 'money' },
+        { v: row.paid, style: 'money' },
+        { v: row.balance, style: 'money' },
+        STATUS_WORDS[row.status] || row.status,
+        row.dueDate ? new Date(row.dueDate) : null,
+        row.late ? 'Yes' : '',
+        { v: row.earlierDebt, style: 'money' },
+        { v: row.totalOwed, style: 'money' }
+    ]);
+    const shown = (pick) => rows.reduce((total, row) => total + Math.round(pick(row) * 100), 0) / 100;
+    const totalRow = [
+        { v: `Total (${rows.length} students)`, style: 'bold' }, '', '',
+        { v: shown((row) => row.billed), style: 'moneyBold' },
+        { v: shown((row) => row.paid), style: 'moneyBold' },
+        { v: shown((row) => row.balance), style: 'moneyBold' },
+        '', '', '',
+        { v: shown((row) => row.earlierDebt), style: 'moneyBold' },
+        { v: shown((row) => row.totalOwed), style: 'moneyBold' }
+    ];
+
+    const summary = [
+        [{ v: tenant?.name || 'School', style: 'title' }],
+        [`School fees for ${month.label}`],
+        [`Downloaded ${new Date().toISOString().slice(0, 10)}`],
+        [],
+        [{ v: 'Students billed', style: 'bold' }, { v: totals.students, style: 'integer' }],
+        [{ v: 'Billed this month', style: 'bold' }, { v: totals.billed, style: 'money' }],
+        [{ v: 'Collected', style: 'bold' }, { v: totals.collected, style: 'money' }],
+        [{ v: 'Collected (percent)', style: 'bold' }, { v: totals.collectionRate, style: 'percent' }],
+        [{ v: 'Still owed this month', style: 'bold' }, { v: totals.outstanding, style: 'money' }],
+        [{ v: 'Owed from earlier months', style: 'bold' }, { v: totals.earlierDebt, style: 'money' }],
+        [{ v: 'Total owed', style: 'bold' }, { v: totals.totalOwed, style: 'moneyBold' }],
+        [],
+        [{ v: 'Paid in full', style: 'bold' }, { v: totals.counts.paid, style: 'integer' }],
+        [{ v: 'Paid part', style: 'bold' }, { v: totals.counts.partial, style: 'integer' }],
+        [{ v: 'Not paid', style: 'bold' }, { v: totals.counts.unpaid, style: 'integer' }],
+        [{ v: 'Late (past due date)', style: 'bold' }, { v: totals.counts.late, style: 'integer' }]
+    ];
+
+    const file = buildWorkbook([
+        { name: 'Summary', columns: [{ width: 30 }, { width: 18 }], rows: summary },
+        {
+            name: 'Students',
+            freezeRows: 1,
+            columns: [{ width: 28 }, { width: 14 }, { width: 14 }, { width: 12 }, { width: 12 }, { width: 18 }, { width: 11 }, { width: 13 }, { width: 7 }, { width: 20 }, { width: 13 }],
+            rows: [header, ...studentRows, [], totalRow]
+        }
+    ]);
+
+    await logActivity({
+        req,
+        action: 'MONTHLY_COLLECTION_EXPORTED',
+        entityType: 'Invoice',
+        details: { month: month.key, rows: rows.length }
+    });
+
+    res.setHeader('Content-Type', XLSX_CONTENT_TYPE);
+    res.setHeader('Content-Disposition', `attachment; filename="fees-${month.key}.xlsx"`);
+    res.send(file);
+});
+
+const getStudentPaymentRecordController = asyncHandler(async (req, res) => {
+    res.json({
+        success: true,
+        data: await getStudentPaymentRecord({ tenantId: req.tenantId, studentId: req.params.studentId })
+    });
+});
+
 // ==========================================
 // F) Reports
 // ==========================================
@@ -725,9 +882,10 @@ const getRevenueReportController = asyncHandler(async (req, res) => {
 
 module.exports = {
     createFeeStructure, getFeeStructures, getFeeStructureById, updateFeeStructure, deleteFeeStructure,
-    getFinancePolicies, updateFinancePolicies, triggerBulkInvoices,
+    getFinancePolicies, updateFinancePolicies, setFeeStructureOpen, getBillingMonths, generateInvoices,
     getInvoices, getInvoiceById, exportInvoices,
-    getPayments, exportPayments, getPaymentsSummary, getOutstandingBalances, exportOutstandingBalances, getFinanceClasses, getFinanceSections,
+    getPayments, exportPayments, getPaymentsSummary, getOutstandingBalances, exportOutstandingBalances, getFinanceClasses, getFinanceSections, searchBillingStudents,
+    getMonthlyCollectionReport, exportMonthlyCollection, getStudentPaymentRecordController,
     getReceiptBranding,
     getRevenueReport: getRevenueReportController
 };

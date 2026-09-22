@@ -189,9 +189,6 @@ const PERMISSION_CATALOG = Object.freeze([
     createPermission('finance.payments.summary', 'View payment summary', 'Finance', 'View payment summaries.', ['finance_director']),
     createPermission('finance.reports.view', 'View finance reports', 'Finance', 'View finance reports.', ['finance_director']),
     createPermission('finance.outstanding.view', 'View outstanding balances', 'Finance', 'View outstanding balances.', ['finance_director']),
-    createPermission('finance.receiptBranding.view', 'View receipt branding', 'Finance', 'View receipt branding.', ['finance_director']),
-    createPermission('finance.receiptBranding.update', 'Update receipt branding', 'Finance', 'Update receipt branding.', ['finance_director']),
-    createPermission('finance.paymentReversals.approve', 'Approve payment reversals', 'Finance', 'Approve or perform payment reversals.', ['finance_director']),
     createPermission('finance.compensation.view', 'View compensation requests', 'Finance', 'View employee compensation change requests.', ['finance_director']),
     createPermission('finance.compensation.approve', 'Approve compensation requests', 'Finance', 'Approve or reject employee compensation changes.', ['finance_director']),
 
@@ -219,16 +216,13 @@ const PERMISSION_CATALOG = Object.freeze([
     createPermission('teacher.attendance.submit', 'Submit attendance', 'Teacher', 'Submit attendance records.', ['teacher']),
     createPermission('teacher.leaves.create', 'Request teacher leave', 'Teacher', 'Create leave requests.', ['teacher']),
     createPermission('teacher.examTemplates.view', 'View exam templates', 'Teacher', 'View exam templates.', ['teacher']),
-    createPermission('teacher.examTemplates.manage', 'Manage exam templates', 'Teacher', 'Manage exam templates.', ['teacher']),
     createPermission('teacher.examCategories.view', 'View exam categories', 'Teacher', 'View exam categories.', ['teacher']),
-    createPermission('teacher.examCategories.manage', 'Manage exam categories', 'Teacher', 'Manage exam categories.', ['teacher']),
     createPermission('teacher.exams.view', 'View teacher exams', 'Teacher', 'View exams assigned to the teacher.', ['teacher']),
     createPermission('teacher.results.enter', 'Enter results', 'Teacher', 'Enter results for assigned classes.', ['teacher']),
     createPermission('teacher.results.update', 'Update results', 'Teacher', 'Update results for assigned classes.', ['teacher']),
     createPermission('teacher.results.view', 'View teacher results', 'Teacher', 'View result summaries.', ['teacher']),
     createPermission('teacher.results.export', 'Export teacher results', 'Teacher', 'Export result data.', ['teacher']),
     createPermission('teacher.gradingPolicy.view', 'View grading policy', 'Teacher', 'View grading policy.', ['teacher']),
-    createPermission('teacher.gradingPolicy.manage', 'Manage grading policy', 'Teacher', 'Manage grading policy.', ['teacher']),
 
     // Attendance oversight. Until now attendance could only be seen by the teacher who
     // took it, the student, or their parent — nobody running the school could look at it.
@@ -283,12 +277,7 @@ const DEFAULT_ROLE_PERMISSIONS = Object.freeze({
     branch_admin: keysForRoles('branch_admin').filter((key) => !key.startsWith('payroll.')),
     registrar: keysForRoles('registrar'),
     cashier: keysForRoles('cashier').filter((key) => key !== 'cashier.payments.reverse'),
-    teacher: keysForRoles('teacher').filter((key) => ![
-        'teacher.examTemplates.manage',
-        'teacher.examCategories.manage',
-        'teacher.gradingPolicy.manage',
-        'teacher.results.export'
-    ].includes(key)),
+    teacher: keysForRoles('teacher').filter((key) => key !== 'teacher.results.export'),
     student: keysForRoles('student'),
     parent: keysForRoles('parent')
 });

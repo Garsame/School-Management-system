@@ -61,7 +61,9 @@ const studentSchema = new mongoose.Schema({
         uploadedAt: { type: Date, default: Date.now }
     }],
     notes: { type: String, trim: true },
-    status: { type: String, enum: ['Active', 'Inactive', 'Transferred', 'Graduated'], default: 'Active' },
+    // Left: the student has left the school. They are never billed again; what they already
+    // owe stays on their record. withdrawalDate and withdrawalReason say when and why.
+    status: { type: String, enum: ['Active', 'Inactive', 'Transferred', 'Graduated', 'Left'], default: 'Active' },
     graduationDate: { type: Date },
     withdrawalDate: { type: Date },
     withdrawalReason: { type: String, trim: true },

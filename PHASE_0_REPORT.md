@@ -1,5 +1,12 @@
 # Phase 0 — Progress Report
 
+> **History.** This report describes Phase 0 on 20 September 2026. Phase 0 was finished in
+> commit `12c5407`. Two of its open decisions were settled: `Can.jsx` was **deleted**, and the
+> in-flight payroll work is part of the committed code. `Plan.features[]` is **still unused**:
+> Phase 2 added a separate plan ceiling (`minPlanTier` on each feature), but no feature sets one
+> yet, so every plan can use every feature today. Phases 1–3 and the finance work that followed are summarized in
+> [README.md](README.md). Today's test count is 201 (it was 171 here).
+
 **Date:** 2026-09-20
 **Branch:** `fix/head-office-payroll-payable`
 **Verification:** backend 171/171 tests pass · frontend build clean

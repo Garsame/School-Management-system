@@ -351,6 +351,7 @@ const Students = () => {
                     <option value="Inactive">Inactive</option>
                     <option value="Transferred">Transferred</option>
                     <option value="Graduated">Graduated</option>
+                    <option value="Left">Left the school</option>
                 </select>
             </div>
 

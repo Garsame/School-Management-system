@@ -110,6 +110,43 @@ npm run cleanup:orphans -- --fix
 
 Review the cleanup output. Run the cleanup report again and confirm that no orphan or branch-mismatch records remain.
 
+### 5.1 Upgrading a server that ran a version from before 21 September 2026
+
+This version adds editable roles, menus built from features, monthly billing, the monthly
+collection view, and student payment records. **No new npm packages are needed**; Excel files
+are written by the app itself. There is no fee or invoice migration script: new fields have
+safe defaults. Do this once, after the backup and the maintenance commands above:
+
+1. **Give every school its own roles**, if the database was created before roles became data.
+   This is safe to run more than once:
+
+   ```bash
+   npm run migrate:roles:dry   # shows what it would do
+   npm run migrate:roles
+   ```
+
+   Schools created after this version get their roles automatically.
+
+2. **Tell each school's Finance team to update old fee structures.** Every fee is now a monthly
+   fee. Fee structures saved before this version held a yearly or term total, so they show
+   "Needs a monthly amount" and are **not billed** until Finance edits each one and enters what
+   a student pays per month. Nothing else changes for them. They start as **Open**.
+
+3. **Nothing to do for existing bills and payments.** Old bills keep their old labels (for
+   example "Term 1"). They count as earlier debt, placed in time by their due date. Payments
+   and receipts are unchanged.
+
+4. **Due day.** Every school starts with bills due on the 10th of the billed month. Finance can
+   change it in **Finance → Policies**.
+
+5. **Check the staff menus.** Menus now follow each role's features. Sign in as each role once,
+   and have the head of school adjust roles in **Roles & Features** if a page is missing or
+   should not be there.
+
+6. **Email.** Generating a month's bills sends each parent and student a notice. If email is
+   configured on the platform, each notice is also emailed. Test email on staging before the
+   first real billing run.
+
 ## 6. Platform Owner
 
 Use a private administrator email and a unique password of at least 16 characters containing uppercase, lowercase, numeric, and special characters. Do not reuse the MongoDB password.
@@ -181,6 +218,8 @@ Confirm all of the following:
 - `/api/health` returns only `{ "ok": true }` in production.
 - The frontend contains no localhost API URL.
 - Platform, tenant, branch, registrar, teacher, parent, student, and finance permissions are smoke-tested.
+- Each staff role's menu shows the pages its features allow, and nothing else. Finance sees **Payments desk → Record Payment** when its role has the "record payment" feature.
+- On a test school: **Generate invoices** preview → bill one month → take one payment covering two months (oldest first, one receipt) → **Monthly Collection** Excel download opens in Excel → the parent sees the same payment record.
 
 ## 10. Ongoing Operations
 

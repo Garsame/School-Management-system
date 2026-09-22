@@ -28,6 +28,7 @@ const TenantReports = lazy(() => import('./pages/tenant/Reports'));
 const TenantStudents = lazy(() => import('./pages/tenant/Students'));
 const TenantStudentDetails = lazy(() => import('./pages/tenant/StudentDetails'));
 const TenantAuditLogs = lazy(() => import('./pages/tenant/AuditLogs'));
+const TenantRoles = lazy(() => import('./pages/tenant/Roles'));
 // One page, mounted in both shells: the head of school and the admissions officer see the
 // same attendance, scoped by the backend to what each may reach.
 const AttendanceOversight = lazy(() => import('./pages/attendance/AttendanceOversight'));
@@ -41,6 +42,8 @@ const Payments = lazy(() => import('./pages/finance/Payments'));
 const Reports = lazy(() => import('./pages/finance/Reports'));
 const Outstanding = lazy(() => import('./pages/finance/Outstanding'));
 const CompensationApprovals = lazy(() => import('./pages/finance/CompensationApprovals'));
+const MonthlyCollection = lazy(() => import('./pages/finance/MonthlyCollection'));
+const StudentPaymentRecord = lazy(() => import('./pages/finance/StudentPaymentRecord'));
 const BranchDashboard = lazy(() => import('./pages/branch/Dashboard'));
 const BranchClasses = lazy(() => import('./pages/branch/Classes'));
 const BranchStaff = lazy(() => import('./pages/branch/Staff'));
@@ -55,14 +58,11 @@ const BranchStudentResults = lazy(() => import('./pages/branch/StudentResults'))
 const BranchReports = lazy(() => import('./pages/branch/Reports'));
 const BranchTeacherAssignments = lazy(() => import('./pages/branch/TeacherAssignments'));
 const BranchTimetableBuilder = lazy(() => import('./pages/branch/TimetableBuilder'));
-import BranchLayout from './layouts/BranchLayout';
 const RegistrarDashboard = lazy(() => import('./pages/registrar/Dashboard'));
 const RegistrarAdmissions = lazy(() => import('./pages/registrar/Admissions'));
 const RegistrarStudents = lazy(() => import('./pages/registrar/Students'));
 const RegistrarStudentDetails = lazy(() => import('./pages/registrar/StudentDetails'));
 const RegistrarNewEnrollment = lazy(() => import('./pages/registrar/NewEnrollment'));
-import RegistrarLayout from './layouts/RegistrarLayout';
-import CashierLayout from './layouts/CashierLayout';
 const CashierDashboard = lazy(() => import('./pages/cashier/Dashboard'));
 const CashierInvoices = lazy(() => import('./pages/cashier/Invoices'));
 const CashierInvoiceDetails = lazy(() => import('./pages/cashier/InvoiceDetails'));
@@ -100,27 +100,28 @@ const PayrollDashboard = lazy(() => import('./pages/hr/PayrollDashboard'));
 const HREmployees = lazy(() => import('./pages/hr/Employees'));
 const HRDashboard = lazy(() => import('./pages/hr/Dashboard'));
 const HRReports = lazy(() => import('./pages/hr/Reports'));
-import HRLayout from './layouts/HRLayout';
 
 // Layouts & Guards
 import PlatformLayout from './layouts/PlatformLayout';
-import TenantLayout from './layouts/TenantLayout';
-import TenantFinanceLayout from './layouts/TenantFinanceLayout';
+import StaffLayout from './layouts/StaffLayout';
 import { BrandingProvider } from './context/BrandingContext';
-import { PlatformGuard, PublicGuard, TenantGuard, FinanceGuard } from './utils/authGuard';
+import { PlatformGuard, PublicGuard } from './utils/authGuard';
 import { ProtectedRoute as RoleScopeGuard } from './utils/guards';
 import PermissionRouteGuard from './components/auth/PermissionRouteGuard';
+import StaffAreaGuard from './components/auth/StaffAreaGuard';
 import NotificationCenter from './components/feedback/NotificationCenter';
 
-// Tenant Scoped Layout Wrapper
-const TenantWrapper = () => (
-  <BrandingProvider>
-    <PermissionRouteGuard>
-      <TenantLayout>
-        <Outlet />
-      </TenantLayout>
-    </PermissionRouteGuard>
-  </BrandingProvider>
+// Every staff area renders in the same frame. The menu inside it is built from the
+// signed-in person's permissions, and each page checks its own permission, so a role
+// reaches another area's page by holding its feature rather than by its name.
+const StaffArea = ({ scope = null }) => (
+  <StaffAreaGuard scope={scope}>
+    <BrandingProvider>
+      <PermissionRouteGuard>
+        <StaffLayout />
+      </PermissionRouteGuard>
+    </BrandingProvider>
+  </StaffAreaGuard>
 );
 
 // Platform Scoped Layout Wrapper
@@ -170,46 +171,45 @@ function App() {
             <Route path="/tenant">
               <Route path="login" element={<Navigate to="/login" replace />} />
 
-              <Route element={<TenantGuard />}>
-                <Route element={<TenantWrapper />}>
-                  <Route index element={<TenantDashboard />} />
-                  <Route path="branding" element={<TenantBranding />} />
-                  <Route path="branches" element={<TenantBranches />} />
-                  <Route path="users" element={<TenantUsers />} />
-                  <Route path="staff-permissions" element={<TenantStaffPermissions />} />
-                  <Route path="academic-years" element={<TenantAcademicYears />} />
-                  <Route path="academic-policy" element={<TenantAcademicPolicy />} />
-                  <Route path="reports" element={<TenantReports />} />
-                  <Route path="students" element={<TenantStudents />} />
-                  <Route path="students/:studentId" element={<TenantStudentDetails />} />
-                  <Route path="audit-logs" element={<TenantAuditLogs />} />
-                  <Route path="attendance" element={<AttendanceOversight />} />
-                  <Route path="profile" element={<AccountProfile />} />
-                </Route>
+              <Route element={<StaffArea scope="tenant" />}>
+                <Route index element={<TenantDashboard />} />
+                <Route path="branding" element={<TenantBranding />} />
+                <Route path="branches" element={<TenantBranches />} />
+                <Route path="users" element={<TenantUsers />} />
+                <Route path="roles" element={<TenantRoles />} />
+                <Route path="staff-permissions" element={<TenantStaffPermissions />} />
+                <Route path="academic-years" element={<TenantAcademicYears />} />
+                <Route path="academic-policy" element={<TenantAcademicPolicy />} />
+                <Route path="reports" element={<TenantReports />} />
+                <Route path="students" element={<TenantStudents />} />
+                <Route path="students/:studentId" element={<TenantStudentDetails />} />
+                <Route path="audit-logs" element={<TenantAuditLogs />} />
+                <Route path="attendance" element={<AttendanceOversight />} />
+                <Route path="profile" element={<AccountProfile />} />
               </Route>
             </Route>
 
             {/* Finance Director Routes */}
             <Route path="/finance">
-              <Route element={<FinanceGuard />}>
-                <Route element={<BrandingProvider><PermissionRouteGuard><TenantFinanceLayout /></PermissionRouteGuard></BrandingProvider>}>
-                  <Route index element={<FinanceDashboard />} />
-                  <Route path="policies" element={<FinancePolicies />} />
-                  <Route path="fee-structures" element={<FeeStructures />} />
-                  <Route path="invoices" element={<Invoices />} />
-                  <Route path="invoices/:invoiceId" element={<InvoiceDetails />} />
-                  <Route path="invoices/generate" element={<InvoiceGenerate />} />
-                  <Route path="payments" element={<Payments />} />
-                  <Route path="salary-approvals" element={<CompensationApprovals />} />
-                  <Route path="payroll-approvals" element={<PayrollDashboard />} />
-                  <Route path="reports" element={<Reports />} />
-                  <Route path="outstanding" element={<Outstanding />} />
-                  <Route path="profile" element={<AccountProfile />} />
-                </Route>
+              <Route element={<StaffArea scope="tenant" />}>
+                <Route index element={<FinanceDashboard />} />
+                <Route path="policies" element={<FinancePolicies />} />
+                <Route path="fee-structures" element={<FeeStructures />} />
+                <Route path="invoices" element={<Invoices />} />
+                <Route path="invoices/:invoiceId" element={<InvoiceDetails />} />
+                <Route path="invoices/generate" element={<InvoiceGenerate />} />
+                <Route path="monthly" element={<MonthlyCollection />} />
+                <Route path="students/:studentId" element={<StudentPaymentRecord />} />
+                <Route path="payments" element={<Payments />} />
+                <Route path="salary-approvals" element={<CompensationApprovals />} />
+                <Route path="payroll-approvals" element={<PayrollDashboard />} />
+                <Route path="reports" element={<Reports />} />
+                <Route path="outstanding" element={<Outstanding />} />
+                <Route path="profile" element={<AccountProfile />} />
               </Route>
             </Route>
 
-            <Route path="/hr" element={<BrandingProvider><PermissionRouteGuard><HRLayout /></PermissionRouteGuard></BrandingProvider>}>
+            <Route path="/hr" element={<StaffArea scope="tenant" />}>
               <Route index element={<HRDashboard />} />
               <Route path="employees" element={<HREmployees />} />
               <Route path="leaves" element={<StaffLeavesManager />} />
@@ -222,13 +222,7 @@ function App() {
             <Route path="/branch">
               <Route path="login" element={<Navigate to="/login" replace />} />
               <Route path="register" element={<Navigate to="/login" replace />} />
-              <Route
-                element={(
-                  <RoleScopeGuard role="BRANCH_ADMIN" scope="branch" redirectTo="/login">
-                    <BrandingProvider><PermissionRouteGuard><BranchLayout /></PermissionRouteGuard></BrandingProvider>
-                  </RoleScopeGuard>
-                )}
-              >
+              <Route element={<StaffArea scope="branch" />}>
                 <Route index element={<BranchDashboard />} />
                 <Route path="account" element={<AccountProfile />} />
                 <Route path="classes" element={<BranchClasses />} />
@@ -257,13 +251,7 @@ function App() {
             {/* Registrar Routes */}
             <Route path="/registrar/login" element={<Navigate to="/login" replace />} />
             <Route path="/registrar/register" element={<Navigate to="/login" replace />} />
-            <Route
-              element={(
-                <RoleScopeGuard role="REGISTRAR" scope="branch" redirectTo="/login">
-                  <BrandingProvider><PermissionRouteGuard><RegistrarLayout /></PermissionRouteGuard></BrandingProvider>
-                </RoleScopeGuard>
-              )}
-            >
+            <Route element={<StaffArea scope="branch" />}>
               <Route path="/registrar">
                 <Route index element={<RegistrarDashboard />} />
                 <Route path="admissions" element={<RegistrarAdmissions />} />
@@ -278,13 +266,8 @@ function App() {
             {/* Cashier Routes */}
             <Route path="/cashier/login" element={<Navigate to="/login" replace />} />
             <Route path="/cashier/register" element={<Navigate to="/login" replace />} />
-            <Route
-              element={(
-                <RoleScopeGuard role="CASHIER" scope="branch" redirectTo="/login">
-                  <BrandingProvider><PermissionRouteGuard><CashierLayout /></PermissionRouteGuard></BrandingProvider>
-                </RoleScopeGuard>
-              )}
-            >
+            {/* Works at either scope: a school-wide finance role can hold the desk. */}
+            <Route element={<StaffArea />}>
               <Route path="/cashier">
                 <Route index element={<CashierDashboard />} />
                 <Route path="invoices" element={<CashierInvoices />} />

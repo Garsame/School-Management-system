@@ -18,6 +18,14 @@ import { useAuth } from '../../context/AuthContext';
 import { hasPermission } from '../../utils/permissions';
 import { confirmAction, notify } from '../../components/feedback/notificationService';
 
+const PORTAL_ROLES = ['student', 'parent'];
+// Used only if the school's roles cannot be read (the viewer lacks tenant.roles.view).
+const FALLBACK_ROLES = [
+    { value: 'finance_director', label: 'Finance Director', scope: 'tenant' },
+    { value: 'hr_payroll_manager', label: 'HR & Payroll Manager', scope: 'tenant' },
+    { value: 'branch_admin', label: 'Branch Admin', scope: 'branch' }
+];
+
 const UsersManagement = () => {
     const { user: currentUser } = useAuth();
     const [users, setUsers] = useState([]);
@@ -201,30 +209,39 @@ const UsersManagement = () => {
         }
     };
 
-    const roles = [
-        { value: 'finance_director', label: 'Finance Director', scope: 'tenant' },
-        { value: 'hr_payroll_manager', label: 'HR & Payroll Manager', scope: 'tenant' },
-        { value: 'branch_admin', label: 'Branch Admin', scope: 'branch' }
-    ];
+    // Accounts can be made for any staff role the school has switched on, under the school's
+    // own name for it. Student and parent accounts come from admission, not from here.
+    const [roles, setRoles] = useState(FALLBACK_ROLES);
 
     useEffect(() => {
         fetchData();
     }, [fetchData]);
+
+    useEffect(() => {
+        tenantService.getRoles()
+            .then((response) => {
+                const list = (Array.isArray(response.data) ? response.data : [])
+                    .filter((role) => role.isActive && !PORTAL_ROLES.includes(role.key))
+                    .map((role) => ({ value: role.key, label: role.name, scope: role.scope }));
+                if (list.length) setRoles(list);
+            })
+            .catch(() => {});
+    }, []);
 
     return (
         <div className="phoenix-resource-page pb-10">
             {/* Header Area */}
             <div className="phoenix-page-header">
                 <div>
-                     <h1 className="phoenix-page-title">Administrators</h1>
-                     <p className="phoenix-page-subtitle">Manage branch, finance, and HR administrators with complete employment profiles.</p>
+                     <h1 className="phoenix-page-title">Staff accounts</h1>
+                     <p className="phoenix-page-subtitle">Create and manage accounts for every staff role your school uses, with complete employment profiles.</p>
                 </div>
                 {hasPermission(currentUser, 'tenant.users.create') && <button 
                   onClick={() => setIsModalOpen(true)}
                   className="phoenix-primary-button"
                 >
                     <UserPlus size={14} />
-                    Add administrator
+                    Add staff account
                 </button>}
             </div>
 
@@ -431,7 +448,7 @@ const UsersManagement = () => {
                     <div className="phoenix-modal-panel max-w-2xl">
                         <div className="phoenix-modal-header">
                             <div>
-                                <h3 className="phoenix-section-title">Add administrator</h3>
+                                <h3 className="phoenix-section-title">Add staff account</h3>
                                 <p className="phoenix-section-copy">Create a Branch Admin, Finance Director, or HR Manager account.</p>
                             </div>
                             <button onClick={() => setIsModalOpen(false)} className="phoenix-icon-button" aria-label="Close dialog">

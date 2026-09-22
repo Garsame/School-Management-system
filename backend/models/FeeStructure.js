@@ -24,6 +24,13 @@ const feeStructureSchema = new mongoose.Schema({
         amount: { type: Number, required: true, min: 0 }
     }],
     totalAmount: { type: Number, required: true, min: 0 },
+    // A closed fee structure is ignored when invoices are generated. Invoices it already
+    // produced are untouched. Records written before this field existed read as open.
+    isOpen: { type: Boolean, default: true },
+    // Monthly billing charges feeItems in full every month. Structures written before
+    // monthly billing hold a yearly total that was split into periods, so they read as
+    // false and are not billed until finance re-saves them with a monthly amount.
+    amountsArePerMonth: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now }
 });
 

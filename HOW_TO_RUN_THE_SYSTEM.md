@@ -4,6 +4,18 @@ This guide explains how to run the school management platform locally for develo
 
 For the hardened `https://school.elivateict.com` production setup, use [PRODUCTION_DEPLOYMENT.md](PRODUCTION_DEPLOYMENT.md).
 
+New to the app? Read [README.md](README.md) first. It explains the roles, the menus, and how fees and payments work.
+
+**Quick start from the repository root** (after section 3):
+
+```powershell
+npm run install:all
+npm run dev:backend
+npm run dev:frontend
+```
+
+Updated 21 September 2026 for roles you can edit, menus built from features, monthly billing, and the demo school.
+
 ## 1. System Requirements
 
 - Node.js and npm
@@ -196,7 +208,12 @@ Open that URL in the browser.
 
 1. Go to `/login`.
 2. Log in with a tenant, branch, teacher, cashier, registrar, student, or parent account.
-3. The system redirects users based on role and scope.
+3. The system opens the person's own area (Finance goes to `/finance`, HR to `/hr`, and so on).
+4. The menu on the left is built from what the person's role can do. Their own area comes
+   first, then any page from another area they have the feature for. For example, Finance
+   also sees **Payments desk → Record Payment**.
+5. To change what a role can do, sign in as the school's Super Admin and open
+   **School management → Roles & Features**. Changes apply to everyone with that role at once.
 
 ## 10. Optional Showcase Demo Data
 
@@ -221,6 +238,43 @@ All seeded demo accounts use the value in `SHOWCASE_PASSWORD`. Use a strong loca
 
 Each showcase school includes Super Admin, Finance Director, HR & Payroll Manager, branch staff, teachers, parents, and students. The seed command prints the exact usernames and email addresses, including `hr@horizonacademy.edu.so` and `hr@barwaaqoscholars.edu.so`.
 
+The showcase fees are monthly fees, like everywhere else in the app. Each student has one June 2026 bill, some paid, some part paid and some not paid, so every finance page has data.
+
+### The demo school: Nuur Al-Ilm Academy
+
+This is the better demo. It is built **through the real system**, as the person who owns each
+step, so it proves the roles really have the features they need. It has one campus, six
+grades, 120 students, 15 staff and seven roles. Branch Admin and Cashier are turned off, and
+Finance takes payments.
+
+1. Point `MONGO_URI` in `backend/.env` at a **separate** database, for example
+   `mongodb://localhost:27017/school_management_demo`.
+2. Wipe that database and add the platform owner:
+
+   ```powershell
+   npm run demo:wipe-and-bootstrap
+   ```
+
+   > ⚠️ This deletes **every collection** in the database `MONGO_URI` points to. Never run it on real data.
+
+3. Start (or restart) the backend so it uses the fresh database:
+
+   ```powershell
+   npm run dev:backend
+   ```
+
+4. In another terminal, build the school:
+
+   ```powershell
+   npm run demo:build
+   ```
+
+The build prints each step: roles configured, staff created, classes, 120 admissions,
+attendance, monthly fees for September and October billed in one click each, payments, and
+the payroll chain. The accounts are `admin@`, `hr@`, `finance@` and
+`admissions@nuur-al-ilm.school`, plus twelve teachers. Their password is the value of
+`DEMO_PASSWORD` (the default is in `backend/scripts/demoSchool/lib.js`).
+
 ## 11. Recommended Customer Demo Setup
 
 Before showing the system to customers, prepare this sample data:
@@ -242,24 +296,30 @@ Recommended demo flow:
 
 1. Landing page and school registration
 2. Platform owner approves/manages tenant
-3. Tenant admin configures branches, users, academic years, and branding
-4. Registrar admits a student
-5. Branch admin manages classes, staff, exams, and assignments
-6. Teacher enters results and attendance
-7. Finance generates invoices and checks reports
-8. Cashier records a payment and prints receipt
-9. Student views attendance, schedule, rank, and results
-10. Parent views child grades, attendance, and invoices
-11. Platform owner reviews monitoring and audit logs
+3. Tenant admin configures branches, staff accounts, academic years, and branding
+4. Tenant admin opens **Roles & Features**: rename a role, tick a feature, and show it appear in that person's menu
+5. Registrar admits a student
+6. Branch admin manages classes, staff, exams, and assignments
+7. Teacher enters results and attendance
+8. Finance sets a **monthly fee** per class, the **due day**, and which fees are **open**
+9. Finance opens **Generate invoices**, picks the month, reviews the preview, and bills the whole school in one click
+10. Finance (or a Cashier) opens **Record Payment**, takes one amount for a student, and shows it filling the oldest month first, with one receipt
+11. Finance opens **Monthly Collection**: who paid, who paid part, who owes, earlier debt, and the Excel download
+12. Finance clicks a student to show their **payment record**
+13. Registrar marks a student as **Left**; the next month's preview no longer bills them
+14. Student views attendance, schedule, rank, and results
+15. Parent views child grades, attendance, and **Fees & Payments**, with the late warning when a bill is overdue
+16. Platform owner reviews monitoring and audit logs
 
 ## 12. Verification Commands
 
-Run backend tests:
+Run backend tests (201 tests, all expected to pass):
 
 ```powershell
-cd backend
 npm test
 ```
+
+This works from the repository root. `cd backend` then `npm test` does the same.
 
 Run frontend lint:
 
@@ -318,6 +378,26 @@ Check:
 - MongoDB is running
 - `MONGO_URI` is correct
 
+### A page is missing from someone's menu
+
+Menus follow features. Sign in as the Super Admin, open **Roles & Features**, open that
+person's role, and tick the feature for the page. Also check **Staff Permissions**: a feature
+denied for that one person hides the page for them even if the role has it. Branch pages
+never appear for whole-school roles, and the other way round.
+
+### "Generate invoices" skips a class
+
+The preview gives the reason for each class it skips:
+
+- **No fee structure for this class** — create one in **Fee Structures**.
+- **Fee structure is closed** — open it in **Policies**.
+- **Fee structure has no monthly amount yet** — an old term or yearly fee; edit it and enter the monthly amount.
+
+### A student who left still shows money owed
+
+That is correct. Leaving stops **new** bills; what the student already owed stays on their
+record until it is paid.
+
 ### Promotion does not show old results
 
 Use old academic-year filters in reports/results pages. The system keeps historical enrollments and records. Promotion creates a new enrollment for the new year and marks the old enrollment as `Promoted`.
@@ -344,13 +424,17 @@ Before real production use:
 The finance director is a separate account from the school super admin.
 
 1. Sign in as the school super admin.
-2. Open `School Admin > Users`.
-3. Select `Create Finance Director`.
-4. Enter the finance director's name, email, and temporary password.
+2. Open **School management → Staff Accounts**.
+3. Select **Add staff account** and choose the Finance role. The list shows every staff role the
+   school has switched on, under the school's own name for it, so the same screen creates
+   teachers, admissions staff and HR.
+4. Enter the person's name, email, and temporary password.
 5. The finance director signs in at:
 
 ```text
 http://localhost:5173/login
 ```
 
-Do not reuse or convert the school super-admin account. The school super admin cannot open finance routes, and the finance director cannot open the school-admin dashboard.
+Do not reuse or convert the school super-admin account. **By default** the school super admin
+has no finance features and the finance director has no school-admin features. The super
+admin can change that in **Roles & Features** if the school wants it.

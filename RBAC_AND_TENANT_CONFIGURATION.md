@@ -1,11 +1,30 @@
 # Tenant-Configurable RBAC — Current State & Target Architecture
 
-> **See `RBAC_ROADMAP.md` (revision 2) for the current delivery plan.** The target org there
-> keeps HR to employees and payroll only, which moves the branch-context refactor described in
-> §5.5 off the critical path. The architecture below remains correct; only the sequencing changed.
+> **Status on 21 September 2026 — read this box first.**
+>
+> Most of this design is now built. In plain words:
+>
+> | Part of the design | State |
+> | --- | --- |
+> | Phase 0 — close gaps | **Done** (`12c5407`) |
+> | Phase 1 — roles become data (`Role` model, `User.roleId`) | **Done** (`8e49c00`) |
+> | Phase 2 — permissions limited by scope, not role (`requiredScope`, plan ceiling) | **Done** (`36fa0f5`) |
+> | Phase 3 — blanket role gates removed from routes | **Done** (`ea51b6f`). Four locks stay on purpose: platform, teacher, student and parent portals |
+> | Phase 5 (part) — one capability-driven shell | **Done, on the client.** One shared staff frame (`StaffLayout`) builds each menu from permissions (`frontend/src/config/staffMenu.js`). There is no `/api/me/navigation` and no `TenantNavigationConfig`; they are not needed for the decided scope |
+> | Phase 6 (part) — the super admin screen | **Done as "Roles & Features"**: rename, tick/untick features grouped by area, turn a role on or off, duty-conflict warnings. No create/clone and no live preview (see decision below) |
+> | Phase 4 — data scope engine, field masking | **Not started.** Not needed for the decided scope |
+> | Phase 7 — hardening | **Partly**: 201 backend tests cover escalation, scope ceiling, plan ceiling, lock-out, tenant isolation; no full role × route matrix yet |
+>
+> **Decision (21 Sep 2026, school owner):** roles stay a **fixed list**. A school renames them,
+> changes their features and turns them on or off; it does **not** invent new roles. So "Wall 3"
+> (layouts keyed to role) is solved for fixed roles by building menus from permissions, and
+> "Wall 4" (page composition) stays out of scope. See `README.md` for the plain-English overview.
+>
+> Everything below is the original design and analysis, kept for reference. Section 2 describes
+> the system **as it was on 20 September**, before these phases.
 
-**Status:** Design document
-**Date:** 2026-09-20
+**Status:** Design document — mostly implemented (see box above)
+**Date:** 2026-09-20, status added 2026-09-21
 **Scope:** Roles, permissions, data access, page composition, plan limits
 
 ---
@@ -370,7 +389,12 @@ These are non-negotiable and each needs a regression test:
 
 ## 8. Open decisions
 
-These need a call before Phase 1 starts:
+**Answered 21 Sep 2026:** 1 — not needed, roles are a fixed list. 2 — renaming a role and
+choosing its features is enough; no custom pages. 3 — not needed yet. 4 — not needed yet.
+5 — fixed: student and parent stay portal roles (their features can be edited, but their pages
+stay bound to the student's own record).
+
+The original questions:
 
 1. **Role ceiling per tenant** — unlimited custom roles, or capped by plan? (Recommend:
    capped, as a natural upsell lever.)
@@ -397,7 +421,16 @@ These need a call before Phase 1 starts:
 | User schema (role enum) | `backend/models/User.js` |
 | Permission management endpoints | `backend/controllers/tenantController.js` |
 | Plan limit enforcement | `backend/services/planLimitService.js` |
+| Role model and role editing | `backend/models/Role.js`, `backend/controllers/roleController.js` |
+| Seeding roles for existing schools | `backend/scripts/seedSystemRoles.js` (`npm run migrate:roles`) |
+| Duty-conflict warnings | `backend/utils/segregationOfDuties.js` |
 | Route → permission map | `frontend/src/utils/routePermissions.js` |
-| Route guard | `frontend/src/components/auth/PermissionRouteGuard.jsx` |
-| Element gate (unused) | `frontend/src/components/auth/Can.jsx` |
-| Role-keyed layout guard | `frontend/src/utils/guards.js` |
+| Route guard (per page) | `frontend/src/components/auth/PermissionRouteGuard.jsx` |
+| Area guard (staff areas, by scope) | `frontend/src/components/auth/StaffAreaGuard.jsx` |
+| Staff menu built from permissions | `frontend/src/config/staffMenu.js` |
+| Shared staff frame | `frontend/src/layouts/StaffLayout.jsx` |
+| Roles & Features screen | `frontend/src/pages/tenant/Roles.jsx` |
+| Role-keyed guard (portals only now) | `frontend/src/utils/guards.js` |
+
+`Can.jsx` was deleted in Phase 0. The six role-keyed staff layouts were replaced by `StaffLayout`
+on 21 September 2026.

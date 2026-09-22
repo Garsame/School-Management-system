@@ -1497,164 +1497,187 @@ test('re-enrollment duplicate check catches case-insensitive status current/acti
     }
 });
 
-test('bulk invoice generation target validation and due date saving', async () => {
-    const Class = require('../models/Class');
-    const Student = require('../models/Student');
+test('billing months follow the academic year in calendar order', () => {
+    const { listAcademicYearMonths, resolveBillingMonth } = require('../utils/billingMonths');
+    const year = { name: '2026-2027', startDate: new Date('2026-09-01'), endDate: new Date('2027-06-30') };
+
+    const months = listAcademicYearMonths(year);
+    assert.equal(months.length, 10);
+    assert.deepEqual(months[0], { key: '2026-09', label: 'September 2026' });
+    assert.deepEqual(months[4], { key: '2027-01', label: 'January 2027' });
+    assert.deepEqual(months[9], { key: '2027-06', label: 'June 2027' });
+
+    assert.equal(resolveBillingMonth(year, '2026-10').label, 'October 2026');
+    assert.throws(() => resolveBillingMonth(year, '2027-07'), /outside the 2026-2027 academic year/);
+    assert.throws(() => resolveBillingMonth(year, 'MONTHLY_2'), /Choose the month to bill/);
+    assert.deepEqual(listAcademicYearMonths({ startDate: 'nonsense', endDate: new Date() }), []);
+});
+
+test('a class is billed from its most specific open monthly fee', () => {
+    const { pickFeeStructure, explainMissingFee } = require('../services/monthlyBillingService');
+    const schoolClass = { _id: 'class-3a', gradeLevel: '3', categoryId: 'primary', branchId: 'main' };
+    const classFee = { _id: 'fee-class', targetType: 'CLASS', classId: 'class-3a', isOpen: true, amountsArePerMonth: true };
+    const gradeFee = { _id: 'fee-grade', targetType: 'SCHOOL_GRADE', gradeLevel: '3', isOpen: true, amountsArePerMonth: true };
+
+    assert.equal(pickFeeStructure([gradeFee, classFee], schoolClass)._id, 'fee-class');
+
+    // Closing the class fee falls back to the grade fee rather than leaving the class unbilled.
+    assert.equal(pickFeeStructure([gradeFee, { ...classFee, isOpen: false }], schoolClass)._id, 'fee-grade');
+
+    // A structure from before monthly billing holds a yearly total, so it is never billed as a month.
+    const legacy = { _id: 'fee-old', targetType: 'CLASS', classId: 'class-3a', billingFrequency: 'TERM' };
+    assert.equal(pickFeeStructure([legacy], schoolClass), null);
+    assert.equal(explainMissingFee([legacy], schoolClass), 'Fee structure has no monthly amount yet');
+    assert.equal(explainMissingFee([{ ...classFee, isOpen: false }], schoolClass), 'Fee structure is closed');
+    assert.equal(explainMissingFee([], schoolClass), 'No fee structure for this class');
+
+    // A category fee only applies to classes of that category in the same branch.
+    const otherBranch = { _id: 'fee-cat', targetType: 'CATEGORY', categoryId: 'primary', branchId: 'annex', isOpen: true, amountsArePerMonth: true };
+    assert.equal(pickFeeStructure([otherBranch], schoolClass), null);
+});
+
+test('monthly billing bills every active student once, from open fees only', async () => {
     const AcademicYear = require('../models/AcademicYear');
     const Branch = require('../models/Branch');
+    const Class = require('../models/Class');
     const Enrollment = require('../models/Enrollment');
     const FeeStructure = require('../models/FeeStructure');
     const Invoice = require('../models/Invoice');
-    const AuditLog = require('../models/AuditLog');
-    const { triggerBulkInvoices } = require('../controllers/financeController');
+    const Student = require('../models/Student');
+    const FinancePolicy = require('../models/FinancePolicy');
+    const Model = { AcademicYear, Branch, Class, Enrollment, FeeStructure, FinancePolicy, Invoice, Student };
+    const originals = Object.fromEntries(Object.entries(Model).map(([name, model]) => [name, {
+        findOne: model.findOne, find: model.find, exists: model.exists, insertMany: model.insertMany
+    }]));
+    const { generateMonthlyInvoices } = require('../services/monthlyBillingService');
 
-    const originalClassExists = Class.exists;
-    const originalStudentExists = Student.exists;
-    const originalAcademicYearExists = AcademicYear.exists;
-    const originalBranchExists = Branch.exists;
-    const originalClassFindById = Class.findById;
-    const originalStudentFindById = Student.findById;
-    const originalAcademicYearFindById = AcademicYear.findById;
-    const originalBranchFindById = Branch.findById;
-    const originalClassFindOne = Class.findOne;
-    const originalStudentFindOne = Student.findOne;
-    const originalAcademicYearFindOne = AcademicYear.findOne;
-    const originalBranchFindOne = Branch.findOne;
-    const originalEnrollmentFind = Enrollment.find;
-    const originalInvoiceFindOne = Invoice.findOne;
-    const originalInvoiceCreate = Invoice.create;
-    const originalFeeStructureFindOne = FeeStructure.findOne;
-    const originalAuditLogCreate = AuditLog.create;
+    const id = () => new mongoose.Types.ObjectId();
+    const tenantId = id();
+    const yearId = id();
+    const branchId = id();
+    const class3A = id();
+    const class4A = id();
+    const [fresh, inactive, closedFee, billedAlready] = [id(), id(), id(), id()];
 
-    const MOCK_TENANT = '507f1f77bcf86cd799439011';
-    const MOCK_BRANCH = '507f1f77bcf86cd799439012';
-    const MOCK_CLASS = '507f1f77bcf86cd799439013';
-    const MOCK_YEAR = '507f1f77bcf86cd799439014';
-    const MOCK_STUDENT = '507f1f77bcf86cd799439015';
-    const MOCK_FEE_STRUCTURE = '507f1f77bcf86cd799439017';
+    // Every query in the service ends in lean(), optionally after select().
+    const query = (value) => ({ select() { return this; }, lean: async () => value });
 
     try {
-        Class.exists = async () => true;
-        Student.exists = async () => true;
-        AcademicYear.exists = async () => true;
+        AcademicYear.findOne = () => query({ _id: yearId, name: '2026-2027', startDate: new Date('2026-09-01'), endDate: new Date('2027-06-30') });
         Branch.exists = async () => true;
-        Class.findOne = async () => null;
-        Student.findOne = async () => null;
-        AcademicYear.findOne = async () => null;
-        Branch.findOne = async () => null;
-        Class.findById = async () => ({ tenantId: MOCK_TENANT });
-        Student.findById = async () => ({ tenantId: MOCK_TENANT });
-        AcademicYear.findById = async () => ({ tenantId: MOCK_TENANT });
-        Branch.findById = async () => ({ tenantId: MOCK_TENANT });
+        Student.exists = async () => true;
+        // The school's policy: monthly bills are due on the 10th.
+        FinancePolicy.findOne = () => query({ dueDay: 10 });
+        Branch.find = () => query([{ _id: branchId, name: 'Main Campus' }]);
+        Enrollment.find = () => query([
+            { studentId: fresh, classId: class3A, branchId },
+            { studentId: inactive, classId: class3A, branchId },
+            { studentId: closedFee, classId: class4A, branchId },
+            { studentId: billedAlready, classId: class3A, branchId }
+        ]);
+        Student.find = () => query([
+            { _id: fresh, firstName: 'Amina', lastName: 'Ali', status: 'Active' },
+            { _id: inactive, firstName: 'Omar', lastName: 'Farah', status: 'Inactive' },
+            { _id: closedFee, firstName: 'Hodan', lastName: 'Nur', status: 'Active' },
+            { _id: billedAlready, firstName: 'Yusuf', lastName: 'Jama', status: 'Active' }
+        ]);
+        Class.find = () => query([
+            { _id: class3A, name: 'Grade 3 A', gradeLevel: '3', branchId },
+            { _id: class4A, name: 'Grade 4 A', gradeLevel: '4', branchId }
+        ]);
+        FeeStructure.find = () => query([
+            { _id: id(), name: 'Grade 3 monthly', targetType: 'CLASS', classId: class3A, isOpen: true, amountsArePerMonth: true,
+                feeItems: [{ name: 'Tuition', amount: 45 }, { name: 'Books', amount: 5 }] },
+            { _id: id(), name: 'Grade 4 monthly', targetType: 'CLASS', classId: class4A, isOpen: false, amountsArePerMonth: true,
+                feeItems: [{ name: 'Tuition', amount: 60 }] }
+        ]);
+        // One student already has the October invoice.
+        Invoice.find = () => query([{ studentId: billedAlready }]);
+
+        let written = [];
+        Invoice.insertMany = async (docs) => { written = docs; return docs; };
+
+        // The preview writes nothing and says exactly what the click will do.
+        const { summary: preview } = await generateMonthlyInvoices({ tenantId, academicYearId: yearId, month: '2026-10', dryRun: true });
+        assert.equal(written.length, 0);
+        assert.equal(preview.toBill, 1);
+        assert.equal(preview.created, 0);
+        assert.equal(preview.alreadyBilled, 1);
+        assert.equal(preview.notActive, 1);
+        assert.equal(preview.noFee, 1);
+        assert.equal(preview.totalAmount, 50);
+        assert.equal(new Date(preview.dueDate).toISOString().slice(0, 10), '2026-10-10', 'due on the policy day of the billed month');
+        assert.equal(preview.classes.length, 1);
+        assert.equal(preview.classes[0].className, 'Grade 3 A');
+        assert.equal(preview.classes[0].monthlyAmount, 50);
+        assert.deepEqual(preview.skippedClasses.map((row) => [row.className, row.reason]), [['Grade 4 A', 'Fee structure is closed']]);
+
+        const { summary } = await generateMonthlyInvoices({
+            tenantId, academicYearId: yearId, month: '2026-10', dueDate: '2026-10-10'
+        });
+        assert.equal(summary.created, 1);
+        assert.equal(written.length, 1);
+        const [invoice] = written;
+        assert.equal(String(invoice.studentId), String(fresh));
+        assert.equal(invoice.billingPeriodKey, '2026-10');
+        assert.equal(invoice.billingPeriodLabel, 'October 2026');
+        assert.equal(invoice.totalAmount, 50);
+        assert.equal(invoice.balance, 50);
+        assert.equal(invoice.status, 'UNPAID');
+        assert.deepEqual(invoice.items, [{ name: 'Tuition', amount: 45 }, { name: 'Books', amount: 5 }]);
+        assert.equal(invoice.dueDate.toISOString().slice(0, 10), '2026-10-10');
+
+        // One student: the outcome says why nothing was billed.
+        Enrollment.find = () => query([{ studentId: billedAlready, classId: class3A, branchId }]);
+        const { summary: single } = await generateMonthlyInvoices({ tenantId, academicYearId: yearId, month: '2026-10', studentId: billedAlready });
+        assert.equal(single.outcome.code, 'ALREADY_BILLED');
+
+        Enrollment.find = () => query([]);
+        const { summary: missing } = await generateMonthlyInvoices({ tenantId, academicYearId: yearId, month: '2026-10', studentId: billedAlready });
+        assert.equal(missing.outcome.code, 'NOT_ENROLLED');
+
+        await assert.rejects(
+            () => generateMonthlyInvoices({ tenantId, academicYearId: yearId, month: '2027-08' }),
+            (error) => error.statusCode === 400 && /outside/.test(error.message)
+        );
+        await assert.rejects(
+            () => generateMonthlyInvoices({ tenantId, academicYearId: 'not-an-id', month: '2026-10' }),
+            (error) => error.statusCode === 400 && /Invalid academic year/.test(error.message)
+        );
+    } finally {
+        Object.entries(originals).forEach(([name, methods]) => Object.assign(Model[name], methods));
+    }
+});
+
+test('opening and closing a fee structure requires a boolean and stays in the school', async () => {
+    const FeeStructure = require('../models/FeeStructure');
+    const AuditLog = require('../models/AuditLog');
+    const { setFeeStructureOpen } = require('../controllers/financeController');
+    const originalFindOne = FeeStructure.findOne;
+    const originalAuditCreate = AuditLog.create;
+    const tenantId = new mongoose.Types.ObjectId();
+    const structure = { _id: new mongoose.Types.ObjectId(), isOpen: true, save: async function () { return this; } };
+    let lookedUp = null;
+
+    try {
+        FeeStructure.findOne = async (filter) => { lookedUp = filter; return structure; };
         AuditLog.create = async () => ({});
 
-        let createdInvoices = [];
-        Invoice.create = async (data) => {
-            createdInvoices.push(data);
-            return data;
-        };
-
-        Invoice.findOne = async () => null;
-
-        Enrollment.find = async () => [
-            {
-                tenantId: MOCK_TENANT,
-                branchId: MOCK_BRANCH,
-                classId: MOCK_CLASS,
-                studentId: MOCK_STUDENT,
-                academicYearId: MOCK_YEAR
-            }
-        ];
-
-        FeeStructure.findOne = async () => ({
-            _id: MOCK_FEE_STRUCTURE,
-            tenantId: MOCK_TENANT,
-            branchId: MOCK_BRANCH,
-            classId: MOCK_CLASS,
-            academicYearId: MOCK_YEAR,
-            feeItems: [{ name: 'Tuition', amount: 1000 }],
-            totalAmount: 1000
-        });
-
-        // 1. Missing targetId (both classId and studentId missing) should be rejected via next(err)
-        let req = {
-            tenantId: MOCK_TENANT,
-            body: {
-                academicYearId: MOCK_YEAR,
-                dueDate: '2026-12-31'
-            },
-            get: () => 'mock-agent'
-        };
+        let error = null;
         let res = createResponse();
-        let nextError = null;
-        const next = (err) => { nextError = err; };
-
-        await triggerBulkInvoices(req, res, next);
-        assert.ok(nextError);
+        await setFeeStructureOpen({ tenantId, params: { id: String(structure._id) }, body: { isOpen: 'no' }, get: () => '' }, res, (err) => { error = err; });
+        assert.ok(error);
         assert.equal(res.statusCode, 400);
-        assert.match(nextError.message, /Invalid invoice generation target./);
 
-        // 2. Invalid target (validateFinanceContext returns error/invalid target)
-        Class.exists = async () => false;
-        Class.findOne = async () => ({ tenantId: MOCK_TENANT });
-        Class.findById = async () => null;
-        AcademicYear.findOne = async () => ({ tenantId: MOCK_TENANT });
-        req.body.classId = MOCK_CLASS;
-        req.body.feeStructureId = MOCK_FEE_STRUCTURE;
+        error = null;
         res = createResponse();
-        nextError = null;
-        await triggerBulkInvoices(req, res, next);
-        assert.ok(nextError);
-        assert.equal(res.statusCode, 400);
-        assert.match(nextError.message, /Invalid invoice generation target./);
-
-        // Restore Class.exists and align findOne/findById for step 3
-        Class.exists = async () => true;
-        Class.findOne = async () => ({ tenantId: MOCK_TENANT });
-        Class.findById = async () => ({ tenantId: MOCK_TENANT });
-        AcademicYear.findOne = async () => ({ tenantId: MOCK_TENANT });
-        AcademicYear.findById = async () => ({ tenantId: MOCK_TENANT });
-
-        // 3. Valid target with custom due date
-        res = createResponse();
-        nextError = null;
-        await triggerBulkInvoices(req, res, next);
-        assert.equal(nextError, null);
-        assert.equal(res.statusCode, 200);
-        assert.equal(res.body.success, true);
-        assert.equal(createdInvoices.length, 1);
-        assert.equal(createdInvoices[0].dueDate.toISOString().slice(0, 10), '2026-12-31');
-        assert.equal(createdInvoices[0].feeStructureId, MOCK_FEE_STRUCTURE);
-        assert.equal(createdInvoices[0].billingPeriodKey, 'YEARLY');
-        assert.equal(createdInvoices[0].billingPeriodLabel, 'Annual');
-
-        // 4. A foreign or mismatched selected fee structure fails closed
-        FeeStructure.findOne = async () => null;
-        res = createResponse();
-        nextError = null;
-        await triggerBulkInvoices(req, res, next);
-        assert.ok(nextError);
-        assert.equal(res.statusCode, 403);
-        assert.match(nextError.message, /Access denied/);
-
+        await setFeeStructureOpen({ tenantId, params: { id: String(structure._id) }, body: { isOpen: false }, get: () => '' }, res, (err) => { error = err; });
+        assert.equal(error, null);
+        assert.equal(structure.isOpen, false);
+        assert.equal(String(lookedUp.tenantId), String(tenantId));
     } finally {
-        Class.exists = originalClassExists;
-        Student.exists = originalStudentExists;
-        AcademicYear.exists = originalAcademicYearExists;
-        Branch.exists = originalBranchExists;
-        Class.findById = originalClassFindById;
-        Student.findById = originalStudentFindById;
-        AcademicYear.findById = originalAcademicYearFindById;
-        Branch.findById = originalBranchFindById;
-        Class.findOne = originalClassFindOne;
-        Student.findOne = originalStudentFindOne;
-        AcademicYear.findOne = originalAcademicYearFindOne;
-        Branch.findOne = originalBranchFindOne;
-        Enrollment.find = originalEnrollmentFind;
-        Invoice.findOne = originalInvoiceFindOne;
-        Invoice.create = originalInvoiceCreate;
-        FeeStructure.findOne = originalFeeStructureFindOne;
-        AuditLog.create = originalAuditLogCreate;
+        FeeStructure.findOne = originalFindOne;
+        AuditLog.create = originalAuditCreate;
     }
 });
 
@@ -5765,9 +5788,13 @@ test('permission routes are correctly registered and secured in tenantRoutes', a
 test('permission catalog, getUserPermissions, and updateUserPermissions work and enforce security checks', async () => {
     const { getPermissionCatalog, getUserPermissions, updateUserPermissions } = require('../controllers/tenantController');
     const User = require('../models/User');
+    const Tenant = require('../models/Tenant');
 
     const originalUserFindOne = User.findOne;
     const originalUserCountDocuments = User.countDocuments;
+    const originalTenantFindById = Tenant.findById;
+    // The per-user catalog is bounded by the school's plan, read from the tenant.
+    Tenant.findById = () => ({ select: () => ({ lean: async () => ({ plan: 'enterprise' }) }) });
     
     // Mock users
     const mockCashier = {
@@ -5917,15 +5944,17 @@ test('permission catalog, getUserPermissions, and updateUserPermissions work and
         await updateUserPermissions(reqPutUnknown, resPutUnknown, next);
         assert.ok(nextError);
         assert.equal(nextError.statusCode, 400);
-        assert.ok(nextError.message.includes('not assignable to role'));
+        assert.ok(nextError.message.includes('cannot be given to this account'));
 
-        // Test 7: updateUserPermissions rejects cross-role permissions
-        const { req: reqPutCross, res: resPutCross } = reqRes(mockCashier._id, { allow: ['teacher.exams.view'], deny: [] });
+        // Test 7: updateUserPermissions rejects permissions outside the user's scope. A
+        // branch cashier may be given any branch-level permission, the same ceiling a role
+        // has, but never a school-wide one.
+        const { req: reqPutCross, res: resPutCross } = reqRes(mockCashier._id, { allow: ['finance.invoices.view'], deny: [] });
         nextError = null;
         await updateUserPermissions(reqPutCross, resPutCross, next);
         assert.ok(nextError);
         assert.equal(nextError.statusCode, 400);
-        assert.ok(nextError.message.includes('not assignable to role'));
+        assert.ok(nextError.message.includes('cannot be given to this account'));
 
         // Test 8: updateUserPermissions rejects overlapping permissions
         const { req: reqPutOverlap, res: resPutOverlap } = reqRes(mockCashier._id, { allow: ['cashier.payments.reverse'], deny: ['cashier.payments.reverse'] });
@@ -5978,6 +6007,7 @@ test('permission catalog, getUserPermissions, and updateUserPermissions work and
     } finally {
         User.findOne = originalUserFindOne;
         User.countDocuments = originalUserCountDocuments;
+        Tenant.findById = originalTenantFindById;
     }
 });
 
@@ -6083,61 +6113,6 @@ test('cashier reversal authorization guard workflow', async () => {
         Payment.create = originalPaymentCreate;
         auditLogService.logAction = originalLogAction;
     }
-});
-
-test('billing periods preserve annual defaults and split preset schedules exactly', () => {
-    const { getBillingPeriods, resolveBillingPeriod } = require('../utils/billingPeriods');
-
-    const annual = getBillingPeriods({
-        feeItems: [{ name: 'Tuition', amount: 1200 }],
-        totalAmount: 1200
-    });
-    assert.equal(annual.length, 1);
-    assert.equal(annual[0].key, 'YEARLY');
-    assert.equal(annual[0].amount, 1200);
-
-    const monthly = getBillingPeriods({
-        billingFrequency: 'MONTHLY',
-        feeItems: [
-            { name: 'Tuition', amount: 1000 },
-            { name: 'Activities', amount: 100 }
-        ],
-        totalAmount: 1100
-    });
-    assert.equal(monthly.length, 12);
-    assert.equal(monthly.reduce((sum, period) => sum + Math.round(period.amount * 100), 0), 110000);
-    assert.equal(resolveBillingPeriod({ billingFrequency: 'MONTHLY', feeItems: [{ name: 'Tuition', amount: 1200 }] }, 'MONTHLY_2').label, 'Month 2');
-    assert.throws(
-        () => resolveBillingPeriod({ billingFrequency: 'MONTHLY', feeItems: [{ name: 'Tuition', amount: 1200 }] }),
-        /billingPeriodKey is required/
-    );
-});
-
-test('custom billing schedules require valid periods totaling the fee structure', () => {
-    const { normalizeBillingSchedule, resolveBillingPeriod } = require('../utils/billingPeriods');
-
-    const schedule = normalizeBillingSchedule({
-        billingFrequency: 'CUSTOM',
-        totalAmount: 1000,
-        billingPeriods: [
-            { label: 'Admission', amount: 400 },
-            { label: 'Final installment', amount: 600 }
-        ]
-    });
-    assert.deepEqual(schedule.billingPeriods.map(period => period.key), ['CUSTOM_1', 'CUSTOM_2']);
-    assert.equal(resolveBillingPeriod({
-        name: 'Grade 1',
-        ...schedule
-    }, 'CUSTOM_2').amount, 600);
-
-    assert.throws(
-        () => normalizeBillingSchedule({
-            billingFrequency: 'CUSTOM',
-            totalAmount: 1000,
-            billingPeriods: [{ label: 'Only installment', amount: 900 }]
-        }),
-        /must equal/
-    );
 });
 
 test('teacher user model preserves primary branch in authorized branch list', async () => {
@@ -6985,16 +6960,8 @@ test('every catalog permission is enforced somewhere, or explicitly exempted', (
         // Printing happens in the browser, so there is no request to gate.
         ['cashier.receipts.print', 'client-side action'],
 
-        // Catalog entries for features that do not exist yet. They currently appear in
-        // the permission editor and do nothing when toggled. Resolve in Phase 2 by
-        // either building the feature or removing the entry.
-        ['platform.tenants.update', 'no generic tenant-update route exists'],
-        ['finance.receiptBranding.view', 'feature not built'],
-        ['finance.receiptBranding.update', 'feature not built'],
-        ['finance.paymentReversals.approve', 'reversal is gated by cashier.payments.reverse'],
-        ['teacher.examTemplates.manage', 'no exam-template write route exists'],
-        ['teacher.examCategories.manage', 'writes are gated by branch.exams.create'],
-        ['teacher.gradingPolicy.manage', 'writes are gated by tenant.academicPolicy.update']
+        // Catalog entries for features that do not exist yet.
+        ['platform.tenants.update', 'no generic tenant-update route exists']
     ]);
 
     const unenforced = PERMISSION_CATALOG
@@ -7101,7 +7068,10 @@ test('permissions resolve from a Role record when one is linked', () => {
 test('a user cannot grant themselves a permission they do not hold', async () => {
     const { updateUserPermissions } = require('../controllers/tenantController');
     const User = require('../models/User');
+    const Tenant = require('../models/Tenant');
     const originalFindOne = User.findOne;
+    const originalTenantFindById = Tenant.findById;
+    Tenant.findById = () => ({ select: () => ({ lean: async () => ({ plan: 'enterprise' }) }) });
 
     const adminId = new mongoose.Types.ObjectId();
     const admin = {
@@ -7149,6 +7119,7 @@ test('a user cannot grant themselves a permission they do not hold', async () =>
         );
     } finally {
         User.findOne = originalFindOne;
+        Tenant.findById = originalTenantFindById;
     }
 });
 
@@ -7542,11 +7513,35 @@ test('the attendance page is routed and gated in both shells', () => {
     assert.match(page, /hasPermission\(user, 'attendance\.oversight\.manage'\)/);
     assert.match(page, /canManage && /);
 
-    // Both sidebars offer it, filtered by the same permission.
-    for (const layout of ['TenantLayout.jsx', 'RegistrarLayout.jsx']) {
-        const source = fs.readFileSync(path.join(src, 'layouts', layout), 'utf8');
-        assert.match(source, /attendance\.oversight\.view/, `${layout} should link to attendance`);
+    // Both areas offer it in the shared staff menu, filtered by the same permission, and it
+    // is one feature so a person holding both areas sees it once.
+    const menu = fs.readFileSync(path.join(src, 'config', 'staffMenu.js'), 'utf8');
+    for (const route of ['/tenant/attendance', '/registrar/attendance']) {
+        assert.match(
+            menu,
+            new RegExp(`path: '${route}'[^}]*permission: 'attendance\\.oversight\\.view', feature: 'attendance'`),
+            `${route} should be in the staff menu`
+        );
     }
+});
+
+test('staff pages are opened by permission, not by the role\'s name', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const src = path.join(__dirname, '..', '..', 'frontend', 'src');
+    const app = fs.readFileSync(path.join(src, 'App.jsx'), 'utf8');
+
+    // A finance role holding "record payment" must be able to open the payments desk, so no
+    // staff area may be locked to one role key. Portal roles keep theirs: their pages are
+    // bound to the person's own record on the server.
+    for (const role of ['BRANCH_ADMIN', 'REGISTRAR', 'CASHIER']) {
+        assert.doesNotMatch(app, new RegExp(`role="${role}"`), `${role} area is still locked to the role name`);
+    }
+    assert.doesNotMatch(app, /TenantGuard|FinanceGuard/);
+    for (const role of ['TEACHER', 'STUDENT', 'PARENT']) {
+        assert.match(app, new RegExp(`role="${role}"`), `${role} portal should stay bound to its role`);
+    }
+    assert.match(app, /<StaffArea \/>/, 'the payments desk must be open to either scope');
 });
 
 test('a new school is seeded with its own roles', () => {
@@ -7598,4 +7593,264 @@ test('a school can fill any role it has defined, not a hardcoded three', () => {
 
     // The new user is linked to the role record, or permissions would resolve from defaults.
     assert.match(tenant, /roleId: assignableRole\._id/);
+});
+
+test('a school cannot untick role management from the only role that has it', async () => {
+    const Role = require('../models/Role');
+    const Tenant = require('../models/Tenant');
+    const AuditLog = require('../models/AuditLog');
+    const { updateRole } = require('../controllers/roleController');
+    const originals = { findOne: Role.findOne, countDocuments: Role.countDocuments, tenantFindById: Tenant.findById, auditCreate: AuditLog.create };
+    const tenantId = new mongoose.Types.ObjectId();
+
+    const headRole = {
+        _id: new mongoose.Types.ObjectId(),
+        key: 'super_admin',
+        name: 'Super Admin',
+        scope: 'tenant',
+        isActive: true,
+        permissions: ['tenant.roles.view', 'tenant.roles.update', 'tenant.dashboard.view'],
+        save: async function () { return this; }
+    };
+    const call = async (permissions) => {
+        const res = createResponse();
+        let error = null;
+        await updateRole({
+            tenantId,
+            params: { roleId: String(headRole._id) },
+            body: { permissions },
+            user: { _id: new mongoose.Types.ObjectId() },
+            get: () => ''
+        }, res, (err) => { error = err; });
+        return { res, error };
+    };
+
+    try {
+        Role.findOne = async () => headRole;
+        Tenant.findById = () => ({ select: () => ({ lean: async () => ({ plan: 'foundation' }) }) });
+        AuditLog.create = async () => ({});
+
+        Role.countDocuments = async () => 0;
+        const refused = await call(['tenant.roles.view', 'tenant.dashboard.view']);
+        assert.ok(refused.error, 'removing the last way to manage roles must be refused');
+        assert.equal(refused.error.statusCode, 409);
+        assert.ok(headRole.permissions.includes('tenant.roles.update'), 'the role must be left unchanged');
+
+        // Once another active role can manage roles, this one may give it up.
+        Role.countDocuments = async () => 1;
+        const allowed = await call(['tenant.roles.view', 'tenant.dashboard.view']);
+        assert.equal(allowed.error, null);
+        assert.equal(headRole.permissions.includes('tenant.roles.update'), false);
+    } finally {
+        Role.findOne = originals.findOne;
+        Role.countDocuments = originals.countDocuments;
+        Tenant.findById = originals.tenantFindById;
+        AuditLog.create = originals.auditCreate;
+    }
+});
+
+test('bills are due on the school day of their month and ordered oldest first', () => {
+    const { byPeriodOldestFirst, dueDateForMonth, isLate } = require('../utils/billingMonths');
+
+    assert.equal(dueDateForMonth('2026-10', 10).toISOString().slice(0, 10), '2026-10-10');
+    assert.equal(dueDateForMonth('2027-02', 31).toISOString().slice(0, 10), '2027-02-28', 'clamped so it exists in February');
+    assert.equal(dueDateForMonth('2026-11').toISOString().slice(0, 10), '2026-11-10', 'defaults to the 10th');
+
+    // A term invoice from before monthly billing has no month; its due date places it.
+    const bills = [
+        { billingPeriodKey: '2026-10', createdAt: new Date('2026-10-01') },
+        { billingPeriodKey: 'TERM_1', dueDate: new Date('2026-08-15'), createdAt: new Date('2026-08-01') },
+        { billingPeriodKey: '2026-09', createdAt: new Date('2026-10-02') }
+    ];
+    assert.deepEqual([...bills].sort(byPeriodOldestFirst).map((bill) => bill.billingPeriodKey), ['TERM_1', '2026-09', '2026-10']);
+
+    const now = new Date('2026-10-20');
+    assert.equal(isLate({ balance: 5, status: 'PARTIALLY_PAID', dueDate: new Date('2026-10-10') }, now), true);
+    assert.equal(isLate({ balance: 0, status: 'PAID', dueDate: new Date('2026-10-10') }, now), false, 'paid bills are never late');
+    assert.equal(isLate({ balance: 5, status: 'UNPAID', dueDate: new Date('2026-11-10') }, now), false, 'not yet due');
+});
+
+test('one payment fills the oldest unpaid month first and never more than is owed', () => {
+    const { planStudentPayment } = require('../services/paymentService');
+    const unpaid = [
+        { _id: 'sep', billingPeriodLabel: 'September 2026', balance: 25 },
+        { _id: 'oct', billingPeriodLabel: 'October 2026', balance: 50 },
+        { _id: 'nov', billingPeriodLabel: 'November 2026', balance: 50 }
+    ];
+
+    assert.deepEqual(planStudentPayment(unpaid, 60), [
+        { invoiceId: 'sep', label: 'September 2026', amount: 25, balanceAfter: 0 },
+        { invoiceId: 'oct', label: 'October 2026', amount: 35, balanceAfter: 15 }
+    ]);
+    assert.equal(planStudentPayment(unpaid, 125).length, 3, 'paying everything clears every month');
+    assert.deepEqual(planStudentPayment(unpaid, 10.1), [{ invoiceId: 'sep', label: 'September 2026', amount: 10.1, balanceAfter: 14.9 }]);
+    assert.throws(() => planStudentPayment(unpaid, 125.01), /more than this student owes \(125\.00\)/);
+    assert.throws(() => planStudentPayment(unpaid, 0), /greater than 0/);
+});
+
+test('"this month" and "earlier debt" split a student record the same way everywhere', () => {
+    const { splitCurrentAndEarlier } = require('../services/studentAccountService');
+    const line = (key, balance) => ({ key, balance, periodStart: new Date(`${key}-01T00:00:00Z`) });
+    const lines = [line('2026-09', 25), line('2026-10', 50), line('2026-11', 50)];
+
+    const october = splitCurrentAndEarlier(lines, new Date('2026-10-20'));
+    assert.equal(october.current.key, '2026-10');
+    assert.deepEqual(october.earlier.map((item) => item.key), ['2026-09'], 'November is billed ahead, not earlier debt');
+
+    // In a month nobody has been billed for yet, "this month" is the latest bill.
+    const december = splitCurrentAndEarlier(lines, new Date('2026-12-05'));
+    assert.equal(december.current.key, '2026-11');
+    assert.deepEqual(december.earlier.map((item) => item.key), ['2026-09', '2026-10']);
+});
+
+test('the monthly view carries earlier debt and keeps its totals while filtering', async () => {
+    const AcademicYear = require('../models/AcademicYear');
+    const Branch = require('../models/Branch');
+    const Enrollment = require('../models/Enrollment');
+    const Invoice = require('../models/Invoice');
+    const Student = require('../models/Student');
+    const Model = { AcademicYear, Branch, Enrollment, Invoice, Student };
+    const originals = Object.fromEntries(Object.entries(Model).map(([name, model]) => [name, { findOne: model.findOne, find: model.find }]));
+    const { getMonthlyCollection } = require('../services/studentAccountService');
+
+    const id = () => new mongoose.Types.ObjectId();
+    const [tenantId, yearId, classId, paidUp, partial, owing] = [id(), id(), id(), id(), id(), id()];
+    const query = (value) => ({ select() { return this; }, populate() { return this; }, sort() { return this; }, lean: async () => value });
+    const october = (studentId, paid, dueDate = new Date('2026-10-10')) => ({
+        _id: id(), studentId, branchId: id(), totalAmount: 50, paidAmount: paid, balance: 50 - paid,
+        status: paid >= 50 ? 'PAID' : paid > 0 ? 'PARTIALLY_PAID' : 'UNPAID', dueDate, billingPeriodKey: '2026-10'
+    });
+
+    try {
+        AcademicYear.findOne = () => query({ _id: yearId, name: '2026-2027', startDate: new Date('2026-09-01'), endDate: new Date('2027-06-30') });
+        Branch.find = () => query([]);
+        Student.find = () => query([
+            { _id: paidUp, firstName: 'Amina', lastName: 'Ali', admissionNumber: 'A1', status: 'Active' },
+            { _id: partial, firstName: 'Omar', lastName: 'Farah', admissionNumber: 'A2', status: 'Active' },
+            { _id: owing, firstName: 'Hodan', lastName: 'Nur', admissionNumber: 'A3', status: 'Active' }
+        ]);
+        Enrollment.find = () => query([paidUp, partial, owing].map((studentId) => ({ studentId, classId: { _id: classId, name: 'Grade 3', gradeLevel: '3' } })));
+        let call = 0;
+        Invoice.find = () => {
+            call += 1;
+            if (call % 2 === 1) return query([october(paidUp, 50), october(partial, 20), october(owing, 0)]);
+            // Earlier bills still owed: Hodan owes September; a December bill is not "earlier".
+            return query([
+                { studentId: owing, billingPeriodKey: '2026-09', balance: 50 },
+                { studentId: owing, billingPeriodKey: '2026-12', balance: 50 },
+                { studentId: partial, billingPeriodKey: 'TERM_1', dueDate: new Date('2026-08-15'), balance: 10 }
+            ]);
+        };
+
+        const now = new Date('2026-10-20');
+        const all = await getMonthlyCollection({ tenantId, academicYearId: yearId, month: '2026-10', now });
+        assert.equal(all.month.label, 'October 2026');
+        assert.equal(all.rows.length, 3);
+        const hodan = all.rows.find((row) => row.admissionNumber === 'A3');
+        assert.equal(hodan.earlierDebt, 50);
+        assert.equal(hodan.totalOwed, 100);
+        assert.equal(hodan.late, true);
+        assert.equal(all.rows.find((row) => row.admissionNumber === 'A2').earlierDebt, 10, 'old term debt counts as earlier');
+        assert.deepEqual(all.totals.counts, { paid: 1, partial: 1, unpaid: 1, late: 2 });
+        assert.equal(all.totals.billed, 150);
+        assert.equal(all.totals.collected, 70);
+        assert.equal(all.totals.collectionRate, 46.7);
+
+        const onlyUnpaid = await getMonthlyCollection({ tenantId, academicYearId: yearId, month: '2026-10', status: 'UNPAID', now });
+        assert.deepEqual(onlyUnpaid.rows.map((row) => row.admissionNumber), ['A3']);
+        assert.equal(onlyUnpaid.totals.billed, 150, 'filters narrow the rows, not the totals');
+
+        await assert.rejects(
+            () => getMonthlyCollection({ tenantId, academicYearId: yearId, month: '2027-09', now }),
+            (error) => error.statusCode === 400
+        );
+    } finally {
+        Object.entries(originals).forEach(([name, methods]) => Object.assign(Model[name], methods));
+    }
+});
+
+test('the Excel writer produces a real workbook with every sheet', () => {
+    const zlib = require('node:zlib');
+    const { buildWorkbook, columnName } = require('../utils/xlsxWriter');
+    assert.equal(columnName(0), 'A');
+    assert.equal(columnName(25), 'Z');
+    assert.equal(columnName(26), 'AA');
+
+    const file = buildWorkbook([
+        { name: 'Summary', rows: [[{ v: 'School', style: 'title' }], ['Billed', { v: 150, style: 'money' }]] },
+        { name: 'Students/October', freezeRows: 1, rows: [['Name & <class>', new Date(Date.UTC(2026, 9, 10))]] }
+    ]);
+    assert.equal(file.subarray(0, 4).toString('hex'), '504b0304', 'a zip file');
+
+    // Read every entry back through the central directory.
+    const entries = {};
+    const end = file.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
+    let offset = file.readUInt32LE(end + 16);
+    for (let n = file.readUInt16LE(end + 10); n > 0; n -= 1) {
+        const nameLength = file.readUInt16LE(offset + 28);
+        const name = file.subarray(offset + 46, offset + 46 + nameLength).toString();
+        const local = file.readUInt32LE(offset + 42);
+        const size = file.readUInt32LE(offset + 20);
+        const dataStart = local + 30 + file.readUInt16LE(local + 26);
+        entries[name] = zlib.inflateRawSync(file.subarray(dataStart, dataStart + size)).toString();
+        offset += 46 + nameLength;
+    }
+    assert.ok(entries['[Content_Types].xml'].includes('/xl/worksheets/sheet2.xml'));
+    assert.match(entries['xl/workbook.xml'], /name="Summary".*name="Students October"/, 'sheet names are made Excel-safe');
+    assert.match(entries['xl/worksheets/sheet2.xml'], /Name &amp; &lt;class&gt;/);
+    assert.match(entries['xl/worksheets/sheet2.xml'], /state="frozen"/);
+    assert.match(entries['xl/worksheets/sheet2.xml'], /<v>46305<\/v>/, '10 October 2026 as an Excel date');
+    assert.match(entries['xl/worksheets/sheet1.xml'], /<c r="B2" s="2"><v>150<\/v><\/c>/);
+});
+
+test('a student who leaves loses their class and cannot silently come back', async () => {
+    const Student = require('../models/Student');
+    const Enrollment = require('../models/Enrollment');
+    const AuditLog = require('../models/AuditLog');
+    const { updateStudent } = require('../controllers/registrarController');
+    const originals = { findOne: Student.findOne, updateMany: Enrollment.updateMany, auditCreate: AuditLog.create };
+    const tenantId = new mongoose.Types.ObjectId();
+    const branchId = new mongoose.Types.ObjectId();
+    const student = {
+        _id: new mongoose.Types.ObjectId(),
+        status: 'Active',
+        toObject() { return { ...this }; },
+        save: async function () { return this; }
+    };
+    let withdrawn = null;
+
+    try {
+        Student.findOne = async () => student;
+        Enrollment.updateMany = async (filter, update) => { withdrawn = { filter, update }; return { modifiedCount: 1 }; };
+        AuditLog.create = async () => ({});
+        const call = async (body) => {
+            const res = createResponse();
+            await updateStudent({
+                params: { id: String(student._id) },
+                body,
+                user: { _id: new mongoose.Types.ObjectId(), tenantId, branchId, role: 'registrar' },
+                ip: '127.0.0.1',
+                get: () => ''
+            }, res);
+            return res;
+        };
+
+        const left = await call({ status: 'Left', leftReason: 'Family moved' });
+        assert.equal(left.statusCode, 200);
+        assert.equal(student.status, 'Left');
+        assert.equal(student.withdrawalReason, 'Family moved');
+        assert.ok(student.withdrawalDate instanceof Date);
+        assert.equal(String(withdrawn.filter.studentId), String(student._id));
+        assert.equal(withdrawn.filter.isCurrent, true);
+        assert.equal(withdrawn.update.$set.status, 'Withdrawn', 'the class place ends, so billing never reaches them');
+
+        const back = await call({ status: 'Active' });
+        assert.equal(back.statusCode, 409);
+        assert.match(back.body.message, /Re-Enrollment/);
+        assert.equal(student.status, 'Left');
+    } finally {
+        Student.findOne = originals.findOne;
+        Enrollment.updateMany = originals.updateMany;
+        AuditLog.create = originals.auditCreate;
+    }
 });

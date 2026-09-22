@@ -123,7 +123,7 @@ const Receipt = () => {
                             {payment.status === 'REVERSED' ? 'Amount reversed' : 'Amount paid'}
                         </span>
                         <span className={`font-bold text-xl ${payment.status === 'REVERSED' ? 'text-rose-600' : 'text-slate-900'}`}>
-                            ${Number(payment.amount).toFixed(2)}
+                            ${Number(data.batch && payment.status !== 'REVERSED' ? data.batch.total : payment.amount).toFixed(2)}
                         </span>
                     </div>
                     <div className="text-right text-xs text-slate-500 mt-1">
@@ -131,8 +131,27 @@ const Receipt = () => {
                     </div>
                 </div>
 
+                {/* One amount that paid several months: where it went, oldest first */}
+                {data.batch && data.batch.lines.length > 1 && (
+                    <div className="mb-6">
+                        <h3 className="font-bold border-b pb-1 mb-2 text-xs text-slate-500">Paid for</h3>
+                        <div className="grid grid-cols-3 gap-y-1 text-slate-600">
+                            <span className="text-xs font-semibold text-slate-400">Month</span>
+                            <span className="text-right text-xs font-semibold text-slate-400">Paid</span>
+                            <span className="text-right text-xs font-semibold text-slate-400">Still owed</span>
+                            {data.batch.lines.map((line) => (
+                                <React.Fragment key={line.paymentId}>
+                                    <span className={line.status === 'REVERSED' ? 'line-through' : ''}>{line.month}</span>
+                                    <span className={`text-right ${line.status === 'REVERSED' ? 'line-through' : ''}`}>${Number(line.amount).toFixed(2)}</span>
+                                    <span className="text-right">{line.stillOwed === null ? '—' : `$${Number(line.stillOwed).toFixed(2)}`}</span>
+                                </React.Fragment>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {/* Account Status */}
-                <div className="mb-6">
+                {!(data.batch && data.batch.lines.length > 1) && <div className="mb-6">
                     <h3 className="font-bold border-b pb-1 mb-2 text-xs text-slate-500">Account status (Inv #{invoice.invoiceId.slice(-6)})</h3>
                     <div className="grid grid-cols-2 gap-y-1 text-slate-600">
                         <span>Total Invoice:</span>
@@ -144,7 +163,7 @@ const Receipt = () => {
                         <span className="font-bold text-slate-800">Balance Due:</span>
                         <span className="text-right font-bold text-slate-800">${Number(invoice.balance).toFixed(2)}</span>
                     </div>
-                </div>
+                </div>}
 
                 {/* Footer */}
                 <div className="text-center text-xs text-slate-400 mt-8 pt-4 border-t border-dashed">

@@ -1,5 +1,43 @@
 # Full System End-to-End Audit Report
 
+> **Update — 21 September 2026.** This audit was run on 8 August 2026. Since then:
+>
+> - **Roles became editable** (Phases 0–3, then a Roles & Features screen).
+> - **All staff areas share one page frame** whose menu is built from each person's features.
+>   The six role-keyed staff layouts were removed.
+> - **Finance billing was rebuilt:** monthly fees, an open/closed switch per fee structure, a due
+>   day, one-click monthly billing for the whole school, and payments that fill the oldest month first.
+> - **New pages:** Monthly Collection (with Excel), the student payment record, and parent late warnings.
+> - **Students can be marked Left.**
+>
+> See [README.md](README.md) for the full list.
+>
+> **Re-verified since this report:**
+>
+> - Backend automated tests: **201 of 201 pass** (165 here).
+> - The demo school (Nuur Al-Ilm Academy: 120 students, 15 staff) was built through the real API
+>   on an isolated database (`school_management_rbac_check`).
+> - On that school, every new flow was checked end to end as the real users:
+>   - roles: tick and untick, rename, lock-out guard, on and off
+>   - fees: open and closed
+>   - billing: one click for the whole school, one student, no double billing
+>   - due day and late status
+>   - payments: oldest first, one receipt, refusing more than is owed
+>   - Monthly Collection and its Excel file (opened with a spreadsheet library)
+>   - the Left status
+>   - parent isolation
+> - Every page a role reaches through the new menus was checked to load its data for that role.
+> - The frontend builds, and the changed files pass lint.
+>
+> **Not re-verified in a browser:** the new and changed screens have not yet been clicked
+> through in a real browser. The browser harness below (`backend/scripts/browserE2EAudit.js`)
+> was written for the August screens. Its payment steps click **Record Payment** on an invoice
+> and expect the old per-invoice form, and its route list predates the new pages. Update it
+> before the next full browser run.
+>
+> **Remaining issues table below:** still open. Notification delivery now matters more,
+> because billing a month sends a notice (and an email, when configured) to every parent and student.
+
 **Audit date:** 2026-08-08  
 **Browser:** Visible Google Chrome 151 controlled through Chrome DevTools Protocol  
 **Application:** React/Vite frontend, Express API, MongoDB  

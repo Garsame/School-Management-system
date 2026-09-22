@@ -39,7 +39,7 @@ const TenantStudents = () => {
             <section className="phoenix-card p-4">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <Select label="Branch" placeholder="All branches" value={filters.branchId} onChange={(event) => setFilters((current) => ({ ...current, branchId: event.target.value }))} options={branches.map((branch) => ({ value: branch._id, label: branch.name }))} />
-                    <Select label="Status" placeholder="All statuses" value={filters.status} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))} options={['Active', 'Graduated', 'Inactive', 'Transferred'].map((status) => ({ value: status, label: status }))} />
+                    <Select label="Status" placeholder="All statuses" value={filters.status} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))} options={['Active', 'Graduated', 'Inactive', 'Transferred', 'Left'].map((status) => ({ value: status, label: status === 'Left' ? 'Left the school' : status }))} />
                     <Input label="Search" icon={<Search size={16} />} value={filters.q} onChange={(event) => setFilters((current) => ({ ...current, q: event.target.value }))} placeholder="Name or admission number" />
                 </div>
             </section>

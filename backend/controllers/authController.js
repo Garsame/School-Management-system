@@ -59,6 +59,8 @@ const buildSessionPayload = (user, tenant = null) => ({
     email: user.email,
     username: user.username,
     role: user.role,
+    // The school's own name for the role ("Finance Officer"), shown in place of the key.
+    roleName: (user.roleId && typeof user.roleId === 'object' && user.roleId.name) || null,
     scope: user.scope,
     tenantId: user.tenantId,
     branchId: user.branchId,
@@ -513,7 +515,7 @@ const changeOwnPassword = async (req, res) => {
             return res.status(400).json({ message: 'New password must be different from the current password' });
         }
 
-        const user = await User.findById(req.user._id);
+        const user = await User.findById(req.user._id).populate('roleId');
         if (!user || !await user.comparePassword(currentPassword)) {
             return res.status(400).json({ message: 'Current password is incorrect' });
         }

@@ -5,6 +5,7 @@ const {
     getStudentGrades,
     getStudentAttendance,
     getStudentInvoices,
+    getStudentPaymentRecordForParent,
     getNotifications,
     markNotificationRead,
     getProfile,
@@ -35,6 +36,7 @@ router.put('/change-password', requirePermission('parent.password.change'), chan
 router.get('/students/:studentId/grades', requirePermission('parent.grades.view'), getStudentGrades);
 router.get('/students/:studentId/attendance', requirePermission('parent.attendance.view'), getStudentAttendance);
 router.get('/students/:studentId/invoices', requirePermission('parent.invoices.view'), getStudentInvoices);
+router.get('/students/:studentId/payment-record', requirePermission('parent.invoices.view'), getStudentPaymentRecordForParent);
 router.get('/students/:studentId/academic-years', requirePermission('parent.students.view'), getStudentAcademicYears);
 router.get('/students/:studentId/rank', requirePermission('parent.grades.view'), getStudentRank);
 

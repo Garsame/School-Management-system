@@ -193,10 +193,10 @@ const accountJourneys = [
         role: 'finance', identifier: 'finance@horizonacademy.edu.so', expectedPath: '/finance',
         pages: [
             ['/finance', 'Finance'], ['/finance/policies', 'Policies'], ['/finance/fee-structures', 'Fee'],
-            ['/finance/invoices', 'Invoices'], ['/finance/payments', 'Payments'],
+            ['/finance/invoices', 'Invoices'], ['/finance/monthly', 'Monthly Collection'], ['/finance/payments', 'Payments'],
             ['/finance/salary-approvals', 'Salary approvals'], ['/finance/payroll-approvals', 'Payroll'],
             ['/finance/reports', 'Reports'], ['/finance/outstanding', 'Outstanding'],
-            ['/finance/receipt-branding', 'Receipt'], ['/finance/profile', 'Profile']
+            ['/finance/profile', 'Profile']
         ]
     },
     {
@@ -219,7 +219,8 @@ const accountJourneys = [
         role: 'registrar', identifier: 'central.registrar@horizonacademy.edu.so', expectedPath: '/registrar',
         pages: [
             ['/registrar', 'Registrar'], ['/registrar/admissions', 'Admission'],
-            ['/registrar/students', 'Students'], ['/registrar/enrollments/new', 'Enrollment']
+            ['/registrar/students', 'Students'], ['/registrar/attendance', 'Attendance'],
+            ['/registrar/enrollments/new', 'Enrollment']
         ]
     },
     {
@@ -246,8 +247,10 @@ const accountJourneys = [
     {
         role: 'super-admin', identifier: 'superadmin@horizonacademy.edu.so', expectedPath: '/tenant',
         pages: [
-            ['/tenant', 'School'], ['/tenant/branches', 'Branch'], ['/tenant/users', 'User'],
-            ['/tenant/academic-years', 'Academic'], ['/tenant/enrollments/transfer', 'Transfer'],
+            ['/tenant', 'School'], ['/tenant/branding', 'Branding'], ['/tenant/branches', 'Branch'],
+            ['/tenant/users', 'User'], ['/tenant/roles', 'Roles & Features'],
+            ['/tenant/staff-permissions', 'Staff Permissions'], ['/tenant/academic-years', 'Academic'],
+            ['/tenant/academic-policy', 'Academic Policy'], ['/tenant/attendance', 'Attendance'],
             ['/tenant/reports', 'Report'], ['/tenant/audit-logs', 'Audit']
         ]
     }
@@ -482,7 +485,13 @@ const main = async () => {
         await page.waitFor(() => location.pathname === '/cashier/payments/new', 6000);
         await wait(700);
         await page.setValue('input[type="number"]', '1');
-        const paid = await page.clickText('Confirm Payment', 'button');
+        await wait(300);
+        const paid = await page.evaluate(`(() => {
+            const form = document.querySelector('form');
+            const submitBtn = form && form.querySelector('button[type="submit"]');
+            if (submitBtn && !submitBtn.disabled) { submitBtn.click(); return true; }
+            return false;
+        })()`);
         await wait(1500);
         const snapshot = await page.snapshot();
         report.actions.push({ name: 'Cashier searches invoice and records payment', passed: Boolean(searched && viewed && recordOpened && paid && !page.stepErrors.length), snapshot, errors: [...page.stepErrors] });

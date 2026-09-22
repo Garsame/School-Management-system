@@ -2,7 +2,27 @@
 
 **Companion to:** `RBAC_AND_TENANT_CONFIGURATION.md`
 **Date:** 2026-09-20
-**Revision:** 2 — corrected role model after clarification
+**Revision:** 2 — corrected role model after clarification · status added 2026-09-21
+
+> **Status on 21 September 2026.**
+>
+> - **Track 1 is finished.** Phases 0–3 are committed, and the demo school runs this exact org
+>   (renamed roles, Branch Admin and Cashier turned off, Finance taking payments, and the
+>   payroll chain HR → Super Admin → Finance). It was built through the real API.
+> - **Track 2 was narrowed by decision.** The school owner decided roles stay a fixed list: a
+>   school renames them, changes their features and turns them on or off, but does not invent
+>   new ones. What was built from Track 2:
+>   - **4.2 / 4.3 done:** one shared staff frame with menus built from permissions; the
+>     role-name locks on staff routes are gone.
+>   - **5.2 done:** the **Roles & Features** screen, with features grouped by area and
+>     duty-conflict warnings.
+>   - **Not built:** 4.1 server navigation, 4.4 navigation config, 5.1 create/clone, 5.3 live preview.
+> - **Also built on 21 Sep:** monthly billing, the monthly collection view with Excel, student
+>   payment records, due dates with parent late warnings, and the "Left" student status. See
+>   `README.md`.
+> - **Tests:** backend 201 of 201 passing.
+>
+> The rest of this document is the original plan, kept for reference.
 
 ---
 
@@ -147,7 +167,7 @@ needed for this track.**
 
 ---
 
-#### Phase 0 — Close existing gaps · **S** · no dependencies · **IN PROGRESS**
+#### Phase 0 — Close existing gaps · **S** · no dependencies · **DONE** (`12c5407`, the table below is the mid-phase snapshot)
 
 See `PHASE_0_REPORT.md` for detail. Backend 171/171 pass, frontend build clean.
 
@@ -289,6 +309,9 @@ be added or removed silently.
 
 
 ### Track 2 — let a super admin invent arbitrary roles
+
+> **21 Sep 2026:** narrowed by decision. Roles stay a fixed list. 4.2, 4.3 and 5.2 were built;
+> the rest is not planned. See the status box at the top.
 
 Track 1 delivers *your* org. Track 2 delivers the general capability you asked for: any super
 admin inventing roles you have not thought of. Those roles need role keys that no layout knows

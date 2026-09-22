@@ -84,7 +84,8 @@ const Students = () => {
                             { value: 'Active', label: 'Active' },
                             { value: 'Inactive', label: 'Inactive' },
                             { value: 'Transferred', label: 'Transferred' },
-                            { value: 'Graduated', label: 'Graduated' }
+                            { value: 'Graduated', label: 'Graduated' },
+                            { value: 'Left', label: 'Left the school' }
                         ]}
                         value={filters.status}
                         onChange={e => handleFilterChange('status', e.target.value)}

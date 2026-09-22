@@ -1,6 +1,12 @@
 # Browser End-to-End Test Report
 
 > This earlier route-and-transaction report is superseded by [FULL_SYSTEM_E2E_REPORT.md](./FULL_SYSTEM_E2E_REPORT.md), which includes the complete admission-to-promotion lifecycle and the post-fix cashier reversal verification.
+>
+> **21 September 2026:** the screens and routes this report lists have changed. Staff menus are
+> now built from each person's features; the Finance, Cashier, HR, Registrar, Branch and School
+> areas share one page frame; and the payment, billing, fee and parent-fees screens were rebuilt.
+> See the update at the top of [FULL_SYSTEM_E2E_REPORT.md](./FULL_SYSTEM_E2E_REPORT.md) for what
+> was re-verified and what still needs a browser run.
 
 **Test date:** 2026-08-08  
 **Browser:** Google Chrome 151, headless, controlled through Chrome DevTools Protocol  

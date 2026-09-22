@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
     createFeeStructure, getFeeStructures, getFeeStructureById, updateFeeStructure, deleteFeeStructure,
-    getFinancePolicies, updateFinancePolicies, triggerBulkInvoices,
+    getFinancePolicies, updateFinancePolicies, setFeeStructureOpen, getBillingMonths, generateInvoices,
     getInvoices, getInvoiceById,
     getPayments, getPaymentsSummary, getOutstandingBalances,
     getRevenueReport,
@@ -10,7 +10,11 @@ const {
     exportPayments,
     exportOutstandingBalances,
     getFinanceClasses,
-    getFinanceSections
+    getFinanceSections,
+    searchBillingStudents,
+    getMonthlyCollectionReport,
+    exportMonthlyCollection,
+    getStudentPaymentRecordController
 } = require('../controllers/financeController');
 const { getCompensationRequests, reviewCompensationRequest } = require('../controllers/compensationController');
 const { protect, requireScope, tenantGuard } = require('../middleware/auth');
@@ -35,12 +39,20 @@ router.delete('/fee-structures/:id', requirePermission('finance.feeStructures.de
 // B) Invoice Governance & Policies
 router.get('/policies', requirePermission('finance.policies.view'), getFinancePolicies);
 router.put('/policies', requirePermission('finance.policies.update'), updateFinancePolicies);
-router.post('/invoices/generate', requirePermission('finance.invoices.generate'), triggerBulkInvoices);
+router.put('/fee-structures/:id/open', requirePermission('finance.policies.update'), setFeeStructureOpen);
+router.get('/billing-months', requirePermission('finance.invoices.generate'), getBillingMonths);
+router.post('/invoices/generate', requirePermission('finance.invoices.generate'), generateInvoices);
+router.get('/lookups/students', requirePermission('finance.invoices.generate'), searchBillingStudents);
 
 // C) Invoice Review
 router.get('/invoices', requirePermission('finance.invoices.view'), getInvoices);
 router.get('/invoices/export.csv', requirePermission('finance.invoices.view'), exportInvoices);
 router.get('/invoices/:id', requirePermission('finance.invoices.detail'), getInvoiceById);
+
+// Monthly collection view and each student's payment record
+router.get('/monthly-collection', requirePermission('finance.invoices.view'), getMonthlyCollectionReport);
+router.get('/monthly-collection/export.xlsx', requirePermission('finance.invoices.view'), exportMonthlyCollection);
+router.get('/students/:studentId/payment-record', requirePermission('finance.invoices.view'), getStudentPaymentRecordController);
 
 // D) Payment Oversight
 router.get('/payments', requirePermission('finance.payments.view'), getPayments);

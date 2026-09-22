@@ -6,23 +6,46 @@ This guide explains every authenticated user role currently implemented in the s
 
 It can be used for customer demonstrations, staff onboarding, access-control reviews, and workflow planning.
 
+> **Updated 21 September 2026.** For a short overview, read [README.md](README.md) first. The
+> main changes since the first version of this guide:
+>
+> - **Roles can be edited.** Each school's Super Admin can rename a role, tick or untick its
+>   features, and turn it on or off, on **School management → Roles & Features**. What this
+>   guide lists for each role is the **default**; a school can change it.
+> - **Menus follow features.** A person's menu shows their own area first, then any page from
+>   another area their role has the feature for.
+> - **Fees are monthly.** Finance sets a monthly fee per class, opens or closes each fee
+>   structure, sets the due day, and bills the whole school for a month in one click.
+> - **One payment can cover several months.** It fills the oldest unpaid month first, with one receipt.
+> - **Monthly Collection** shows who paid, who paid part and who owes for a month, with an Excel download.
+> - **Payment record.** Every student has one, shared by Finance, the payments desk and the parent.
+> - **Parents** see a late warning when a bill is past its due date.
+> - **Left.** A student who leaves is marked "Left" and is never billed again.
+> - **HR Manager is a real role** with its own pages. Payroll: HR prepares and reviews, then by
+>   default Finance approves and the Super Admin pays. The demo school swaps those two.
+
 ## 2. Important Access-Control Terms
 
 ### Role
 
-A role is the user's main position in the system. It provides default permissions and determines the user's main dashboard.
+A role is the user's main position in the system. It gives the user their features (permissions) and decides which area they land in after sign-in.
 
 The implemented authenticated roles are:
 
 1. Platform Owner
 2. School Super Admin
 3. Finance Director
-4. Branch Admin
-5. Registrar
-6. Teacher
-7. Cashier
-8. Student
-9. Parent
+4. HR & Payroll Manager
+5. Branch Admin
+6. Registrar
+7. Teacher
+8. Cashier
+9. Student
+10. Parent
+
+The list of roles is fixed. Each school can **rename** its roles (the demo school calls the
+Registrar "Admissions Officer"), **change which features each role has**, and **turn a role
+off** when nobody holds it. That is done on **School management → Roles & Features**.
 
 ### Scope
 
@@ -35,7 +58,21 @@ Scope controls which organization's data a user may access:
 
 ### Permission
 
-A permission controls a specific action, such as viewing students, recording a payment, or managing branches. Each role receives default permissions. Authorized administrators can grant or deny selected custom permissions, but custom permissions cannot be used to escape the user's allowed role and data scope.
+A permission (a "feature" on screen) controls a specific action, such as viewing students, recording a payment, or managing branches. Each role holds a list of features. The Super Admin edits that list for the whole role on **Roles & Features**, and can add exceptions for one person on **Staff Permissions**.
+
+Limits that no setting can break:
+
+- A branch role never gets whole-school features.
+- A school never gets platform features, or features its plan does not include.
+- Nobody can give themselves a feature they do not hold.
+- The last role able to change roles keeps that ability.
+
+### Menus
+
+Each staff member's menu is built from their features, not from their job title. Their own
+area comes first, then any page from another area they have the feature for. Example: the
+Finance Director holds the "record a payment" feature by default, so Finance sees a
+**Payments desk** group with **Record Payment**.
 
 ## 3. Complete User List and Account Ownership
 
@@ -44,12 +81,17 @@ A permission controls a specific action, such as viewing students, recording a p
 | Platform Owner | `platform_owner` | Entire platform | Secure platform-owner creation process | Platform Console |
 | School Super Admin | `super_admin` | One school/tenant | Created during approved school registration | School Admin Console |
 | Finance Director | `finance_director` | One school/tenant | School Super Admin | Finance Director Portal |
+| HR & Payroll Manager | `hr_payroll_manager` | One school/tenant | School Super Admin | HR Portal |
 | Branch Admin | `branch_admin` | One assigned branch | School Super Admin | Branch Admin Portal |
 | Registrar | `registrar` | One assigned branch | Branch Admin or authorized School Super Admin | Registrar Portal |
 | Teacher | `teacher` | Assigned branch and teaching assignments | Branch Admin or authorized School Super Admin | Teacher Portal |
 | Cashier | `cashier` | One assigned branch | Branch Admin or authorized School Super Admin | Cashier Portal |
 | Student | `student` | Own records | Registrar admission process or authorized school staff | Student Portal |
 | Parent | `parent` | Linked children's records | School Super Admin | Parent Portal |
+
+Staff accounts of every role are created on **School management → Staff Accounts**. The list
+offers every staff role the school has switched on, under the school's own name for it.
+Student and parent accounts come from admission and guardian linking, not from that screen.
 
 ## 4. Public School Applicant
 
@@ -199,6 +241,16 @@ The initial School Super Admin is created as part of the approved school-registr
 
 The Super Admin must not reuse their own account as the Finance Director. These positions have different dashboards, responsibilities, and access boundaries.
 
+#### Roles & Features
+
+- Open **School management → Roles & Features**.
+- For each role: change its name and description, tick or untick its features, and turn it on or off.
+- Features are grouped by area (School management, Finance, Payments desk, Admissions, People, Payroll, and so on) and can be searched.
+- A change applies to everyone with that role at once, and their menu follows.
+- After saving, the screen warns when a role now holds a risky mix of features, for example generating, approving **and** paying payroll, or creating bills **and** taking and reversing payments. The warning does not block the change: a small school may have nobody else to give it to.
+- A role that people still hold cannot be turned off; move those people to another role first.
+- The Super Admin role always keeps the ability to change roles, so the school is never locked out.
+
 #### Academic-Year Management
 
 - View academic years.
@@ -245,10 +297,11 @@ The Super Admin has broad school authority and can assist with many branch setup
 
 - Cannot administer the SaaS platform or other schools.
 - Cannot approve its own tenant registration.
-- Does not use the Finance Director portal.
-- Does not receive `finance.*` permissions by default.
+- Does not use the Finance Director portal by default.
+- Does not receive `finance.*` permissions by default. The Super Admin can add them to their own role in **Roles & Features** if the school wants that, and the change is audited.
 - Cannot be converted into a Finance Director account.
 - Should not replace specialist users in daily work when duties can be separated.
+- **Approves payroll** in the demo school's payroll chain (HR prepares, Super Admin approves, Finance pays). The Payroll page appears under **People management** when the role holds `payroll.view`.
 
 ## 7. Finance Director
 
@@ -269,69 +322,103 @@ The School Super Admin creates the Finance Director from School Admin > Users > 
 - Review financial performance across branches.
 - Identify branches or students requiring financial follow-up.
 
-#### Finance Policy Management
+#### Finance Policy (Finance → Policies)
 
-- View finance policies.
-- Update school-wide finance policies.
-- Define the operating rules used for school billing and collections.
-- Ensure policies are consistent across branches.
+- **Due day.** Each month's bill is due on this day of that month (default: the 10th, any day from 1 to 28). After it, an unpaid bill is **late**: Finance sees it marked late, and the parent sees a warning.
+- **Open / Closed fee structures.** Every fee structure has a switch. Only open ones are billed. Closing one stops new bills from it; bills already made stay as they are.
+- Part payments are always accepted.
+- There are no late fees, discounts or one-time fees in this version.
 
-#### Fee Structure Management
+#### Fee Structures (Finance → Fee Structures)
 
-- View fee structures.
-- Create fee structures for the correct academic year, class, branch, or applicable group.
-- Update fee structures when authorized.
-- Remove incorrect or obsolete fee structures when deletion is allowed.
-- Check that fee structures are ready before invoice generation.
+- Every fee is a **monthly fee**: what one student pays each month.
+- A fee can apply to one class, a group of classes (category) on one campus, or a whole grade on every campus. If more than one applies, the most specific open one is used (class, then category, then grade).
+- Each fee has items, for example Tuition $40, Materials $6, Activities $4, making $50 a month.
+- **Edit** a fee to change its monthly amount. Bills already made keep their old amount.
+- Fee structures made before monthly billing held a yearly or term total. They show **"Needs a monthly amount"** and are not billed until they are edited.
 
-#### Invoice Management
+#### Billing a Month (Finance → Invoices → Generate)
 
-- View invoices across the school.
-- Generate invoices from approved fee structures.
-- Inspect invoice details.
-- Track invoice status and balances.
-- Confirm invoices are connected to the correct student, enrollment, branch, and academic year.
+- Pick the academic year and the month. Months carry real names ("October 2026") and must fall inside the academic year.
+- Choose **Whole school** (optionally one campus) or **One student** (for a late joiner; find them by name or admission number).
+- **Before anything happens**, the page shows:
+  - which classes will be billed, from which fee, and at what monthly amount
+  - how many students will be billed, and the total
+  - the due date, with a warning if that day has already passed
+  - who is already billed for that month
+  - which classes are skipped and why (no fee, fee closed, or no monthly amount)
+- One click then creates one bill per active student.
+- Nobody is ever billed twice for the same month. Students who left, or are inactive, are skipped.
+- Parents and students get a notice for each new bill.
+- Nothing is billed automatically: someone with the "generate invoices" feature does this once a month.
 
-#### Payment Oversight
+#### Monthly Collection (Finance → Monthly Collection)
 
-- View payment transactions recorded by Cashiers.
-- Review payment summaries.
-- Investigate unexpected balances or transactions.
-- Review payment corrections and reversals recorded through the supported Cashier workflow.
-- Keep payment-reversal access separate from routine Cashier collection when possible.
+- Pick a month (and optionally a campus, class, or student name).
+- For every student billed that month you see:
+  - billed, paid, and still owed for the month
+  - status: **Paid**, **Part paid**, **Not paid**, **Late**
+  - what they still owe **from earlier months**
+  - their **total owed**
+- The totals at the top cover the whole month: billed, collected, percent collected, still owed, earlier debt, total owed.
+- Tabs (All, Paid, Part paid, Not paid, Late) and search narrow the list without changing those totals.
+- **Download Excel** gives a real `.xlsx` file with a Summary sheet and a Students sheet.
 
-The permission catalog reserves `finance.paymentReversals.approve` for the Finance Director, but a Finance Director approval screen and endpoint are not currently implemented. Until that workflow is added, reversals are performed only through the Cashier reversal endpoint by a Cashier who has been explicitly granted `cashier.payments.reverse`.
+#### Student Payment Record (click any student name)
 
-#### Financial Reporting and Receipt Branding
+- Every month billed, paid and still owed, with its due date, and which months are late.
+- Three headline numbers: **this month**, **owed from earlier months**, and **total owed**.
+- Every payment, with its date, method, reference and receipt number. Reversed payments stay listed.
+- **Take a payment** jumps to the payments desk for this student.
+- The payments desk and the parent see the same record.
+
+#### Taking Payments (Payments desk → Record Payment)
+
+The Finance Director holds the payments-desk features by default, so a school without a
+separate cashier has Finance take the money. The steps are the same as for a Cashier
+(section 11): one amount, oldest month first, one receipt.
+
+#### Payment Oversight (Finance → Payments, Outstanding, Reports)
+
+- View every payment and reversal, with filters and CSV export.
+- Review payment summaries, outstanding balances and revenue reports.
+- Investigate unexpected balances.
+
+Reversals are made on the receipt by someone with `cashier.payments.reverse` (Finance holds it by
+default). The permission catalog also reserves `finance.paymentReversals.approve`, but no separate
+approval screen exists yet.
+
+#### Financial Reporting and Receipts
 
 - View revenue reports and outstanding balances.
 - Compare collection performance.
 - Review historical transactions by academic year where available.
-- View and update receipt branding.
-- Ensure printed receipts represent the school correctly.
+- Check that printed receipts represent the school correctly. Receipts take their name, logo, address and footer from the **branch** that issued them. A separate receipt-branding screen for Finance is listed as a feature but is not built yet.
 
 ### Information the Finance Director Creates or Changes
 
-- finance policies;
-- fee structures;
-- generated invoices;
-- financial control decisions;
-- receipt branding.
+- the due day and which fee structures are open;
+- monthly fee structures;
+- monthly bills (invoices);
+- payments and receipts, when taking payments;
+- payroll approvals (by default) or payroll payments (if the school gives Finance that feature);
+- financial control decisions.
 
 ### Handoffs to Other Users
 
-- Provides invoices that linked Parents can view.
-- Provides collectible invoices to branch Cashiers.
+- Provides monthly bills that linked Parents can view in their payment record.
+- Provides collectible bills to branch Cashiers, if the school uses them.
 - Receives recorded payment transactions from Cashiers.
-- Provides financial reports to school leadership.
+- By default approves payroll that HR prepared; the Super Admin or a Cashier then pays it. (The demo school swaps this: the Super Admin approves and Finance pays.)
+- Provides financial reports and the monthly Excel file to school leadership.
 
-### Access Boundaries
+### Access Boundaries (defaults — the Super Admin can change them in Roles & Features)
 
 - Cannot open the School Super Admin dashboard.
 - Cannot create or manage branches.
 - Cannot manage classes, teacher assignments, exams, or results.
 - Cannot act as the Platform Owner.
-- Does not collect every routine payment; that is the Cashier's responsibility.
+- Cannot change roles or anyone's features.
 - Cannot be created by converting a School Super Admin account.
 
 ## 8. Branch Admin
@@ -486,6 +573,15 @@ The class dropdown depends on configured active classes and the relevant academi
 - Record the transfer without deleting the student's historical branch records.
 - Coordinate approval or completion with authorized administrators.
 
+#### A Student Who Leaves the School
+
+- Open the student, choose **Edit**, and set **Status → Left the school**.
+- Enter the leaving date and, optionally, a reason (for example "family moved").
+- On save, the student's place in their class ends: they drop off class lists and registers, and **monthly billing never reaches them again**.
+- Everything they already owe stays on their payment record until it is paid.
+- A student marked Left cannot be switched back with the status box. To bring them back, use **Re-Enrollment** and choose a class for them.
+- "Inactive" is different: it is a pause, and the student keeps their class.
+
 ### Information the Registrar Creates or Changes
 
 - student identity and admission records;
@@ -505,7 +601,7 @@ The class dropdown depends on configured active classes and the relevant academi
 
 - Operates only the assigned branch.
 - Cannot configure school-wide finance.
-- Cannot record payments as a Cashier.
+- Cannot record payments as a Cashier (by default).
 - Cannot create exams or enter Teacher results.
 - Cannot manage platform, school, or branch administrators.
 - Re-enrollment must not overwrite or delete previous attendance, results, invoices, or payments.
@@ -600,10 +696,17 @@ The Branch Admin or an authorized School Super Admin creates the Cashier and ass
 
 #### Record Payment
 
-- Record a payment against the correct invoice.
-- Enter payment amount, payment method, and supported reference information.
-- Confirm the transaction before completing it.
-- Avoid recording the same payment twice.
+- Find the **student** by name or admission number. The results show what each student owes.
+- The student's unpaid months are listed **oldest first**, with due dates and late marks.
+- Enter the amount the payer brings. Quick buttons fill "the oldest month" or "everything owed".
+- Before confirming, the page shows exactly how the money will be split: the oldest month is filled first, then the next. Example: $55 against September $45 and October $45 gives *September $45 (paid), October $10 ($35 left)*.
+- Part payments are accepted. The amount cannot be more than the student owes.
+- Choose the method: Cash, EVC Plus, Zaad, Bank transfer, Card, or Other. Every method except Cash needs the transaction reference.
+- One click records it. Each month gets its own payment line, and **one receipt** shows the whole amount and every month it paid.
+- If one month cannot be applied (for example someone else paid it a second earlier), the months already applied are reversed automatically, so a payment is never left half-recorded.
+- The same payment cannot be recorded twice by accident.
+
+Finance holds these payments-desk features by default, so a school with no cashier has Finance take payments on this same page.
 
 #### Payment History and Receipts
 
@@ -693,8 +796,12 @@ The School Super Admin creates the Parent account and links it to selected stude
 - View a linked child's results and rank where available.
 - Print or download a branded report card for a linked child.
 - View a linked child's attendance.
-- View a linked child's invoices, balances, and payment status.
-- Use invoice information when paying through the school's collection process.
+- Open **Fees & Payments** for a linked child. It is the same payment record the school sees:
+  - three headline numbers: **this month**, **owed from earlier months**, and **total owed**
+  - every month billed, paid and still owed, with its due date
+  - every payment with its receipt number
+- See a **red warning** on the dashboard and on Fees & Payments when a bill is past its due date and not fully paid, for example: *"Amina's school fees are late: $45. September 2026 was due and not fully paid. Please pay at the school office."*
+- Use this information when paying through the school's collection process.
 - View notifications and mark them as read.
 - Raise student-record concerns with the Registrar.
 - Raise academic concerns with the appropriate Teacher or branch staff.
@@ -713,28 +820,38 @@ The School Super Admin creates the Parent account and links it to selected stude
 
 ## 14. HR, Leave, and Payroll Responsibilities
 
-HR and Payroll are system functions, not separate implemented user roles.
+The **HR & Payroll Manager** (`hr_payroll_manager`) is a whole-school role with its own HR
+portal: HR Dashboard, Employees, Leave Management, Payroll, and Payroll Reports. HR owns
+employees and everything around them. It has nothing to do with students.
 
 ### Leave Workflow
 
-- Teachers, Cashiers, Registrars, and other eligible staff can create their own leave requests when permitted.
-- Branch Admins or School Super Admins can review leave requests when permitted.
+- Teachers, Cashiers, Registrars, and other eligible staff create their own leave requests.
+- HR, a Branch Admin, or the Super Admin reviews them, if their role has the "review leave" feature.
 - Reviewers approve or reject requests according to school policy.
 - Staff can view the resulting request status.
 
 ### Payroll Workflow
 
-- Eligible staff can view their own payroll information when permitted.
-- Payroll administrators can view, generate, or mark payroll as paid only when explicitly granted required permissions.
-- Branch Admins do not receive payroll-management permissions by default.
-- A school should grant payroll permissions only to the person responsible for payroll.
+Payroll moves through four steps, each a separate feature:
+
+| Step | Feature | Default holder | Demo school |
+| --- | --- | --- | --- |
+| Generate the month's payroll | `payroll.generate` | HR | HR |
+| Review it | `payroll.review` | HR | HR |
+| Approve it | `payroll.approve` | Finance | Super Admin |
+| Pay it | `payroll.pay` | Super Admin, Cashier | Finance |
+
+- Staff can view their own payroll when their role allows it.
+- HR proposes salary changes; Finance approves them on **Salary Approvals**.
+- Whoever holds `payroll.view` finds the Payroll page in their menu; the buttons they see depend on which of the steps above their role holds.
 
 ### Recommended Separation of Duties
 
 - Staff request their own leave.
 - A manager reviews leave.
-- A specifically authorized payroll administrator manages payroll.
-- Payment collection by a Cashier remains separate from staff payroll management.
+- The person who prepares payroll is not the person who approves it, and the approver is not the payer. Roles & Features warns when one role would hold all three (generate, approve and pay).
+- Taking student fees and paying staff salaries are separate features, even when one person holds both.
 
 ## 15. Complete End-to-End Scenario
 
@@ -870,53 +987,61 @@ Each step identifies the actor, action, system result, and next handoff.
 - System result: The Parent can see only Amina's allowed information.
 - Next handoff: The Parent can monitor attendance, results, and invoices after records exist.
 
-#### Step 16: Finance Director Configures Finance Policy
+#### Step 16: Finance Director Sets the Finance Policy
 
 - Actor: Finance Director
 - Module: Finance Portal > Policies
-- Action: Sets the school's billing and collection policy.
-- System result: Finance operations use the approved school policy.
-- Next handoff: Fee structures and invoices can be prepared consistently.
+- Action: Sets the due day to the 10th.
+- System result: Every monthly bill will be due on the 10th of its month; unpaid bills after that day show as late.
+- Next handoff: Fee structures can be prepared.
 
-#### Step 17: Finance Director Creates a Fee Structure
+#### Step 17: Finance Director Creates the Monthly Fee
 
 - Actor: Finance Director
 - Module: Finance Portal > Fee Structures
-- Action: Creates the Grade 1 fee structure for `2026-2027`.
-- System result: The system has approved charges for eligible Grade 1 enrollments.
-- Next handoff: Invoices can be generated.
+- Action: Creates the Grade 1 monthly fee for `2026-2027`: Tuition $40, Materials $6, Activities $4, so $50 a month.
+- System result: The fee is open for billing. It appears on Policies with its Open/Closed switch.
+- Next handoff: Months can be billed.
 
-#### Step 18: Finance Director Generates Invoices
+#### Step 18: Finance Director Bills September for the Whole School
 
 - Actor: Finance Director
-- Module: Finance Portal > Invoices
-- Action: Generates invoices from the current fee structure.
-- System result: Amina receives an invoice linked to her enrollment, branch, and academic year.
-- Next handoff: The Parent can view the invoice and the Cashier can collect it.
+- Module: Finance Portal > Invoices > Generate
+- Action: Chooses **September 2026** and **Whole school**, reads the preview (which classes, which fee, how many students, the total, the due date, anyone skipped and why), and clicks once.
+- System result: Every active student, Amina included, gets one September bill of their class's monthly fee, due 10 September. Nobody is billed twice. Parents and students get a notice.
+- Next handoff: The Parent can see the bill and the payments desk can collect it.
 
-#### Step 19: Parent Reviews the Invoice
+#### Step 19: Parent Checks the Fees
 
 - Actor: Parent
-- Module: Parent Portal > Fees and Invoices
-- Action: Opens Amina's invoice and confirms the outstanding balance.
-- System result: The Parent understands the amount due without finance-management access.
-- Next handoff: The Parent presents payment information to the school Cashier.
+- Module: Parent Portal > Fees & Payments
+- Action: Opens Amina's payment record: this month, earlier debt, total owed, each month and each payment.
+- System result: The Parent sees exactly what the school sees, without any finance-management access. If the due date passes unpaid, a red late warning also appears on the Parent dashboard.
+- Next handoff: The Parent pays at the school office.
 
-#### Step 20: Cashier Records the Payment
+#### Step 20: The Payments Desk Takes the Money
 
-- Actor: Cashier
-- Module: Cashier Portal > Invoice Lookup and Record Payment
-- Action: Searches for Amina's invoice, verifies it, records payment, and prints the receipt.
-- System result: A transaction is created, invoice balance is updated, and a receipt is available.
-- Next handoff: The Parent receives the receipt and Finance Director sees the updated collection.
+- Actor: Cashier, or the Finance Director in a school without a cashier
+- Module: Payments desk > Record Payment
+- Action: Finds Amina, sees her unpaid months oldest first, enters the amount the Parent brings (say, September and part of October), checks the split shown on screen, and confirms.
+- System result: The oldest month is filled first. Each month's balance updates, and **one receipt** shows the whole amount and every month it paid. The receipt can be printed.
+- Next handoff: The Parent receives the receipt, and Finance sees the updated collection.
 
-#### Step 21: Finance Director Reviews Collection Status
+#### Step 21: Finance Director Reviews the Month
 
 - Actor: Finance Director
-- Module: Finance Portal > Dashboard, Payments, Reports, and Outstanding
-- Action: Reviews the payment, revenue summary, and outstanding balances.
-- System result: School-wide finance reports reflect the Cashier's transaction.
-- Next handoff: Finance leadership can follow up on unpaid invoices.
+- Module: Finance Portal > Monthly Collection (and Payments, Outstanding, Reports)
+- Action: Picks September 2026. Reviews who paid, who paid part, who has not paid and who is late, with each student's earlier debt and total owed. Downloads the Excel file for the school's records.
+- System result: The month's totals (billed, collected, percent collected, still owed, earlier debt) match every payment taken.
+- Next handoff: Finance follows up on late students. Clicking a student's name opens their full payment record.
+
+#### Step 21a: A Student Leaves
+
+- Actor: Registrar
+- Module: Registrar Portal > Students > student > Edit > Status: Left the school
+- Action: Records that another student, Yusuf, left on 20 October because the family moved.
+- System result: Yusuf leaves his class and is not billed for November or any later month. The November preview counts one fewer student. What Yusuf already owed stays on his payment record.
+- Next handoff: Finance can still collect Yusuf's old debt. If he returns, the Registrar re-enrolls him.
 
 ### Phase D: Daily Teaching, Attendance, and Results
 
@@ -1044,8 +1169,10 @@ The workflow depends on clear handoffs:
 2. The School Super Admin creates school structure, academic year, senior finance user, and Branch Admins.
 3. The Branch Admin creates academic structures, staff, assignments, exams, and timetables.
 4. The Registrar creates students and enrollments.
-5. The Finance Director turns enrollments and fee structures into invoices.
-6. The Cashier records payments against those invoices.
+5. The Finance Director sets a monthly fee per class and bills the whole school once a month.
+6. The payments desk (a Cashier, or Finance) takes one amount per student, filling the oldest unpaid month first.
+6a. Finance follows each month on Monthly Collection; parents see the same payment record and a late warning.
+6b. The Super Admin decides which role does which of these jobs on Roles & Features.
 7. The Teacher uses assignments and enrollment rosters to submit attendance and results.
 8. The Student and Parent receive restricted read-only access to relevant information.
 9. Authorized administrators promote students into a new enrollment without deleting the previous academic year.
@@ -1072,9 +1199,19 @@ The previous academic year must retain:
 
 A branch transfer must preserve the student's prior branch and enrollment history. The transfer changes the student's current operational context without deleting valid past records.
 
+### Students Who Leave
+
+Marking a student Left ends their current enrollment (it becomes "Withdrawn") so they stop
+receiving bills and drop off class lists. Their bills, payments, receipts, attendance and
+results all stay. Re-enrollment creates a new enrollment; it does not revive the old one.
+
 ### Financial Corrections
 
 Payment corrections should use the supported reversal or correction workflow. A valid historical transaction should not silently disappear.
+
+A payment that covered several months is stored as one payment per month, sharing one receipt.
+Each month's part can be reversed on its own. Editing a fee structure changes only future
+bills; bills already made keep their amount.
 
 ### User Deactivation
 
@@ -1088,9 +1225,11 @@ Deactivating a staff account should prevent future access without deleting histo
 4. Sign in as Branch Admin, create classes, subjects, staff, teacher assignments, timetable, and an exam.
 5. Sign in as Registrar, admit and enroll a student.
 6. Return to School Super Admin and create a Parent linked to the student.
-7. Sign in as Finance Director, configure fees and generate an invoice.
-8. Sign in as Parent and show the linked child's invoice.
-9. Sign in as Cashier, record a payment, and print a receipt.
+7. Sign in as Finance Director: set the due day, create a monthly fee, and bill a month for the whole school from the preview.
+8. Sign in as Parent and show the linked child's Fees & Payments record.
+9. On the payments desk (Cashier, or Finance), take one amount covering two months, show the oldest-first split, and print the one receipt.
+9a. As Finance, open Monthly Collection, filter to "Not paid", and download the Excel file.
+9b. As Super Admin, open Roles & Features, tick a feature for a role, and show it appear in that person's menu.
 10. Sign in as Teacher, show schedule, submit attendance, and enter results.
 11. Sign in as Student and Parent to show restricted academic visibility.
 12. Sign in as Branch Admin to review results and reports.
@@ -1102,12 +1241,16 @@ Deactivating a staff account should prevent future access without deleting histo
 - A pending school cannot use active-school dashboards.
 - The Platform Owner can manage tenants but does not operate school records.
 - The School Super Admin and Finance Director have separate dashboards.
-- The School Super Admin does not see finance navigation.
-- The Finance Director cannot open school administration pages.
+- By default the School Super Admin does not see finance navigation, and the Finance Director cannot open school administration pages.
+- A menu shows only the pages that person's features allow; ticking a feature on Roles & Features adds the page, unticking removes it.
+- A branch role cannot be given a whole-school feature, and a school cannot give itself platform features.
+- The Super Admin cannot untick "change roles" from the only role that has it.
 - A Branch Admin operates only the assigned branch.
 - A Registrar cannot enter results or record payments.
 - A Teacher cannot enter results for an unassigned class or subject.
 - A Cashier cannot create fee structures or reverse payments by default.
+- A payment can never be more than the student owes, and no student is billed twice for a month.
+- A student marked Left is never billed again.
 - A Student sees only personal records.
-- A Parent sees only linked children.
+- A Parent sees only linked children; opening another family's payment record is refused.
 - Promotion and re-enrollment preserve previous academic-year records.

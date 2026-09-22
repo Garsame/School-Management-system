@@ -64,6 +64,24 @@ const ParentDashboard = () => {
                 </div>
             )}
 
+            {/* Late fees: a bill is past its due date and not fully paid. */}
+            {(children || []).filter((child) => child.lateFees > 0).map((child) => (
+                <div key={`late-${child.student._id}`} role="alert" className="flex flex-col gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4 text-rose-900 sm:flex-row sm:items-center">
+                    <AlertTriangle className="shrink-0 text-rose-600" size={20} />
+                    <div className="flex-1">
+                        <p className="text-sm font-bold">{child.student.firstName}&apos;s school fees are late: ${Number(child.lateFees).toLocaleString()}</p>
+                        <p className="text-xs">{(child.lateMonths || []).join(', ')} {child.lateMonths?.length === 1 ? 'was' : 'were'} due and not fully paid. Please pay at the school office.</p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => navigate(`/parent/invoices?studentId=${child.student._id}`)}
+                        className="rounded-lg bg-rose-600 px-3 py-2 text-xs font-bold text-white hover:bg-rose-700"
+                    >
+                        See fees
+                    </button>
+                </div>
+            ))}
+
             {(children || []).length === 0 ? (
                 <div className="phoenix-card p-6 text-center max-w-md mx-auto">
                     <AlertTriangle className="mx-auto text-amber-500 mb-4" size={36} />

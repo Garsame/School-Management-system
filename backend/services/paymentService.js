@@ -1,6 +1,8 @@
+const mongoose = require('mongoose');
 const Invoice = require('../models/Invoice');
 const Payment = require('../models/Payment');
 const { getNextReceiptNumber } = require('./counterService');
+const { byPeriodOldestFirst } = require('../utils/billingMonths');
 
 const paymentError = (message, status = 400) => {
     const error = new Error(message);
@@ -23,7 +25,8 @@ const recordInvoicePayment = async ({
     amount: rawAmount,
     method,
     reference,
-    recordedBy
+    recordedBy,
+    batchId = null
 }) => {
     const amount = asPositiveAmount(rawAmount);
     if (!invoiceId || !method) throw paymentError('Invoice and payment method are required');
@@ -82,6 +85,7 @@ const recordInvoicePayment = async ({
         method: normMethod,
         reference: trimmedRef || undefined,
         recordedBy,
+        ...(batchId ? { batchId } : {}),
         status: 'PENDING'
     });
 
@@ -280,4 +284,90 @@ const reverseInvoicePayment = async ({
     }
 };
 
-module.exports = { recordInvoicePayment, reverseInvoicePayment };
+/**
+ * How one amount spreads over a student's unpaid bills: the oldest month is filled first,
+ * then the next, until the money runs out. Pure, so the payments desk can show the split
+ * before anything is recorded and the server applies exactly the same one.
+ */
+const planStudentPayment = (unpaidOldestFirst, rawAmount) => {
+    const amount = asPositiveAmount(rawAmount);
+    const owedCents = unpaidOldestFirst.reduce((total, invoice) => total + Math.round(Number(invoice.balance || 0) * 100), 0);
+    let remaining = Math.round(amount * 100);
+    if (remaining > owedCents) {
+        throw paymentError(`Amount is more than this student owes (${(owedCents / 100).toFixed(2)})`);
+    }
+    const plan = [];
+    for (const invoice of unpaidOldestFirst) {
+        if (remaining <= 0) break;
+        const balance = Math.round(Number(invoice.balance || 0) * 100);
+        if (balance <= 0) continue;
+        const part = Math.min(balance, remaining);
+        remaining -= part;
+        plan.push({
+            invoiceId: invoice._id,
+            label: invoice.billingPeriodLabel || 'School fees',
+            amount: part / 100,
+            balanceAfter: (balance - part) / 100
+        });
+    }
+    return plan;
+};
+
+/**
+ * Take one amount from a student and apply it oldest month first. Each month gets its own
+ * payment (so reversing one month stays possible), and they share a batchId so the receipt
+ * shows the whole amount. If any month cannot be applied, the months already applied are
+ * reversed, so the student is never left with half a payment.
+ */
+const recordStudentPayment = async ({
+    tenantId,
+    branchId,
+    studentId,
+    amount: rawAmount,
+    method,
+    reference,
+    recordedBy
+}) => {
+    const amount = asPositiveAmount(rawAmount);
+    if (!mongoose.isValidObjectId(studentId)) throw paymentError('Invalid student');
+
+    const filter = { tenantId, studentId, status: { $in: ['UNPAID', 'PARTIALLY_PAID'] }, balance: { $gt: 0 } };
+    if (branchId) filter.branchId = branchId;
+    const unpaid = (await Invoice.find(filter).lean()).sort(byPeriodOldestFirst);
+    if (!unpaid.length) throw paymentError('This student has nothing to pay');
+
+    const plan = planStudentPayment(unpaid, amount);
+    const batchId = new mongoose.Types.ObjectId();
+    const applied = [];
+    try {
+        for (const step of plan) {
+            const result = await recordInvoicePayment({
+                tenantId, branchId, invoiceId: step.invoiceId, amount: step.amount, method, reference, recordedBy, batchId
+            });
+            applied.push({ step, ...result });
+        }
+    } catch (error) {
+        for (const done of [...applied].reverse()) {
+            await reverseInvoicePayment({
+                tenantId,
+                branchId,
+                paymentId: done.payment._id,
+                reason: 'Undone automatically: the rest of this payment could not be applied',
+                recordedBy
+            }).catch((undoError) => console.error('[PAYMENTS] Could not undo part of a failed payment:', undoError.message));
+        }
+        throw error;
+    }
+
+    const owedBefore = unpaid.reduce((total, invoice) => total + Math.round(Number(invoice.balance || 0) * 100), 0);
+    return {
+        batchId,
+        amount,
+        payments: applied.map((item) => item.payment),
+        invoices: applied.map((item) => item.invoice),
+        allocations: plan,
+        remainingOwed: (owedBefore - Math.round(amount * 100)) / 100
+    };
+};
+
+module.exports = { planStudentPayment, recordInvoicePayment, recordStudentPayment, reverseInvoicePayment };

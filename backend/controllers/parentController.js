@@ -10,6 +10,8 @@ const ClassSubject = require('../models/ClassSubject');
 const Exam = require('../models/Exam');
 const AttendanceSession = require('../models/AttendanceSession');
 const { resolvePassMarkPercent } = require('../utils/grading');
+const { getStudentPaymentRecord } = require('../services/studentAccountService');
+const { isLate } = require('../utils/billingMonths');
 
 const sendResponse = (res, success, data = null, message = '') => {
     return res.json({ success, message, data });
@@ -55,6 +57,8 @@ const getParentDashboard = async (req, res) => {
             const totalInvoiced = invoices.reduce((sum, inv) => sum + inv.totalAmount, 0);
             const totalPaid = invoices.reduce((sum, inv) => sum + inv.paidAmount, 0);
             const outstanding = totalInvoiced - totalPaid;
+            // Bills past their due date and not fully paid: the parent sees a warning for these.
+            const late = invoices.filter((invoice) => isLate(invoice));
 
             // Get attendance summary
             const totalRecords = await AttendanceRecord.countDocuments({ studentId, tenantId: req.tenantId });
@@ -72,6 +76,8 @@ const getParentDashboard = async (req, res) => {
                 className: enrollment?.classId?.name || 'Unassigned',
                 academicYear: enrollment?.academicYearId?.name || 'N/A',
                 outstandingFees: outstanding,
+                lateFees: Math.round(late.reduce((sum, invoice) => sum + Number(invoice.balance || 0), 0) * 100) / 100,
+                lateMonths: late.map((invoice) => invoice.billingPeriodLabel || 'School fees'),
                 attendanceRate,
                 attendedPeriods: attendedRecords,
                 missedPeriods: await AttendanceRecord.countDocuments({ studentId, tenantId: req.tenantId, status: 'ABSENT' }),
@@ -197,6 +203,22 @@ const getStudentInvoices = async (req, res) => {
         sendResponse(res, true, { invoices, payments });
     } catch (error) {
         sendError(res, 500, error.message);
+    }
+};
+
+// @desc    The child's fees month by month: this month, earlier debt, total owed, late
+// @route   GET /api/parent/students/:studentId/payment-record
+// @access  Private (Parent), only for their own linked children
+const getStudentPaymentRecordForParent = async (req, res) => {
+    try {
+        const { studentId } = req.params;
+        if (!verifyParentAccess(req, studentId)) {
+            return sendError(res, 403, 'Unauthorized access to student record');
+        }
+        const record = await getStudentPaymentRecord({ tenantId: req.tenantId, studentId });
+        sendResponse(res, true, record);
+    } catch (error) {
+        sendError(res, error.statusCode || 500, error.message);
     }
 };
 
@@ -517,6 +539,7 @@ module.exports = {
     getStudentGrades,
     getStudentAttendance,
     getStudentInvoices,
+    getStudentPaymentRecordForParent,
     getNotifications,
     markNotificationRead,
     getProfile,

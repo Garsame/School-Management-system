@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { getInvoice } from '../../services/api/finance.api';
 import { Badge, Button } from '../../components/ui';
 import { ArrowLeft, Printer, Loader2 } from 'lucide-react';
@@ -65,7 +65,7 @@ const InvoiceDetails = () => {
                 <article className="phoenix-card md:col-span-2">
                     <div className="phoenix-card-header">
                         <div>
-                            <h2 className="phoenix-section-title">Bill To: {studentName}</h2>
+                            <h2 className="phoenix-section-title">Bill To: {invoice.studentId?._id ? <Link to={`/finance/students/${invoice.studentId._id}`} className="text-[var(--primary)] hover:underline">{studentName}</Link> : studentName}</h2>
                             <p className="phoenix-section-copy">{studentRef}</p>
                         </div>
                         <Badge variant={invoice.status === 'PAID' ? 'success' : invoice.status === 'PARTIALLY_PAID' ? 'warning' : 'danger'}>

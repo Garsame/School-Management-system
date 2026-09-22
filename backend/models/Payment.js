@@ -14,11 +14,15 @@ const paymentSchema = new mongoose.Schema({
     reversalReason: { type: String },
     reversedAt: { type: Date },
     reversedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    // One amount paid for several months is split into one payment per month, oldest first.
+    // They share a batchId so the receipt can show the whole amount and where it went.
+    batchId: { type: mongoose.Schema.Types.ObjectId },
     createdAt: { type: Date, default: Date.now }
 });
 
 paymentSchema.index({ tenantId: 1, branchId: 1, createdAt: -1 });
 paymentSchema.index({ tenantId: 1, invoiceId: 1 });
+paymentSchema.index({ tenantId: 1, batchId: 1 }, { partialFilterExpression: { batchId: { $type: 'objectId' } } });
 paymentSchema.index(
     { reversalOf: 1 },
     { unique: true, partialFilterExpression: { reversalOf: { $type: 'objectId' } } }

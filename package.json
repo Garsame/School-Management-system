@@ -15,6 +15,10 @@
     "create:platform-owner": "npm --prefix backend run create:platform-owner",
     "fix:indexes": "npm --prefix backend run fix:indexes",
     "fix:enrollment-indexes": "npm --prefix backend run fix:enrollment-indexes",
-    "cleanup:orphans": "npm --prefix backend run cleanup:orphans"
+    "cleanup:orphans": "npm --prefix backend run cleanup:orphans",
+    "lint": "npm --prefix frontend run lint",
+    "demo:wipe-and-bootstrap": "npm --prefix backend run demo:wipe-and-bootstrap",
+    "demo:build": "npm --prefix backend run demo:build",
+    "map": "npm --prefix backend run map"
   }
 }

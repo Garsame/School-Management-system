@@ -1,118 +1,216 @@
-import React, { useState, useEffect } from 'react';
-import { getFinancePolicies, updateFinancePolicies } from '../../services/api/finance.api';
-import { Button } from '../../components/ui';
-import { Save, ShieldCheck, Loader2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { CalendarClock, CreditCard, Loader2, Save, ShieldCheck } from 'lucide-react';
+import { fetchFeeStructures, getFinancePolicies, setFeeStructureOpen, updateFinancePolicies } from '../../services/api/finance.api';
+import { getAcademicYears } from '../../services/api/tenant.api';
+import { Badge, Button, Switch } from '../../components/ui';
+import { notify } from '../../components/feedback/notificationService';
 import { useAuth } from '../../context/AuthContext';
 import { hasPermission } from '../../utils/permissions';
+import { feeTarget, isOpen, money, monthlyTotal, needsMonthlyAmount } from '../../utils/feeStructures';
+
+const asList = (value) => (Array.isArray(value) ? value : []);
 
 const Policies = () => {
     const { user } = useAuth();
-    const [policy, setPolicy] = useState({ autoInvoiceMode: 'MANUAL', isEnabled: true });
+    const canChange = hasPermission(user, 'finance.policies.update');
+    const [years, setYears] = useState([]);
+    const [yearId, setYearId] = useState('');
+    const [structures, setStructures] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [message, setMessage] = useState(null);
+    const [switching, setSwitching] = useState(null);
+    const [dueDay, setDueDay] = useState(10);
+    const [savedDueDay, setSavedDueDay] = useState(10);
+    const [savingDueDay, setSavingDueDay] = useState(false);
 
     useEffect(() => {
-        const fetchPolicy = async () => {
-            try {
-                const data = await getFinancePolicies();
-                setPolicy(data?.data || data || { autoInvoiceMode: 'MANUAL', isEnabled: true });
-            } catch (error) {
-                console.error(error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchPolicy();
+        getFinancePolicies()
+            .then((policy) => {
+                const day = Number(policy?.dueDay) || 10;
+                setDueDay(day);
+                setSavedDueDay(day);
+            })
+            .catch(() => notify('Could not load the finance policy', 'error'));
     }, []);
 
-    const handleSave = async () => {
-        setSaving(true);
-        setMessage(null);
+    const saveDueDay = async () => {
+        const day = Number(dueDay);
+        if (!Number.isInteger(day) || day < 1 || day > 28) {
+            notify('Choose a day from 1 to 28', 'error');
+            return;
+        }
+        setSavingDueDay(true);
         try {
-            await updateFinancePolicies(policy);
-            setMessage({ type: 'success', text: 'Policies updated successfully!' });
-        } catch {
-            setMessage({ type: 'error', text: 'Failed to update policies.' });
+            await updateFinancePolicies({ dueDay: day });
+            setSavedDueDay(day);
+            notify(`Bills are now due on day ${day} of their month`, 'success');
+        } catch (error) {
+            notify(error.response?.data?.message || 'Could not save the due day', 'error');
         } finally {
-            setSaving(false);
+            setSavingDueDay(false);
         }
     };
 
-    if (loading) {
-        return (
-            <div className="flex h-96 items-center justify-center">
-                <Loader2 className="h-10 w-10 animate-spin text-[var(--primary)]" />
-            </div>
-        );
-    }
+    useEffect(() => {
+        getAcademicYears()
+            .then((data) => {
+                const list = asList(data);
+                setYears(list);
+                setYearId((list.find((year) => year.isCurrent) || list[0])?._id || '');
+                if (!list.length) setLoading(false);
+            })
+            .catch(() => {
+                notify('Could not load academic years', 'error');
+                setLoading(false);
+            });
+    }, []);
+
+    useEffect(() => {
+        if (!yearId) return;
+        setLoading(true);
+        fetchFeeStructures({ academicYearId: yearId })
+            .then((data) => setStructures(asList(data)))
+            .catch(() => notify('Could not load fee structures', 'error'))
+            .finally(() => setLoading(false));
+    }, [yearId]);
+
+    const toggle = async (structure, open) => {
+        setSwitching(structure._id);
+        try {
+            await setFeeStructureOpen(structure._id, open);
+            setStructures((current) => current.map((item) => (item._id === structure._id ? { ...item, isOpen: open } : item)));
+            notify(`${structure.name} is ${open ? 'open' : 'closed'}`, 'success');
+        } catch (error) {
+            notify(error.response?.data?.message || 'Could not change the fee structure', 'error');
+        } finally {
+            setSwitching(null);
+        }
+    };
+
+    const openCount = structures.filter(isOpen).length;
 
     return (
-        <div className="max-w-3xl mx-auto space-y-4">
+        <div className="mx-auto max-w-4xl space-y-4">
             <div className="phoenix-page-header">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-[var(--primary)] bg-opacity-10 rounded-lg text-[var(--primary)]">
-                         <ShieldCheck size={18} />
+                    <div className="rounded-lg bg-[var(--primary-soft)] p-2 text-[var(--primary)]">
+                        <ShieldCheck size={18} />
                     </div>
                     <div>
-                        <h1 className="phoenix-page-title">Finance policies</h1>
-                        <p className="phoenix-page-subtitle">Configure global invoicing and collection rules.</p>
+                        <h1 className="phoenix-page-title">Finance policy</h1>
+                        <p className="phoenix-page-subtitle">The rules finance works by.</p>
                     </div>
                 </div>
             </div>
 
             <article className="phoenix-card">
-                <div className="phoenix-card-header">
-                    <div>
-                        <h2 className="phoenix-section-title">Invoice Generation Policy</h2>
-                        <p className="phoenix-section-copy">Define automatic billing events and operational switches.</p>
+                <div className="phoenix-card-body flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div className="flex items-start gap-3">
+                        <div className="rounded-lg bg-[var(--primary-soft)] p-2 text-[var(--primary)]"><CalendarClock size={18} /></div>
+                        <div>
+                            <h2 className="phoenix-section-title">Due date</h2>
+                            <p className="phoenix-section-copy max-w-xl">
+                                Each month&apos;s bill is due on this day of that month. After it, an unpaid bill shows as <strong>late</strong> to
+                                finance and a warning appears on the parent&apos;s page. Part payments are always accepted.
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                            Day
+                            <input
+                                type="number"
+                                min="1"
+                                max="28"
+                                className="phoenix-control !h-9 !w-20"
+                                value={dueDay}
+                                disabled={!canChange}
+                                onChange={(event) => setDueDay(event.target.value)}
+                            />
+                        </label>
+                        {canChange && (
+                            <Button onClick={saveDueDay} disabled={savingDueDay || Number(dueDay) === savedDueDay} className="flex items-center gap-2 !h-9 text-xs">
+                                <Save size={14} /> {savingDueDay ? 'Saving...' : 'Save'}
+                            </Button>
+                        )}
                     </div>
                 </div>
-                <div className="phoenix-card-body space-y-6">
-                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-100">
-                        <div>
-                            <p className="font-bold text-slate-800 text-sm">Auto-Invoice Mode</p>
-                            <p className="text-xs text-slate-500 mt-1 max-w-md">Record when your finance team expects invoices to be generated. Invoice generation remains a reviewed finance action.</p>
-                        </div>
-                        <select 
-                            className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-[var(--primary)] outline-none"
-                            value={policy.autoInvoiceMode}
-                            onChange={(e) => setPolicy({...policy, autoInvoiceMode: e.target.value})}
-                        >
-                            <option value="MANUAL">Manual Only</option>
-                            <option value="ON_YEAR_START">On Year Start</option>
-                            <option value="ON_ENROLLMENT">On Enrollment</option>
+            </article>
+
+            <article className="phoenix-card">
+                <div className="phoenix-card-header flex-wrap gap-3">
+                    <div>
+                        <h2 className="phoenix-section-title">Fee structures used for billing</h2>
+                        <p className="phoenix-section-copy max-w-xl">
+                            When you generate a month&apos;s invoices, only <strong>open</strong> fee structures are used.
+                            Closing one stops new invoices from it. Invoices already made stay as they are.
+                        </p>
+                    </div>
+                    <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+                        Year
+                        <select className="phoenix-control !h-9 !w-auto" value={yearId} onChange={(event) => setYearId(event.target.value)}>
+                            {years.map((year) => <option key={year._id} value={year._id}>{year.name}{year.isCurrent ? ' (current)' : ''}</option>)}
                         </select>
-                    </div>
+                    </label>
+                </div>
 
-                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-100">
-                        <div>
-                            <p className="font-bold text-slate-800 text-sm">Module Status</p>
-                            <p className="text-xs text-slate-500 mt-1">Master switch for finance operations. Disabling stops all new transactions.</p>
+                <div className="phoenix-card-body">
+                    {loading ? (
+                        <div className="flex h-40 items-center justify-center"><Loader2 className="animate-spin text-[var(--primary)]" /></div>
+                    ) : structures.length === 0 ? (
+                        <div className="phoenix-empty-state">
+                            <CreditCard size={28} />
+                            <p>No fee structures for this year yet. <Link className="font-semibold text-[var(--primary)] hover:underline" to="/finance/fee-structures">Create one</Link>.</p>
                         </div>
-                         <label className="relative inline-flex items-center cursor-pointer">
-                            <input 
-                                type="checkbox" 
-                                className="sr-only peer"
-                                checked={policy.isEnabled}
-                                onChange={(e) => setPolicy({...policy, isEnabled: e.target.checked})}
-                            />
-                            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--primary)]"></div>
-                        </label>
-                    </div>
-
-                    {message && (
-                        <div className={`p-3 rounded-lg text-xs font-semibold text-center ${message.type === 'success' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'}`}>
-                            {message.text}
-                        </div>
+                    ) : (
+                        <>
+                            <p className="mb-3 text-xs font-semibold text-slate-500">{openCount} open · {structures.length - openCount} closed</p>
+                            <div className="overflow-x-auto rounded-lg border border-[#e3e6ed]">
+                                <table className="w-full border-collapse text-sm">
+                                    <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                        <tr>
+                                            <th className="px-4 py-2.5">Fee structure</th>
+                                            <th className="px-4 py-2.5">Applies to</th>
+                                            <th className="px-4 py-2.5 text-right">Monthly fee</th>
+                                            <th className="px-4 py-2.5 text-right">Open</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-[#e3e6ed]">
+                                        {structures.map((structure) => {
+                                            const open = isOpen(structure);
+                                            return (
+                                                <tr key={structure._id} className={open ? '' : 'bg-slate-50'}>
+                                                    <td className="px-4 py-3">
+                                                        <p className={`font-semibold ${open ? 'text-slate-800' : 'text-slate-500'}`}>{structure.name}</p>
+                                                        {needsMonthlyAmount(structure) && (
+                                                            <Link to="/finance/fee-structures" className="mt-1 inline-block">
+                                                                <Badge variant="warning" className="!py-0.5 text-[10px]">Needs a monthly amount, not billed yet</Badge>
+                                                            </Link>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-slate-600">{feeTarget(structure)}</td>
+                                                    <td className="px-4 py-3 text-right font-semibold text-slate-800">
+                                                        {needsMonthlyAmount(structure) ? '—' : money(monthlyTotal(structure))}
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            <span className={`text-xs font-semibold ${open ? 'text-emerald-700' : 'text-slate-500'}`}>{open ? 'Open' : 'Closed'}</span>
+                                                            <Switch
+                                                                checked={open}
+                                                                onChange={(next) => toggle(structure, next)}
+                                                                disabled={!canChange || switching === structure._id}
+                                                                label={`${structure.name} open for billing`}
+                                                            />
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </>
                     )}
-
-                    <div className="flex justify-end pt-4 border-t border-slate-100">
-                        {hasPermission(user, 'finance.policies.update') && <Button onClick={handleSave} disabled={saving} className="flex items-center gap-2 !h-9 text-xs">
-                            <Save size={16} />
-                            {saving ? 'Applying Changes...' : 'Save Configuration'}
-                        </Button>}
-                    </div>
                 </div>
             </article>
         </div>

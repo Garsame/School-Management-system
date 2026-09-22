@@ -4,7 +4,8 @@ const Student = require('../models/Student');
 const Branch = require('../models/Branch');
 const { logAction } = require('../services/auditLogService');
 const mongoose = require('mongoose');
-const { recordInvoicePayment, reverseInvoicePayment } = require('../services/paymentService');
+const { recordInvoicePayment, recordStudentPayment, reverseInvoicePayment } = require('../services/paymentService');
+const { getStudentPaymentRecord } = require('../services/studentAccountService');
 const exportService = require('../services/exportService');
 
 const getDayBounds = (value) => {
@@ -257,6 +258,116 @@ exports.createPayment = async (req, res) => {
     }
 };
 
+// @desc    Find students to take money from, with what each owes
+// @route   GET /api/cashier/students/search?q=
+// @access  cashier.invoices.search
+exports.searchStudentAccounts = async (req, res) => {
+    try {
+        const tokens = String(req.query.q || '').trim().split(/\s+/).filter(Boolean).slice(0, 4);
+        if (!tokens.length || tokens.join('').length < 2) return res.json({ success: true, data: [] });
+
+        const students = await Student.find({
+            tenantId: req.user.tenantId,
+            ...branchScope(req),
+            $and: tokens.map((token) => {
+                const pattern = { $regex: token.slice(0, 40).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' };
+                return { $or: [{ firstName: pattern }, { lastName: pattern }, { admissionNumber: pattern }] };
+            })
+        }).select('firstName lastName admissionNumber status').limit(20).lean();
+
+        const owed = await Invoice.aggregate([
+            { $match: {
+                tenantId: new mongoose.Types.ObjectId(String(req.user.tenantId)),
+                studentId: { $in: students.map((student) => student._id) },
+                status: { $in: ['UNPAID', 'PARTIALLY_PAID'] },
+                balance: { $gt: 0 }
+            } },
+            { $group: { _id: '$studentId', owed: { $sum: '$balance' }, months: { $sum: 1 } } }
+        ]);
+        const owedByStudent = new Map(owed.map((row) => [String(row._id), row]));
+
+        res.json({
+            success: true,
+            data: students.map((student) => ({
+                _id: student._id,
+                name: `${student.firstName} ${student.lastName}`.trim(),
+                admissionNumber: student.admissionNumber,
+                status: student.status,
+                owed: Math.round((owedByStudent.get(String(student._id))?.owed || 0) * 100) / 100,
+                unpaidMonths: owedByStudent.get(String(student._id))?.months || 0
+            }))
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// @desc    One student's account: every month, what is owed, oldest first
+// @route   GET /api/cashier/students/:studentId/account
+// @access  cashier.invoices.detail
+exports.getStudentAccount = async (req, res) => {
+    try {
+        const record = await getStudentPaymentRecord({
+            tenantId: req.user.tenantId,
+            studentId: req.params.studentId,
+            branchId: scopedBranchId(req)
+        });
+        res.json({ success: true, data: record });
+    } catch (error) {
+        res.status(error.statusCode || 500).json({ success: false, message: error.message });
+    }
+};
+
+// @desc    Take one amount from a student; it fills the oldest unpaid month first
+// @route   POST /api/cashier/payments/student
+// @access  cashier.payments.create
+exports.createStudentPayment = async (req, res) => {
+    try {
+        const { studentId, amount, method, reference } = req.body || {};
+        const result = await recordStudentPayment({
+            tenantId: req.user.tenantId,
+            branchId: scopedBranchId(req),
+            studentId,
+            amount,
+            method,
+            reference,
+            recordedBy: req.user._id
+        });
+
+        try {
+            for (const payment of result.payments) {
+                await logAction({
+                    tenantId: req.user.tenantId,
+                    branchId: payment.branchId,
+                    actorUserId: req.user._id,
+                    actorRole: req.user.role,
+                    action: 'PAYMENT_CREATED',
+                    entityType: 'Payment',
+                    entityId: payment._id,
+                    after: { ...payment.toObject(), studentId },
+                    ip: req.ip,
+                    userAgent: req.get('User-Agent')
+                });
+            }
+        } catch (auditErr) { console.error('Audit log error', auditErr); }
+
+        res.status(201).json({
+            success: true,
+            data: {
+                batchId: result.batchId,
+                amount: result.amount,
+                allocations: result.allocations,
+                remainingOwed: result.remainingOwed,
+                // Any payment of the batch opens the combined receipt.
+                receiptPaymentId: result.payments[0]?._id,
+                receiptNumbers: result.payments.map((payment) => payment.receiptNumber)
+            }
+        });
+    } catch (error) {
+        res.status(error.status || error.statusCode || 500).json({ success: false, message: error.message });
+    }
+};
+
 // @desc    Get Receipt Data
 // @route   GET /api/cashier/receipts/:paymentId
 // @access  Private (Cashier)
@@ -338,6 +449,28 @@ exports.getReceipt = async (req, res) => {
                 recordedBy: formatRecordedBy(payment.recordedBy)
             }
         };
+
+        // One amount paid for several months: the receipt shows the whole amount and which
+        // months it paid, oldest first, whichever of the batch's payments was opened.
+        if (payment.batchId) {
+            const batch = await Payment.find({
+                tenantId: req.user.tenantId,
+                batchId: payment.batchId,
+                status: { $in: ['ACTIVE', 'REVERSED'] }
+            }).populate('invoiceId', 'billingPeriodLabel balance totalAmount').sort({ createdAt: 1 }).lean();
+            const active = batch.filter((item) => item.status === 'ACTIVE');
+            receiptPayload.batch = {
+                total: Math.round(active.reduce((sum, item) => sum + Math.round(item.amount * 100), 0)) / 100,
+                lines: batch.map((item) => ({
+                    paymentId: item._id,
+                    receiptNo: item.receiptNumber || null,
+                    month: item.invoiceId?.billingPeriodLabel || 'School fees',
+                    amount: item.amount,
+                    stillOwed: item.invoiceId?.balance ?? null,
+                    status: item.status
+                }))
+            };
+        }
 
         res.json({ success: true, data: receiptPayload });
 

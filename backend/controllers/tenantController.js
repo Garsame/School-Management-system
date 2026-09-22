@@ -28,7 +28,7 @@ const { TENANT_ADMIN_CREATABLE_ROLES, assertValidRoleScope } = require('../utils
 const {
     PERMISSION_CATALOG,
     findEscalatedPermissions,
-    getPermissionCatalogForRole,
+    getAssignablePermissions,
     getUserPermissionParts,
     sanitizeAssignablePermissionsForRole
 } = require('../utils/permissions');
@@ -730,13 +730,29 @@ const getPermissionCatalog = asyncHandler(async (req, res) => {
     res.json(PERMISSION_CATALOG.filter((permission) => !permission.key.startsWith('platform.')));
 });
 
+/**
+ * A person's exceptions are drawn from the same list a role is: everything the school may
+ * grant at their scope. Defaults come from their school's own role record, so the page shows
+ * what their role really gives them rather than the platform's original defaults.
+ */
+const loadUserPermissionContext = async (req, targetUser) => {
+    const [roleRecord, tenant] = await Promise.all([
+        targetUser.roleId ? Role.findOne({ _id: targetUser.roleId, tenantId: req.tenantId }) : null,
+        Tenant.findById(req.tenantId).select('plan').lean()
+    ]);
+    const catalog = getAssignablePermissions({ scope: targetUser.scope, planTier: tenant?.plan || null })
+        .map(({ key, label, description, group }) => ({ key, label, description, group }));
+    return { roleRecord, catalog };
+};
+
 const getUserPermissions = asyncHandler(async (req, res) => {
     const targetUser = await ensureTenantUser(req, req.params.userId);
-    const permissionParts = getUserPermissionParts(targetUser);
+    const { roleRecord, catalog } = await loadUserPermissionContext(req, targetUser);
     res.json({
         user: serializeUser(targetUser),
-        catalog: getPermissionCatalogForRole(targetUser.role),
-        ...permissionParts
+        roleName: roleRecord?.name || null,
+        catalog,
+        ...getUserPermissionParts(targetUser, roleRecord)
     });
 });
 
@@ -750,9 +766,10 @@ const updateUserPermissions = asyncHandler(async (req, res) => {
         throw error;
     }
 
-    // 2. Validate every requested permission against getPermissionCatalogForRole(targetUser.role) before sanitizing.
-    // Reject unknown and cross-role permissions with 400. Do not silently remove them.
-    const assignableCatalog = getPermissionCatalogForRole(targetUser.role);
+    // 2. Validate every requested permission against what the school may grant at this
+    // user's scope before sanitizing. Reject unknown and out-of-scope permissions with 400.
+    // Do not silently remove them.
+    const { roleRecord, catalog: assignableCatalog } = await loadUserPermissionContext(req, targetUser);
     const assignableKeys = new Set(assignableCatalog.map((permission) => permission.key));
 
     for (const key of [...req.body.allow, ...req.body.deny]) {
@@ -762,7 +779,7 @@ const updateUserPermissions = asyncHandler(async (req, res) => {
             throw error;
         }
         if (!assignableKeys.has(key)) {
-            const error = new Error(`Permission ${key} is not assignable to role ${targetUser.role}`);
+            const error = new Error(`Permission ${key} cannot be given to this account`);
             error.statusCode = 400;
             throw error;
         }
@@ -807,7 +824,7 @@ const updateUserPermissions = asyncHandler(async (req, res) => {
         }
     }
 
-    const before = getUserPermissionParts(targetUser);
+    const before = getUserPermissionParts(targetUser, roleRecord);
     const allow = sanitizeAssignablePermissionsForRole(targetUser.role, req.body.allow);
     const deny = sanitizeAssignablePermissionsForRole(targetUser.role, req.body.deny);
 
@@ -825,7 +842,7 @@ const updateUserPermissions = asyncHandler(async (req, res) => {
     targetUser.lastPermissionUpdateAt = new Date();
     targetUser.lastPermissionUpdateBy = req.user._id;
 
-    const simulated = getUserPermissionParts(targetUser);
+    const simulated = getUserPermissionParts(targetUser, roleRecord);
     if (
         targetUser.role === 'super_admin' &&
         targetUser.isActive &&
@@ -845,7 +862,7 @@ const updateUserPermissions = asyncHandler(async (req, res) => {
 
     await targetUser.save();
 
-    const after = getUserPermissionParts(targetUser);
+    const after = getUserPermissionParts(targetUser, roleRecord);
     await logActivity({
         req,
         action: 'USER_PERMISSION_UPDATED',

@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { ChevronDown, KeyRound, Loader2, Search, X } from 'lucide-react';
 import tenantService from '../../services/tenantService';
 import { notify } from '../../components/feedback/notificationService';
@@ -19,7 +20,8 @@ const StaffPermissions = () => {
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [modal, setModal] = useState({ open: false, user: null, catalog: [], defaults: [], allow: [], deny: [] });
+    const [modal, setModal] = useState({ open: false, user: null, roleName: null, catalog: [], defaults: [], allow: [], deny: [] });
+    const [featureQuery, setFeatureQuery] = useState('');
 
     const loadData = useCallback(async () => {
         setLoading(true);
@@ -45,11 +47,13 @@ const StaffPermissions = () => {
             setModal({
                 open: true,
                 user,
+                roleName: response.data.roleName || null,
                 catalog: response.data.catalog || [],
                 defaults: response.data.defaults || [],
                 allow: response.data.allow || [],
                 deny: response.data.deny || []
             });
+            setFeatureQuery('');
         } catch (error) {
             notify(error.response?.data?.message || 'Failed to load staff permissions', 'error');
         }
@@ -76,6 +80,16 @@ const StaffPermissions = () => {
         }
     };
 
+    // The list is everything this person's scope allows, grouped the way the Roles page groups it.
+    const catalogGroups = useMemo(() => {
+        const query = featureQuery.trim().toLowerCase();
+        const groups = new Map();
+        modal.catalog
+            .filter((permission) => !query || `${permission.label} ${permission.description} ${permission.group}`.toLowerCase().includes(query))
+            .forEach((permission) => groups.set(permission.group, [...(groups.get(permission.group) || []), permission]));
+        return [...groups.entries()];
+    }, [modal.catalog, featureQuery]);
+
     const visibleUsers = users.filter((user) => {
         const query = search.trim().toLowerCase();
         return !query || user.name.toLowerCase().includes(query) || user.email.toLowerCase().includes(query);
@@ -86,7 +100,7 @@ const StaffPermissions = () => {
             <div className="phoenix-page-header">
                 <div>
                     <h1 className="phoenix-page-title">Staff Permissions</h1>
-                    <p className="phoenix-page-subtitle">Review and customize access for school administrators and branch staff.</p>
+                    <p className="phoenix-page-subtitle">Exceptions for one person. To change what a whole role can do, use <Link to="/tenant/roles" className="font-semibold text-[var(--primary)] hover:underline">Roles & Features</Link>.</p>
                 </div>
             </div>
 
@@ -136,11 +150,18 @@ const StaffPermissions = () => {
                     <div className="phoenix-modal-scrim" onClick={() => setModal((current) => ({ ...current, open: false }))} />
                     <div className="phoenix-modal-panel max-w-3xl">
                         <div className="phoenix-modal-header">
-                            <div><h2 className="phoenix-section-title">Permissions for {modal.user?.name}</h2><p className="phoenix-section-copy capitalize">{modal.user?.role.replace('_', ' ')} account</p></div>
+                            <div><h2 className="phoenix-section-title">Permissions for {modal.user?.name}</h2><p className="phoenix-section-copy">{modal.roleName || modal.user?.role.replace(/_/g, ' ')} · Default is what the role gives. Allow or deny only for this person.</p></div>
                             <button type="button" className="phoenix-icon-button" onClick={() => setModal((current) => ({ ...current, open: false }))}><X size={18} /></button>
                         </div>
                         <div className="phoenix-modal-body max-h-[60vh] space-y-3 overflow-y-auto">
-                            {modal.catalog.map((permission) => {
+                            <div className="relative">
+                                <Search className="phoenix-input-icon" size={16} />
+                                <input className="phoenix-control phoenix-control-with-icon" value={featureQuery} onChange={(event) => setFeatureQuery(event.target.value)} placeholder="Find a feature" />
+                            </div>
+                            {catalogGroups.map(([group, permissions]) => (
+                            <div key={group} className="space-y-2">
+                            <h3 className="pt-2 text-xs font-bold uppercase tracking-wider text-[#8a94ad]">{group}</h3>
+                            {permissions.map((permission) => {
                                 const state = modal.allow.includes(permission.key) ? 'allow' : modal.deny.includes(permission.key) ? 'deny' : 'default';
                                 return (
                                     <div key={permission.key} className="flex flex-col gap-3 rounded-md border border-[#e3e6ed] p-3 sm:flex-row sm:items-center sm:justify-between">
@@ -155,6 +176,8 @@ const StaffPermissions = () => {
                                     </div>
                                 );
                             })}
+                            </div>
+                            ))}
                         </div>
                         <div className="phoenix-modal-footer"><button type="button" className="phoenix-secondary-button" onClick={() => setModal((current) => ({ ...current, open: false }))}>Cancel</button><button type="button" className="phoenix-primary-button" disabled={saving} onClick={savePermissions}>{saving ? 'Saving...' : 'Save permissions'}</button></div>
                     </div>

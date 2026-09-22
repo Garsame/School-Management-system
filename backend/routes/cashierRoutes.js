@@ -9,7 +9,10 @@ const {
     reversePayment,
     getDashboardStats,
     getDayCloseSummary,
-    exportDayClose
+    exportDayClose,
+    searchStudentAccounts,
+    getStudentAccount,
+    createStudentPayment
 } = require('../controllers/cashierController');
 
 const { protect, tenantGuard, branchGuard } = require('../middleware/auth');
@@ -33,9 +36,15 @@ router.get('/day-close/export.csv', requirePermission('cashier.payments.view'), 
 router.get('/invoices/search', requirePermission('cashier.invoices.search'), searchInvoices);
 router.get('/invoices/:id', requirePermission('cashier.invoices.detail'), getInvoiceById);
 
+// --- Student accounts: what one student owes, month by month ---
+router.get('/students/search', requirePermission('cashier.invoices.search'), searchStudentAccounts);
+router.get('/students/:studentId/account', requirePermission('cashier.invoices.detail'), getStudentAccount);
+
 // --- Payments ---
 router.get('/payments', requirePermission('cashier.payments.view'), getPayments);
 router.post('/payments', requirePermission('cashier.payments.create'), createPayment);
+// One amount for a student, filling the oldest unpaid month first.
+router.post('/payments/student', requirePermission('cashier.payments.create'), createStudentPayment);
 router.post('/payments/:id/reverse', requirePermission('cashier.payments.reverse'), reversePayment);
 
 // --- Receipts ---

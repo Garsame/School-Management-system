@@ -3,7 +3,7 @@ import { exportInvoicesCsv, getInvoices } from '../../services/api/finance.api';
 import { getBranches, getAcademicYears } from '../../services/api/tenant.api';
 import { Select, Badge, Button, Input } from '../../components/ui';
 import { Search, Eye, Plus, Loader2, Download } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import FinanceFilterBar from '../../components/finance/FinanceFilterBar';
 
 const EMPTY_FILTERS = { branchId: '', academicYearId: '', status: '', q: '' };
@@ -153,7 +153,9 @@ const Invoices = () => {
                                         <tr key={inv._id} className="hover:bg-slate-50 transition-colors group">
                                             <td className="px-4 py-3 text-slate-600 font-mono text-xs">INV-{inv._id.slice(-6)}</td>
                                             <td className="px-4 py-3 text-slate-900 font-bold">
-                                                {inv.studentId && typeof inv.studentId === 'object' ? `${inv.studentId.firstName} ${inv.studentId.lastName}` : (inv.studentName || 'N/A')}
+                                                {inv.studentId && typeof inv.studentId === 'object'
+                                                    ? <Link to={`/finance/students/${inv.studentId._id}`} className="hover:text-[var(--primary)] hover:underline">{inv.studentId.firstName} {inv.studentId.lastName}</Link>
+                                                    : (inv.studentName || 'N/A')}
                                                 <span className="block font-mono text-[10px] font-medium text-slate-400">{inv.studentId?.admissionNumber || ''}</span>
                                             </td>
                                             <td className="px-4 py-3 text-slate-500">{inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : 'N/A'}</td>

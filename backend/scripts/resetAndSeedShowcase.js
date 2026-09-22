@@ -480,7 +480,7 @@ const seedSchool = async ({ config, schoolIndex, planMap, owner, passwordHash })
         graduationRequiresPass: true,
         rules: gradingPolicies[config.key]
     });
-    await FinancePolicy.create({ tenantId: tenant._id, autoInvoiceMode: 'ON_ENROLLMENT', isEnabled: true });
+    await FinancePolicy.create({ tenantId: tenant._id, dueDay: 10 });
 
     for (const state of branchStates) {
         const categories = await ClassCategory.insertMany([
@@ -814,46 +814,37 @@ const seedSchool = async ({ config, schoolIndex, planMap, owner, passwordHash })
             })));
         }
 
+        // Every fee structure is a monthly fee: its items are what one student pays each month.
+        // The school that used to bill by term gets the same yearly total spread over its ten
+        // school months, so both showcase schools can be billed from the Generate page.
         const feeStructures = [];
         for (let grade = 1; grade <= 12; grade += 1) {
             const classDoc = classByGrade.get(grade);
-            if (config.feeMode === 'MONTHLY') {
-                const monthlyAmount = 40 + (grade * 3);
-                feeStructures.push({
-                    tenantId: tenant._id,
-                    branchId: state.branch._id,
-                    academicYearId: currentYear._id,
-                    classId: classDoc._id,
-                    name: `Grade ${grade} Monthly Fee Plan`,
-                    billingFrequency: 'MONTHLY',
-                    billingPeriods: ['SEP', 'OCT', 'NOV', 'DEC', 'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN'].map((key) => ({ key, label: key, amount: monthlyAmount })),
-                    feeItems: [{ name: 'Tuition', amount: monthlyAmount * 8 }, { name: 'Activities and resources', amount: monthlyAmount * 2 }],
-                    totalAmount: monthlyAmount * 10
-                });
-            } else {
-                const termAmount = 180 + (grade * 12);
-                feeStructures.push({
-                    tenantId: tenant._id,
-                    branchId: state.branch._id,
-                    academicYearId: currentYear._id,
-                    classId: classDoc._id,
-                    name: `Grade ${grade} Term Fee Plan`,
-                    billingFrequency: 'TERM',
-                    billingPeriods: [1, 2, 3].map((termNumber) => ({ key: `TERM_${termNumber}`, label: `Term ${termNumber}`, amount: termAmount })),
-                    feeItems: [{ name: 'Tuition', amount: Math.round(termAmount * 2.4) }, { name: 'Activities and resources', amount: Math.round(termAmount * 0.6) }],
-                    totalAmount: termAmount * 3
-                });
-            }
+            const monthlyAmount = config.feeMode === 'MONTHLY'
+                ? 40 + (grade * 3)
+                : Math.round(((180 + (grade * 12)) * 3) / 10);
+            const tuition = Math.round(monthlyAmount * 0.8);
+            feeStructures.push({
+                tenantId: tenant._id,
+                branchId: state.branch._id,
+                academicYearId: currentYear._id,
+                classId: classDoc._id,
+                name: `Grade ${grade} monthly fee`,
+                billingFrequency: 'MONTHLY',
+                billingPeriods: [],
+                amountsArePerMonth: true,
+                isOpen: true,
+                feeItems: [{ name: 'Tuition', amount: tuition }, { name: 'Activities and resources', amount: monthlyAmount - tuition }],
+                totalAmount: monthlyAmount
+            });
         }
         const insertedFeeStructures = await FeeStructure.insertMany(feeStructures);
         const feeByClass = new Map(insertedFeeStructures.map((fee) => [String(fee.classId), fee]));
         const invoices = [];
         for (const [studentIndex, studentState] of state.students.entries()) {
             const fee = feeByClass.get(String(studentState.classDoc._id));
-            const period = config.feeMode === 'MONTHLY'
-                ? fee.billingPeriods.find((item) => item.key === 'JUN')
-                : fee.billingPeriods.find((item) => item.key === 'TERM_3');
-            const amount = period.amount;
+            // One June bill per student, as the Generate page would have made it.
+            const amount = fee.totalAmount;
             const paymentMode = studentIndex % 3;
             const paidAmount = paymentMode === 0 ? amount : paymentMode === 1 ? Math.round((amount / 2) * 100) / 100 : 0;
             invoices.push({
@@ -862,20 +853,20 @@ const seedSchool = async ({ config, schoolIndex, planMap, owner, passwordHash })
                 studentId: studentState.student._id,
                 academicYearId: currentYear._id,
                 feeStructureId: fee._id,
-                billingPeriodKey: period.key,
-                billingPeriodLabel: period.label,
-                items: [{ name: 'Tuition', amount: Math.round(amount * 0.8 * 100) / 100 }, { name: 'Activities and resources', amount: Math.round(amount * 0.2 * 100) / 100 }],
+                billingPeriodKey: '2026-06',
+                billingPeriodLabel: 'June 2026',
+                items: fee.feeItems.map(({ name, amount: itemAmount }) => ({ name, amount: itemAmount })),
                 totalAmount: amount,
                 paidAmount,
                 balance: Math.round((amount - paidAmount) * 100) / 100,
                 status: paidAmount === amount ? 'PAID' : paidAmount > 0 ? 'PARTIALLY_PAID' : 'UNPAID',
-                dueDate: new Date(config.feeMode === 'MONTHLY' ? '2026-06-10' : '2026-05-15')
+                dueDate: new Date('2026-06-10')
             });
         }
         const insertedInvoices = await Invoice.insertMany(invoices);
         const paymentDocs = insertedInvoices.flatMap((invoice, index) => {
             if (!invoice.paidAmount) return [];
-            const method = index % 2 === 0 ? 'CASH' : 'MOBILE_MONEY';
+            const method = index % 2 === 0 ? 'CASH' : 'EVC_PLUS';
             return [{
                 tenantId: tenant._id,
                 branchId: state.branch._id,

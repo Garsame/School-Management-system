@@ -62,14 +62,18 @@ const StudentDetails = () => {
                 guardianInfo: formData.guardianInfo,
                 emergencyContact: formData.emergencyContact,
                 medicalInfo: formData.medicalInfo,
-                status: formData.status
+                status: formData.status,
+                // Leaving ends the student's class place and stops all future bills.
+                ...(formData.status === 'Left' && student.status !== 'Left'
+                    ? { leftOn: formData.leftOn || undefined, leftReason: formData.leftReason || '' }
+                    : {})
             });
             setToast({ type: 'success', message: 'Student updated successfully' });
             setEditing(false);
             fetchStudent(id);
         } catch (err) {
             console.error(err);
-            setToast({ type: 'error', message: 'Update failed' });
+            setToast({ type: 'error', message: err.response?.data?.message || 'Update failed' });
         }
     };
 
@@ -285,7 +289,7 @@ const StudentDetails = () => {
                         <Input label="Previous School" value={formData.previousSchool || ''} onChange={e => setFormData({...formData, previousSchool: e.target.value})} disabled={!editing} />
                         <div className="space-y-1.5">
                             <label className="text-[13px] font-semibold text-slate-700">Status</label>
-                            {editing ? (
+                            {editing && student.status !== 'Left' ? (
                                 <select 
                                     className="w-full h-11 px-3 border border-[var(--border)] bg-white rounded-xl text-slate-800 outline-none transition-all focus:border-[var(--primary)] focus:ring-4 focus:ring-blue-100/60 text-sm"
                                     value={formData.status}
@@ -293,13 +297,28 @@ const StudentDetails = () => {
                                 >
                                     <option value="Active">Active</option>
                                     <option value="Inactive">Inactive</option>
+                                    <option value="Left">Left the school</option>
                                 </select>
                             ) : (
-                                <div className="h-11 flex items-center">
-                                    <Badge variant={student.status === 'Active' ? 'success' : 'default'}>{student.status}</Badge>
+                                <div className="min-h-11 flex flex-col justify-center">
+                                    <Badge variant={student.status === 'Active' ? 'success' : 'default'}>{student.status === 'Left' ? 'Left the school' : student.status}</Badge>
+                                    {student.status === 'Left' && (
+                                        <p className="mt-1 text-xs text-slate-500">
+                                            {student.withdrawalDate ? `Left on ${new Date(student.withdrawalDate).toLocaleDateString()}` : 'Left'}{student.withdrawalReason ? ` · ${student.withdrawalReason}` : ''}. No new bills. Use Re-Enrollment to bring them back.
+                                        </p>
+                                    )}
                                 </div>
                             )}
                         </div>
+                        {editing && formData.status === 'Left' && student.status !== 'Left' && (
+                            <>
+                                <Input label="Leaving date" type="date" value={formData.leftOn || ''} onChange={e => setFormData({...formData, leftOn: e.target.value})} />
+                                <Input label="Reason (optional)" value={formData.leftReason || ''} onChange={e => setFormData({...formData, leftReason: e.target.value})} placeholder="For example: family moved" />
+                                <p className="md:col-span-2 rounded-md border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-800">
+                                    When you save, the student leaves their class and gets no more monthly bills. What they already owe stays on their record.
+                                </p>
+                            </>
+                        )}
                     </div>
 
                     <div className="border-b border-[#e3e6ed] pb-3 pt-4">

@@ -921,12 +921,26 @@ exports.updateStudent = async (req, res) => {
             }
         }
         if (Array.isArray(guardians)) student.guardians = guardians;
-        if (status) {
-            if (!['Active', 'Inactive'].includes(status)) {
+        let leaving = false;
+        if (status && status !== student.status) {
+            if (!['Active', 'Inactive', 'Left'].includes(status)) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Only Active or Inactive can be set manually. Transfer and graduation statuses are managed by their workflows.'
+                    message: 'Only Active, Inactive or Left can be set here. Transfer and graduation statuses are managed by their workflows.'
                 });
+            }
+            // A student who left has no class any more. Bringing them back means choosing one,
+            // which is what Re-Enrollment does, so a plain status change cannot undo Left.
+            if (student.status === 'Left') {
+                return res.status(409).json({
+                    success: false,
+                    message: 'This student has left. Use Re-Enrollment to bring them back into a class.'
+                });
+            }
+            if (status === 'Left') {
+                leaving = true;
+                student.withdrawalDate = req.body.leftOn ? normalizeDate(req.body.leftOn, 'Leaving date', { allowFuture: true }) : new Date();
+                student.withdrawalReason = String(req.body.leftReason || '').trim().slice(0, 300) || undefined;
             }
             student.status = status;
         }
@@ -950,13 +964,22 @@ exports.updateStudent = async (req, res) => {
 
         await student.save();
 
+        // Leaving ends the student's place in their class: they drop off registers and class
+        // lists, and monthly billing never reaches them again. Bills they already have stay.
+        if (leaving) {
+            await Enrollment.updateMany(
+                { tenantId: req.user.tenantId, studentId: student._id, isCurrent: true },
+                { $set: { status: 'Withdrawn' } }
+            );
+        }
+
         // Audit Log
         await logAction({
             tenantId: req.user.tenantId,
             branchId: req.user.branchId,
             actorUserId: req.user._id,
-            actorRole: 'registrar',
-            action: 'STUDENT_UPDATED',
+            actorRole: req.user.role,
+            action: leaving ? 'STUDENT_LEFT' : 'STUDENT_UPDATED',
             entityType: 'Student',
             entityId: student._id,
             before: oldData,
