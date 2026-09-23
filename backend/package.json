@@ -5,7 +5,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "test": "node --test tests/security.test.js tests/studentSearch.test.js",
+    "test": "node --test tests/security.test.js tests/studentSearch.test.js tests/dugsi.test.js",
     "create:platform-owner": "node create-platform-owner.js",
     "fix:indexes": "node scripts/fixLegacyIndexes.js",
     "fix:enrollment-indexes": "node scripts/fixEnrollmentIndexes.js",

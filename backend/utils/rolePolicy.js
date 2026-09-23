@@ -6,6 +6,7 @@ const ROLE_SCOPE = Object.freeze({
     parent: 'tenant',
     branch_admin: 'branch',
     teacher: 'branch',
+    dugsi_teacher: 'branch',
     cashier: 'branch',
     registrar: 'branch',
     student: 'branch'
@@ -19,6 +20,7 @@ const TENANT_ADMIN_CREATABLE_ROLES = new Set([
 
 const BRANCH_ADMIN_CREATABLE_ROLES = new Set([
     'teacher',
+    'dugsi_teacher',
     'cashier',
     'registrar'
 ]);

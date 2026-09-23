@@ -13,6 +13,7 @@ const homeForRole = {
     registrar: '/registrar',
     cashier: '/cashier',
     teacher: '/teacher',
+    dugsi_teacher: '/dugsi/students',
     student: '/student',
     parent: '/parent'
 };

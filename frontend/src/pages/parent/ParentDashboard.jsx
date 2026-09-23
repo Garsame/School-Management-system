@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-    Users, GraduationCap, Calendar, CreditCard, ChevronRight, Bell, AlertTriangle, AlertCircle, RefreshCw
+    Users, GraduationCap, Calendar, CreditCard, ChevronRight, Bell, AlertTriangle, AlertCircle, RefreshCw, BookOpen
 } from 'lucide-react';
 import api from '../../services/api';
 
@@ -92,7 +92,7 @@ const ParentDashboard = () => {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {(children || []).map(({ student, className, academicYear, outstandingFees, attendanceRate, attendedPeriods, missedPeriods, totalPeriods }) => (
+                    {(children || []).map(({ student, className, academicYear, outstandingFees, attendanceRate, attendedPeriods, missedPeriods, totalPeriods, dugsi }) => (
                         <div 
                             key={student._id} 
                             className="phoenix-card p-5 group overflow-hidden relative flex flex-col justify-between"
@@ -130,9 +130,9 @@ const ParentDashboard = () => {
                                 </div>
 
                                 {/* Attendance and Fees info */}
-                                <div className="grid grid-cols-2 gap-4 pt-3 border-t border-[#f0f2f5] mb-6">
+                                <div className="grid grid-cols-2 gap-4 pt-3 border-t border-[#f0f2f5] mb-4">
                                     <div className="space-y-1">
-                                        <span className="text-xs font-semibold text-[#8a94ad]">Attendance</span>
+                                        <span className="text-xs font-semibold text-[#8a94ad]">School Attendance</span>
                                         <p className="text-base font-bold text-emerald-500">{attendanceRate} <span className="text-[10px] font-semibold text-slate-400">of periods</span></p>
                                         <p className="mt-1 text-[10px] font-semibold text-slate-500">{attendedPeriods || 0} attended · {missedPeriods || 0} missed · {totalPeriods || 0} recorded</p>
                                     </div>
@@ -143,6 +143,41 @@ const ParentDashboard = () => {
                                         </p>
                                     </div>
                                 </div>
+
+                                {/* Dugsi / Quran Circle Info if enrolled */}
+                                {dugsi && (
+                                    <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3.5 mb-4 space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-600 text-white">
+                                                    <BookOpen size={11} />
+                                                    Quran Dugsi
+                                                </span>
+                                                <span className="text-xs font-semibold text-slate-700">
+                                                    Teacher: {dugsi.teacherName}
+                                                </span>
+                                            </div>
+                                            <span className="text-xs font-bold text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded-full">
+                                                Attendance: {dugsi.attendanceRate}
+                                            </span>
+                                        </div>
+                                        {dugsi.latestProgress ? (
+                                            <div className="text-xs text-slate-700 bg-white/90 rounded-lg p-2.5 border border-emerald-100 shadow-sm">
+                                                <div className="flex items-center justify-between font-semibold text-slate-800 mb-0.5">
+                                                    <span>Surah {dugsi.latestProgress.surahName} (Ayahs {dugsi.latestProgress.startAyah}–{dugsi.latestProgress.endAyah})</span>
+                                                    <span className="text-[10px] uppercase font-bold text-emerald-700 px-1.5 py-0.5 bg-emerald-50 rounded">Juz {dugsi.latestProgress.juz}</span>
+                                                </div>
+                                                <div className="text-[11px] text-slate-500">
+                                                    Stage: <span className="font-semibold text-slate-600 capitalize">{dugsi.latestProgress.learningStage?.toLowerCase()}</span> · {dugsi.latestProgress.date ? new Date(dugsi.latestProgress.date).toLocaleDateString() : ''}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="text-[11px] text-slate-500 italic bg-white/60 rounded-lg p-2 border border-emerald-100">
+                                                No Quran progress logged yet for this academic year.
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Navigation triggers */}

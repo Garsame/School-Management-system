@@ -131,6 +131,7 @@ app.use('/api/assignments', require('./routes/assignmentRoutes'));
 app.use('/api/attendance', require('./routes/attendanceRoutes'));
 app.use('/api/registrar', require('./routes/registrarRoutes'));
 app.use('/api/teacher', require('./routes/teacherRoutes'));
+app.use('/api/dugsi', require('./routes/dugsiRoutes'));
 app.use('/api/student', require('./routes/studentPortalRoutes'));
 
 app.use('/api/tenant/finance', require('./routes/tenantFinanceRoutes'));

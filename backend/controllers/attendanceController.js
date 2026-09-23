@@ -47,8 +47,8 @@ const resolveBranchForClass = async (req, classId) => {
  */
 exports.getSessions = async (req, res) => {
     try {
-        const { classId, academicYearId, from, to, status } = req.query;
-        const query = { tenantId: req.tenantId, ...branchScope(req) };
+        const { classId, academicYearId, from, to, status, sessionType } = req.query;
+        const query = { tenantId: req.tenantId, ...branchScope(req), sessionType: sessionType ? normalizeStatus(sessionType) : 'SCHOOL' };
         if (classId) query.classId = classId;
         if (academicYearId) query.academicYearId = academicYearId;
         if (status) query.status = normalizeStatus(status);
@@ -157,6 +157,7 @@ exports.openSession = async (req, res) => {
             teacherUserId: req.user._id,
             classId,
             academicYearId,
+            sessionType: 'SCHOOL',
             date,
             period
         });
@@ -295,7 +296,7 @@ exports.getStudentAttendance = async (req, res) => {
         if (!student) return sendError(res, 404, 'Student not found in this school');
 
         const { from, to, academicYearId } = req.query;
-        const sessionQuery = { tenantId: req.tenantId, branchId: student.branchId };
+        const sessionQuery = { tenantId: req.tenantId, branchId: student.branchId, sessionType: 'SCHOOL' };
         if (academicYearId) sessionQuery.academicYearId = academicYearId;
         if (from || to) {
             sessionQuery.date = {};
@@ -351,7 +352,7 @@ exports.getStudentAttendance = async (req, res) => {
 exports.getSummary = async (req, res) => {
     try {
         const { from, to, academicYearId } = req.query;
-        const sessionQuery = { tenantId: req.tenantId, ...branchScope(req) };
+        const sessionQuery = { tenantId: req.tenantId, ...branchScope(req), sessionType: 'SCHOOL' };
         if (academicYearId) sessionQuery.academicYearId = academicYearId;
         if (from || to) {
             sessionQuery.date = {};

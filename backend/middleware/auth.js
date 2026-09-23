@@ -66,7 +66,7 @@ const protect = async (req, res, next) => {
                 if (!req.branchId) {
                     return res.status(403).json({ message: 'Branch account has no branch context' });
                 }
-                if (req.role === 'teacher') {
+                if (req.role === 'teacher' || req.role === 'dugsi_teacher') {
                     const requestedBranchId = req.headers?.['x-branch-id'];
                     const authorizedBranchIds = [req.user.branchId, ...(req.user.authorizedBranchIds || [])]
                         .filter(Boolean)

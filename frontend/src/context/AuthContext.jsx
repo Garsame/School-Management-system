@@ -150,6 +150,8 @@ export const AuthProvider = ({ children }) => {
             window.location.href = '/cashier/login';
         } else if (role === 'teacher') {
             window.location.href = '/teacher/login';
+        } else if (role === 'dugsi_teacher') {
+            window.location.href = '/login';
         } else if (role === 'student') {
             window.location.href = '/student/login';
         } else {

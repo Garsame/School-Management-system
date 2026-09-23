@@ -791,6 +791,7 @@ exports.createAttendanceSession = async (req, res) => {
             teacherUserId: req.user._id,
             classId,
             academicYearId,
+            sessionType: 'SCHOOL',
             date,
             period
         });
@@ -823,7 +824,8 @@ exports.getAttendanceSessions = async (req, res) => {
         const query = {
             tenantId: req.tenantId,
             branchId: req.branchId,
-            teacherUserId: req.user._id
+            teacherUserId: req.user._id,
+            sessionType: 'SCHOOL'
         };
         if (classId) query.classId = classId;
         if (academicYearId) query.academicYearId = academicYearId;

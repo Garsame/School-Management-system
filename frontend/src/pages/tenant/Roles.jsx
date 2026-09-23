@@ -7,7 +7,7 @@ import { HOME_AREA_BY_ROLE, STAFF_AREAS } from '../../config/staffMenu';
 import { Badge, Button, Switch } from '../../components/ui';
 import { confirmAction, notify } from '../../components/feedback/notificationService';
 
-const ROLE_ORDER = ['super_admin', 'hr_payroll_manager', 'finance_director', 'registrar', 'branch_admin', 'cashier', 'teacher', 'parent', 'student'];
+const ROLE_ORDER = ['super_admin', 'hr_payroll_manager', 'finance_director', 'registrar', 'branch_admin', 'cashier', 'teacher', 'dugsi_teacher', 'parent', 'student'];
 
 // Catalog groups in the words the school uses.
 const GROUP_LABELS = {
@@ -19,6 +19,7 @@ const GROUP_LABELS = {
     Students: 'Students',
     Enrollments: 'Enrollments',
     Attendance: 'Attendance',
+    Dugsi: 'Dugsi (Quran circles & progress)',
     HR: 'People (HR)',
     Payroll: 'Payroll',
     Teacher: 'Teacher portal',

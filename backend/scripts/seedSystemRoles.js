@@ -28,6 +28,7 @@ const ROLE_PRESENTATION = {
     registrar: { name: 'Registrar', description: 'Admissions, enrollment, and student records.' },
     cashier: { name: 'Cashier', description: 'Records payments and issues receipts.' },
     teacher: { name: 'Teacher', description: 'Teaching schedule, attendance, and results.' },
+    dugsi_teacher: { name: 'Dugsi Teacher', description: 'Quran study circles, Dugsi attendance, and memorization progress.' },
     student: { name: 'Student', description: 'Student portal access.' },
     parent: { name: 'Parent', description: 'Parent portal access for linked children.' }
 };
@@ -39,7 +40,7 @@ const dataScopeFor = (roleKey) => {
     const scope = ROLE_SCOPE[roleKey];
     if (scope === 'platform') return { branches: 'all', records: 'all', fieldMasks: [] };
     if (scope === 'tenant') return { branches: 'all', records: 'all', fieldMasks: [] };
-    if (roleKey === 'teacher') return { branches: 'assigned', records: 'assigned', fieldMasks: [] };
+    if (roleKey === 'teacher' || roleKey === 'dugsi_teacher') return { branches: 'assigned', records: 'assigned', fieldMasks: [] };
     if (roleKey === 'student') return { branches: 'own', records: 'own', fieldMasks: [] };
     return { branches: 'own', records: 'all', fieldMasks: [] };
 };

@@ -120,6 +120,7 @@ export const BrandingProvider = ({ children }) => {
             user.role === 'registrar' ||
             user.role === 'cashier' ||
             user.role === 'teacher' ||
+            user.role === 'dugsi_teacher' ||
             user.role === 'student' ||
             user.role === 'parent'
         ) {

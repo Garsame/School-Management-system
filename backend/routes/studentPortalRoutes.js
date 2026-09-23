@@ -21,6 +21,7 @@ router.get('/results', requirePermission('student.results.view'), studentPortalC
 router.get('/rank', requirePermission('student.rank.view'), studentPortalController.getRank);
 router.get('/exams', requirePermission('student.results.view'), studentPortalController.getExams);
 router.get('/attendance', requirePermission('student.attendance.view'), studentPortalController.getAttendance);
+router.get('/dugsi', requirePermission('dugsi.student.view'), studentPortalController.getDugsiRecords);
 router.get('/timetable/today', requirePermission('student.schedule.view'), timetableController.getStudentTimetableToday);
 router.get('/timetable/week', requirePermission('student.schedule.view'), timetableController.getStudentTimetableWeek);
 router.post('/auth/change-password', requirePermission('student.password.change'), studentPortalController.changePassword);

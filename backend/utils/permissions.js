@@ -231,13 +231,22 @@ const PERMISSION_CATALOG = Object.freeze([
     createPermission('attendance.oversight.view', 'View school attendance', 'Attendance', 'See attendance for any class, and any student history.', ['super_admin', 'registrar']),
     createPermission('attendance.oversight.manage', 'Take school attendance', 'Attendance', 'Open attendance for any class, mark it, and close it.', ['super_admin', 'registrar']),
 
-    createPermission('hr.leaves.create', 'Create leave requests', 'HR', 'Create staff leave requests.', ['teacher', 'cashier', 'registrar', 'branch_admin']),
+    createPermission('dugsi.students.view', 'View Dugsi students', 'Dugsi', 'View students enrolled in own Quran Dugsi circles.', ['dugsi_teacher', 'branch_admin', 'super_admin']),
+    createPermission('dugsi.students.manage', 'Manage Dugsi students', 'Dugsi', 'Enroll or withdraw students in Quran Dugsi from assigned classes.', ['dugsi_teacher', 'branch_admin', 'super_admin']),
+    createPermission('dugsi.attendance.take', 'Take Dugsi attendance', 'Dugsi', 'Open and record attendance for Dugsi sessions.', ['dugsi_teacher', 'branch_admin', 'super_admin']),
+    createPermission('dugsi.progress.manage', 'Record Quran progress', 'Dugsi', 'Record daily Quran memorization and reading progress.', ['dugsi_teacher', 'branch_admin', 'super_admin']),
+    createPermission('dugsi.classes.assign', 'Assign Dugsi classes', 'Dugsi', 'Assign school classes and grades to Dugsi teachers.', ['super_admin', 'branch_admin']),
+    createPermission('dugsi.overview.view', 'View Dugsi oversight', 'Dugsi', 'View school-wide Dugsi circles, student lists, and Quran progress.', ['super_admin', 'branch_admin']),
+    createPermission('dugsi.parent.view', 'View child Dugsi records', 'Parent', 'View linked student Dugsi attendance and Quran progress.', ['parent']),
+    createPermission('dugsi.student.view', 'View own Dugsi records', 'Student', 'View own Dugsi attendance and Quran progress.', ['student']),
+
+    createPermission('hr.leaves.create', 'Create leave requests', 'HR', 'Create staff leave requests.', ['teacher', 'dugsi_teacher', 'cashier', 'registrar', 'branch_admin']),
     createPermission('hr.dashboard.view', 'View HR dashboard', 'HR', 'View school-wide staffing and payroll summaries.', ['hr_payroll_manager']),
     createPermission('hr.employees.view', 'View employees', 'HR', 'View employee and compensation profiles.', ['hr_payroll_manager']),
     createPermission('hr.employees.update', 'Request employee changes', 'HR', 'Submit employee compensation changes for Finance approval.', ['hr_payroll_manager']),
-    createPermission('hr.leaves.view', 'View leave requests', 'HR', 'View leave requests.', ['super_admin', 'hr_payroll_manager', 'branch_admin', 'teacher', 'cashier', 'registrar']),
+    createPermission('hr.leaves.view', 'View leave requests', 'HR', 'View leave requests.', ['super_admin', 'hr_payroll_manager', 'branch_admin', 'teacher', 'dugsi_teacher', 'cashier', 'registrar']),
     createPermission('hr.leaves.review', 'Review leave requests', 'HR', 'Approve or reject leave requests.', ['super_admin', 'hr_payroll_manager', 'branch_admin']),
-    createPermission('payroll.self.view', 'View own payroll', 'Payroll', 'View own payroll records.', ['teacher', 'cashier', 'registrar', 'branch_admin']),
+    createPermission('payroll.self.view', 'View own payroll', 'Payroll', 'View own payroll records.', ['teacher', 'dugsi_teacher', 'cashier', 'registrar', 'branch_admin']),
     createPermission('payroll.view', 'View payroll', 'Payroll', 'View branch or school payroll.', ['super_admin', 'finance_director', 'hr_payroll_manager', 'branch_admin', 'cashier']),
     createPermission('payroll.generate', 'Generate payroll', 'Payroll', 'Generate payroll records.', ['hr_payroll_manager']),
     createPermission('payroll.review', 'Review payroll', 'Payroll', 'Review draft payroll records.', ['hr_payroll_manager']),
@@ -278,6 +287,7 @@ const DEFAULT_ROLE_PERMISSIONS = Object.freeze({
     registrar: keysForRoles('registrar'),
     cashier: keysForRoles('cashier').filter((key) => key !== 'cashier.payments.reverse'),
     teacher: keysForRoles('teacher').filter((key) => key !== 'teacher.results.export'),
+    dugsi_teacher: keysForRoles('dugsi_teacher'),
     student: keysForRoles('student'),
     parent: keysForRoles('parent')
 });

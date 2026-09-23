@@ -235,9 +235,9 @@ exports.createBranchUser = async (req, res) => {
         const normalizedEmail = String(email).trim().toLowerCase();
 
         // Validation
-        const validRoles = ['teacher', 'cashier', 'registrar'];
+        const validRoles = ['teacher', 'dugsi_teacher', 'cashier', 'registrar'];
         if (!validRoles.includes(role.toLowerCase())) {
-            return sendError(res, 400, 'Invalid role. Allowed: TEACHER, CASHIER, REGISTRAR');
+            return sendError(res, 400, 'Invalid role. Allowed: TEACHER, DUGSI_TEACHER, CASHIER, REGISTRAR');
         }
 
         if (role.toLowerCase() === 'teacher') {

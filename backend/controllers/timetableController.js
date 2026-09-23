@@ -560,6 +560,7 @@ exports.openAttendanceForScheduledClass = async (req, res) => {
             branchId: req.branchId,
             classId,
             academicYearId,
+            sessionType: 'SCHOOL',
             date,
             period
         });
@@ -575,6 +576,7 @@ exports.openAttendanceForScheduledClass = async (req, res) => {
                 teacherUserId: req.user._id,
                 classId,
                 academicYearId,
+                sessionType: 'SCHOOL',
                 date,
                 period,
                 status: 'OPEN'

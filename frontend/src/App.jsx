@@ -32,6 +32,10 @@ const TenantRoles = lazy(() => import('./pages/tenant/Roles'));
 // One page, mounted in both shells: the head of school and the admissions officer see the
 // same attendance, scoped by the backend to what each may reach.
 const AttendanceOversight = lazy(() => import('./pages/attendance/AttendanceOversight'));
+const DugsiStudents = lazy(() => import('./pages/dugsi/DugsiStudents'));
+const DugsiAttendance = lazy(() => import('./pages/dugsi/DugsiAttendance'));
+const DugsiProgress = lazy(() => import('./pages/dugsi/DugsiProgress'));
+const DugsiOversight = lazy(() => import('./pages/branch/DugsiOversight'));
 const FinanceDashboard = lazy(() => import('./pages/finance/FinanceDashboard'));
 const FinancePolicies = lazy(() => import('./pages/finance/Policies'));
 const FeeStructures = lazy(() => import('./pages/finance/FeeStructures'));
@@ -185,6 +189,7 @@ function App() {
                 <Route path="students/:studentId" element={<TenantStudentDetails />} />
                 <Route path="audit-logs" element={<TenantAuditLogs />} />
                 <Route path="attendance" element={<AttendanceOversight />} />
+                <Route path="dugsi" element={<DugsiOversight />} />
                 <Route path="profile" element={<AccountProfile />} />
               </Route>
             </Route>
@@ -240,6 +245,7 @@ function App() {
                 <Route path="assignments" element={<BranchTeacherAssignments />} />
                 <Route path="timetable" element={<BranchTimetableBuilder />} />
                 <Route path="timetable/class/:classId" element={<BranchTimetableBuilder />} />
+                <Route path="dugsi" element={<DugsiOversight />} />
                 <Route path="reports" element={<BranchReports />} />
 
                 {/* HR Modules */}
@@ -276,6 +282,19 @@ function App() {
                 <Route path="payments" element={<CashierPayments />} />
                 <Route path="salary-payments" element={<PayrollDashboard />} />
                 <Route path="receipts/:paymentId" element={<CashierReceipt />} />
+                <Route path="profile" element={<AccountProfile />} />
+              </Route>
+            </Route>
+
+            {/* Dugsi Quran Routes */}
+            <Route path="/dugsi/login" element={<Navigate to="/login" replace />} />
+            <Route path="/dugsi/register" element={<Navigate to="/login" replace />} />
+            <Route element={<StaffArea scope="branch" />}>
+              <Route path="/dugsi">
+                <Route index element={<Navigate to="/dugsi/students" replace />} />
+                <Route path="students" element={<DugsiStudents />} />
+                <Route path="attendance" element={<DugsiAttendance />} />
+                <Route path="progress" element={<DugsiProgress />} />
                 <Route path="profile" element={<AccountProfile />} />
               </Route>
             </Route>

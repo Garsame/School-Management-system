@@ -512,7 +512,7 @@ exports.getAttendance = async (req, res) => {
         const studentId = req.user.studentId;
         if (!studentId) return sendError(res, 403, 'Unauthorized: No student identity linked to user');
 
-        const { schoolYearId, academicYearId } = req.query;
+        const { schoolYearId, academicYearId, sessionType } = req.query;
         const yearId = schoolYearId || academicYearId;
 
         const enrollment = await resolveStudentEnrollment({ req, studentId, schoolYearId: yearId });
@@ -524,19 +524,22 @@ exports.getAttendance = async (req, res) => {
             branchId: resolvedBranchId
         };
 
-        if (yearId) {
-            const sessions = await AttendanceSession.find({
+        if (yearId || sessionType) {
+            const sessionFilter = {
                 tenantId: req.tenantId,
                 branchId: resolvedBranchId,
-                academicYearId: yearId
-            }).select('_id');
-            query.sessionId = { $in: sessions.map(s => s._id) };
+                sessionType: sessionType || 'SCHOOL'
+            };
+            if (yearId) sessionFilter.academicYearId = yearId;
+            const sessions = await AttendanceSession.find(sessionFilter).select('_id');
+            query.sessionId = { $in: sessions.map((s) => s._id) };
         }
 
         const records = await AttendanceRecord.find(query)
             .populate({
                 path: 'sessionId',
-                select: 'date period classId teacherUserId academicYearId',
+                match: { sessionType: { $ne: 'DUGSI' } },
+                select: 'date period classId teacherUserId academicYearId sessionType',
                 populate: [
                     { path: 'classId', select: 'name' },
                     { path: 'teacherUserId', select: 'name' }
@@ -544,7 +547,82 @@ exports.getAttendance = async (req, res) => {
             })
             .sort({ createdAt: -1 });
 
-        sendResponse(res, true, records);
+        const validRecords = records.filter(r => r.sessionId);
+        sendResponse(res, true, validRecords);
+    } catch (error) {
+        sendError(res, 500, error.message);
+    }
+};
+
+// @desc    Get Student Dugsi Details & Quran Progress
+// @route   GET /api/student/dugsi
+// @access  Private (Student)
+exports.getDugsiRecords = async (req, res) => {
+    try {
+        const studentId = req.user.studentId;
+        if (!studentId) return sendError(res, 403, 'Unauthorized: No student identity linked to user');
+
+        const DugsiEnrollment = require('../models/DugsiEnrollment');
+        const QuranProgress = require('../models/QuranProgress');
+
+        const enrollment = await DugsiEnrollment.findOne({
+            tenantId: req.tenantId,
+            studentId,
+            status: 'ACTIVE'
+        }).populate('teacherUserId', 'name email').lean();
+
+        if (!enrollment) {
+            return sendResponse(res, true, {
+                isEnrolled: false,
+                message: 'You are not currently enrolled in Quran Dugsi'
+            });
+        }
+
+        const dugsiSessions = await AttendanceSession.find({
+            tenantId: req.tenantId,
+            sessionType: 'DUGSI'
+        }).select('_id date period status').sort({ date: -1 }).lean();
+        const sessionMap = new Map(dugsiSessions.map((s) => [String(s._id), s]));
+
+        const attendanceRecords = await AttendanceRecord.find({
+            studentId,
+            tenantId: req.tenantId,
+            sessionId: { $in: dugsiSessions.map((s) => s._id) }
+        }).lean();
+
+        const history = attendanceRecords.map((r) => ({
+            date: sessionMap.get(String(r.sessionId))?.date,
+            period: sessionMap.get(String(r.sessionId))?.period,
+            status: r.status
+        })).sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+
+        const counts = { PRESENT: 0, ABSENT: 0, LATE: 0, EXCUSED: 0 };
+        attendanceRecords.forEach((r) => {
+            counts[r.status] = (counts[r.status] || 0) + 1;
+        });
+        const total = attendanceRecords.length;
+        const attended = counts.PRESENT + counts.LATE;
+
+        const quranLogs = await QuranProgress.find({
+            tenantId: req.tenantId,
+            studentId
+        }).sort({ date: -1, createdAt: -1 }).lean();
+
+        sendResponse(res, true, {
+            isEnrolled: true,
+            teacher: enrollment.teacherUserId,
+            learningStage: enrollment.learningStage,
+            joinedDate: enrollment.joinedDate,
+            attendance: {
+                total,
+                attended,
+                counts,
+                rate: total > 0 ? Math.round((attended / total) * 100) : null,
+                history
+            },
+            latestProgress: quranLogs[0] || null,
+            quranHistory: quranLogs
+        });
     } catch (error) {
         sendError(res, 500, error.message);
     }

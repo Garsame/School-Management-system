@@ -16,6 +16,7 @@ const api = axios.create({
 const getLoginPathForRole = (role = '', path = '') => {
     const normalizedRole = String(role).toLowerCase();
     if (normalizedRole === 'teacher') return '/teacher/login';
+    if (normalizedRole === 'dugsi_teacher') return '/login';
     if (normalizedRole === 'student') return '/student/login';
     if (normalizedRole === 'registrar') return '/registrar/login';
     if (normalizedRole === 'cashier') return '/cashier/login';
@@ -26,6 +27,7 @@ const getLoginPathForRole = (role = '', path = '') => {
     if (normalizedRole === 'parent') return '/login';
 
     if (path.startsWith('/teacher')) return '/teacher/login';
+    if (path.startsWith('/dugsi')) return '/login';
     if (path.startsWith('/student')) return '/student/login';
     if (path.startsWith('/registrar')) return '/registrar/login';
     if (path.startsWith('/cashier')) return '/cashier/login';

@@ -60,10 +60,77 @@ const getParentDashboard = async (req, res) => {
             // Bills past their due date and not fully paid: the parent sees a warning for these.
             const late = invoices.filter((invoice) => isLate(invoice));
 
-            // Get attendance summary
-            const totalRecords = await AttendanceRecord.countDocuments({ studentId, tenantId: req.tenantId });
-            const attendedRecords = await AttendanceRecord.countDocuments({ studentId, tenantId: req.tenantId, status: { $in: ['PRESENT', 'LATE'] } });
+            // Get School attendance summary (strictly excluding Dugsi sessions)
+            const schoolSessions = await AttendanceSession.find({
+                tenantId: req.tenantId,
+                sessionType: { $ne: 'DUGSI' }
+            }).select('_id').lean();
+            const schoolSessionIds = schoolSessions.map((s) => s._id);
+
+            const totalRecords = await AttendanceRecord.countDocuments({
+                studentId,
+                tenantId: req.tenantId,
+                sessionId: { $in: schoolSessionIds }
+            });
+            const attendedRecords = await AttendanceRecord.countDocuments({
+                studentId,
+                tenantId: req.tenantId,
+                sessionId: { $in: schoolSessionIds },
+                status: { $in: ['PRESENT', 'LATE'] }
+            });
             const attendanceRate = totalRecords > 0 ? ((attendedRecords / totalRecords) * 100).toFixed(1) + '%' : 'N/A';
+
+            // Get Dugsi summary (if child is enrolled in Dugsi)
+            const DugsiEnrollment = require('../models/DugsiEnrollment');
+            const QuranProgress = require('../models/QuranProgress');
+            const dugsiEnrollment = await DugsiEnrollment.findOne({
+                tenantId: req.tenantId,
+                studentId,
+                status: 'ACTIVE'
+            }).populate('teacherUserId', 'name').lean();
+
+            let dugsi = null;
+            if (dugsiEnrollment) {
+                const dugsiSessions = await AttendanceSession.find({
+                    tenantId: req.tenantId,
+                    sessionType: 'DUGSI'
+                }).select('_id').lean();
+                const dugsiSessionIds = dugsiSessions.map((s) => s._id);
+
+                const dugsiTotal = await AttendanceRecord.countDocuments({
+                    studentId,
+                    tenantId: req.tenantId,
+                    sessionId: { $in: dugsiSessionIds }
+                });
+                const dugsiAttended = await AttendanceRecord.countDocuments({
+                    studentId,
+                    tenantId: req.tenantId,
+                    sessionId: { $in: dugsiSessionIds },
+                    status: { $in: ['PRESENT', 'LATE'] }
+                });
+                const latestQuran = await QuranProgress.findOne({
+                    tenantId: req.tenantId,
+                    studentId
+                }).sort({ date: -1, createdAt: -1 }).lean();
+
+                dugsi = {
+                    isEnrolled: true,
+                    teacherName: dugsiEnrollment.teacherUserId?.name || 'Assigned Teacher',
+                    learningStage: dugsiEnrollment.learningStage,
+                    attendanceRate: dugsiTotal > 0 ? `${((dugsiAttended / dugsiTotal) * 100).toFixed(1)}%` : 'N/A',
+                    attendedPeriods: dugsiAttended,
+                    totalPeriods: dugsiTotal,
+                    latestProgress: latestQuran ? {
+                        juz: latestQuran.juz,
+                        surahNumber: latestQuran.surahNumber,
+                        surahName: latestQuran.surahName,
+                        startAyah: latestQuran.startAyah,
+                        endAyah: latestQuran.endAyah,
+                        date: latestQuran.date,
+                        learningStage: latestQuran.learningStage
+                    } : null
+                };
+            }
 
             childrenData.push({
                 student: {
@@ -80,8 +147,14 @@ const getParentDashboard = async (req, res) => {
                 lateMonths: late.map((invoice) => invoice.billingPeriodLabel || 'School fees'),
                 attendanceRate,
                 attendedPeriods: attendedRecords,
-                missedPeriods: await AttendanceRecord.countDocuments({ studentId, tenantId: req.tenantId, status: 'ABSENT' }),
-                totalPeriods: totalRecords
+                missedPeriods: await AttendanceRecord.countDocuments({
+                    studentId,
+                    tenantId: req.tenantId,
+                    sessionId: { $in: schoolSessionIds },
+                    status: 'ABSENT'
+                }),
+                totalPeriods: totalRecords,
+                dugsi
             });
         }
 
@@ -529,15 +602,92 @@ const getStudentRank = async (req, res) => {
             className: enrollment.classId?.name || 'N/A',
             academicYearName: enrollment.academicYearId?.name || 'N/A'
         });
-      } catch (error) {
-          sendError(res, 500, error.message);
-      }
+    } catch (error) {
+        sendError(res, 500, error.message);
+    }
+};
+
+// @desc    Get Student Dugsi & Quran Progress
+// @route   GET /api/parent/students/:studentId/dugsi
+// @access  Private (Parent)
+const getStudentDugsiRecords = async (req, res) => {
+    try {
+        const { studentId } = req.params;
+        if (!verifyParentAccess(req, studentId)) {
+            return sendError(res, 403, 'Unauthorized access to student record');
+        }
+
+        const DugsiEnrollment = require('../models/DugsiEnrollment');
+        const QuranProgress = require('../models/QuranProgress');
+
+        const enrollment = await DugsiEnrollment.findOne({
+            tenantId: req.tenantId,
+            studentId,
+            status: 'ACTIVE'
+        }).populate('teacherUserId', 'name email phone').lean();
+
+        if (!enrollment) {
+            return sendResponse(res, true, {
+                isEnrolled: false,
+                message: 'Student is not currently enrolled in Quran Dugsi'
+            });
+        }
+
+        const dugsiSessions = await AttendanceSession.find({
+            tenantId: req.tenantId,
+            sessionType: 'DUGSI'
+        }).select('_id date period status').sort({ date: -1 }).lean();
+        const sessionMap = new Map(dugsiSessions.map((s) => [String(s._id), s]));
+
+        const attendanceRecords = await AttendanceRecord.find({
+            studentId,
+            tenantId: req.tenantId,
+            sessionId: { $in: dugsiSessions.map((s) => s._id) }
+        }).lean();
+
+        const history = attendanceRecords.map((r) => ({
+            date: sessionMap.get(String(r.sessionId))?.date,
+            period: sessionMap.get(String(r.sessionId))?.period,
+            status: r.status
+        })).sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+
+        const counts = { PRESENT: 0, ABSENT: 0, LATE: 0, EXCUSED: 0 };
+        attendanceRecords.forEach((r) => {
+            counts[r.status] = (counts[r.status] || 0) + 1;
+        });
+        const total = attendanceRecords.length;
+        const attended = counts.PRESENT + counts.LATE;
+
+        const quranLogs = await QuranProgress.find({
+            tenantId: req.tenantId,
+            studentId
+        }).sort({ date: -1, createdAt: -1 }).lean();
+
+        sendResponse(res, true, {
+            isEnrolled: true,
+            teacher: enrollment.teacherUserId,
+            learningStage: enrollment.learningStage,
+            joinedDate: enrollment.joinedDate,
+            attendance: {
+                total,
+                attended,
+                counts,
+                rate: total > 0 ? Math.round((attended / total) * 100) : null,
+                history
+            },
+            latestProgress: quranLogs[0] || null,
+            quranHistory: quranLogs
+        });
+    } catch (error) {
+        sendError(res, 500, error.message);
+    }
 };
 
 module.exports = {
     getParentDashboard,
     getStudentGrades,
     getStudentAttendance,
+    getStudentDugsiRecords,
     getStudentInvoices,
     getStudentPaymentRecordForParent,
     getNotifications,

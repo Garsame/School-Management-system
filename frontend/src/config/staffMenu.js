@@ -78,6 +78,7 @@ export const STAFF_AREAS = [
             { label: 'Academic Policy', path: '/tenant/academic-policy', icon: GraduationCap, permission: 'tenant.academicPolicy.view', keywords: ['curriculum', 'grade', 'rules', 'classes', 'education'] },
             { label: 'Students', path: '/tenant/students', icon: GraduationCap, permission: 'students.view', keywords: ['students', 'classes', 'history', 'enrollment'] },
             { label: 'Attendance', path: '/tenant/attendance', icon: CalendarCheck, permission: 'attendance.oversight.view', feature: 'attendance', keywords: ['attendance', 'register', 'present', 'absent', 'late'] },
+            { label: 'Dugsi Oversight', path: '/tenant/dugsi', icon: BookOpen, permission: 'dugsi.overview.view', keywords: ['dugsi', 'quran', 'oversight', 'classes', 'allocations'] },
             { label: 'Reports', path: '/tenant/reports', icon: BarChart3, permission: 'tenant.reports.view', keywords: ['stats', 'analytics', 'charts', 'performance', 'summary'] },
             { label: 'Audit Logs', path: '/tenant/audit-logs', icon: ClipboardList, permission: 'tenant.audit.view', keywords: ['history', 'security', 'actions', 'events', 'records', 'activity'] },
             { label: 'My Profile', path: '/tenant/profile', icon: UserIcon, homeOnly: true, keywords: ['profile', 'account', 'personal', 'avatar'] }
@@ -190,6 +191,7 @@ export const STAFF_AREAS = [
             { label: 'Exams', path: '/branch/exams', icon: FileText, permission: 'branch.exams.view', keywords: ['exam', 'test', 'grading', 'terms'] },
             { label: 'Results', path: '/branch/results', icon: Activity, permission: 'branch.results.view', keywords: ['scores', 'marks', 'report cards', 'performance'] },
             { label: 'Student Results', path: '/branch/results/student', icon: Activity, permission: 'branch.results.view', keywords: ['student marks', 'scorecards'] },
+            { label: 'Dugsi Oversight', path: '/branch/dugsi', icon: BookOpen, permission: 'dugsi.overview.view', keywords: ['dugsi', 'quran', 'oversight', 'classes', 'allocations'] },
             { label: 'Reports', path: '/branch/reports', icon: PieChart, permission: 'branch.reports.view', keywords: ['stats', 'analytics', 'data', 'overview'] },
             { label: 'My Profile', path: '/branch/account', icon: UserIcon, homeOnly: true, keywords: ['profile', 'account', 'personal', 'avatar'] }
         ]
@@ -213,6 +215,19 @@ export const STAFF_AREAS = [
             { label: 'Grading Policy', path: '/teacher/grading-policy', icon: FileSpreadsheet, permission: 'teacher.gradingPolicy.view' },
             { label: 'My Profile', path: '/teacher/profile', icon: UserIcon, homeOnly: true }
         ]
+    },
+    {
+        key: 'dugsi',
+        label: 'Quran Dugsi',
+        home: '/dugsi/students',
+        scope: 'branch',
+        roles: ['dugsi_teacher', 'teacher', 'branch_admin'],
+        items: [
+            { label: 'My Students', path: '/dugsi/students', icon: Users, permission: 'dugsi.students.view', keywords: ['students', 'quran', 'roster', 'classes', 'dugsi'] },
+            { label: 'Dugsi Attendance', path: '/dugsi/attendance', icon: CalendarCheck, permission: 'dugsi.attendance.take', keywords: ['register', 'attendance', 'dugsi', 'present'] },
+            { label: 'Quran Progress', path: '/dugsi/progress', icon: BookOpen, permission: 'dugsi.progress.manage', keywords: ['quran', 'juz', 'surah', 'memorization', 'reading'] },
+            { label: 'My Profile', path: '/dugsi/profile', icon: UserIcon, homeOnly: true }
+        ]
     }
 ];
 
@@ -225,7 +240,8 @@ export const HOME_AREA_BY_ROLE = Object.freeze({
     cashier: 'payments',
     registrar: 'admissions',
     branch_admin: 'branch',
-    teacher: 'teacher'
+    teacher: 'teacher',
+    dugsi_teacher: 'dugsi'
 });
 
 export const STAFF_ROLES = Object.keys(HOME_AREA_BY_ROLE);

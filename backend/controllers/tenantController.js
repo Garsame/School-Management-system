@@ -43,8 +43,8 @@ const {
 } = require('../services/transferGradeService');
 
 const ACTIVE_ENROLLMENT_STATUSES = ['Current', 'Active', 'active'];
-const TENANT_MANAGED_ACCOUNT_ROLES = ['super_admin', 'finance_director', 'hr_payroll_manager', 'branch_admin', 'registrar', 'cashier', 'teacher'];
-const PERMISSION_MANAGED_STAFF_ROLES = ['finance_director', 'hr_payroll_manager', 'branch_admin', 'teacher', 'registrar', 'cashier'];
+const TENANT_MANAGED_ACCOUNT_ROLES = ['super_admin', 'finance_director', 'hr_payroll_manager', 'branch_admin', 'registrar', 'cashier', 'teacher', 'dugsi_teacher'];
+const PERMISSION_MANAGED_STAFF_ROLES = ['finance_director', 'hr_payroll_manager', 'branch_admin', 'teacher', 'dugsi_teacher', 'registrar', 'cashier'];
 
 /**
  * Which roles a school administrator may fill.
@@ -491,7 +491,7 @@ const getUsers = asyncHandler(async (req, res) => {
     const categoryRoles = category === 'all_staff'
         ? PERMISSION_MANAGED_STAFF_ROLES
         : category === 'branch_staff'
-            ? ['teacher', 'registrar', 'cashier']
+            ? ['teacher', 'dugsi_teacher', 'registrar', 'cashier', 'branch_admin']
             : TENANT_MANAGED_ACCOUNT_ROLES;
     const query = { tenantId: req.tenantId, role: { $in: categoryRoles } };
 

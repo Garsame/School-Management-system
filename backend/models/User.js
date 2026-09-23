@@ -18,7 +18,7 @@ const userSchema = new mongoose.Schema({
     passwordHash: { type: String, required: true, minlength: 8 },
     role: {
         type: String,
-        enum: ['super_admin', 'finance_director', 'hr_payroll_manager', 'branch_admin', 'teacher', 'cashier', 'registrar', 'platform_owner', 'student', 'parent'],
+        enum: ['super_admin', 'finance_director', 'hr_payroll_manager', 'branch_admin', 'teacher', 'dugsi_teacher', 'cashier', 'registrar', 'platform_owner', 'student', 'parent'],
         required: true
     },
     // The Role record backing `role`. `role` stays the authoritative string so existing

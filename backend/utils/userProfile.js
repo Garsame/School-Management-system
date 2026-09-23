@@ -5,6 +5,7 @@ const STAFF_ROLES = new Set([
     'hr_payroll_manager',
     'branch_admin',
     'teacher',
+    'dugsi_teacher',
     'cashier',
     'registrar'
 ]);

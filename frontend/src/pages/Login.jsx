@@ -36,6 +36,7 @@ const Login = () => {
             else if (role === 'registrar')      navigate('/registrar');
             else if (role === 'cashier')        navigate('/cashier');
             else if (role === 'teacher')        navigate('/teacher');
+            else if (role === 'dugsi_teacher')  navigate('/dugsi/students');
             else if (role === 'student')        navigate('/student');
             else if (role === 'parent')         navigate('/parent');
             else                                navigate('/');

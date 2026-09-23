@@ -58,7 +58,7 @@ test('administrators cannot provision platform owners', () => {
     assert.equal(TENANT_ADMIN_CREATABLE_ROLES.has('super_admin'), false);
     assert.equal(BRANCH_ADMIN_CREATABLE_ROLES.has('platform_owner'), false);
     assert.equal(BRANCH_ADMIN_CREATABLE_ROLES.has('super_admin'), false);
-    assert.deepEqual([...BRANCH_ADMIN_CREATABLE_ROLES].sort(), ['cashier', 'registrar', 'teacher']);
+    assert.deepEqual([...BRANCH_ADMIN_CREATABLE_ROLES].sort(), ['cashier', 'dugsi_teacher', 'registrar', 'teacher']);
 });
 
 test('temporary passwords are simple eight-digit one-time credentials and non-deterministic', () => {

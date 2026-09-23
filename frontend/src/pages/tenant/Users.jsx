@@ -19,11 +19,15 @@ import { hasPermission } from '../../utils/permissions';
 import { confirmAction, notify } from '../../components/feedback/notificationService';
 
 const PORTAL_ROLES = ['student', 'parent'];
-// Used only if the school's roles cannot be read (the viewer lacks tenant.roles.view).
 const FALLBACK_ROLES = [
+    { value: 'super_admin', label: 'Super Admin', scope: 'tenant' },
     { value: 'finance_director', label: 'Finance Director', scope: 'tenant' },
     { value: 'hr_payroll_manager', label: 'HR & Payroll Manager', scope: 'tenant' },
-    { value: 'branch_admin', label: 'Branch Admin', scope: 'branch' }
+    { value: 'branch_admin', label: 'Branch Admin', scope: 'branch' },
+    { value: 'registrar', label: 'Admissions Officer / Registrar', scope: 'branch' },
+    { value: 'cashier', label: 'Cashier', scope: 'branch' },
+    { value: 'teacher', label: 'Academic Teacher', scope: 'branch' },
+    { value: 'dugsi_teacher', label: 'Dugsi Teacher (Macallin Dugsi)', scope: 'branch' }
 ];
 
 const UsersManagement = () => {
