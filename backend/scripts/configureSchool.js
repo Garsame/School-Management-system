@@ -444,27 +444,34 @@ async function stepAcademics(adminSession) {
 
 async function stepDugsi(adminSession) {
     console.log('\n🔵 STEP 5: Allocating Classes to Macallin Dugsi...');
-    const usersRes = await adminSession.get('/tenant/users?category=all_staff');
-    const users = unwrap(usersRes) || [];
-    const dugsiTeacher = users.find((u) => u.role === 'dugsi_teacher');
+    const allocRes = await adminSession.get('/dugsi/admin/allocations');
+    const allocData = unwrap(allocRes) || {};
+    const teachers = allocData.teachers || [];
+    const availableClasses = allocData.availableClasses || [];
+
+    let dugsiTeacher = teachers.find((u) => u.role === 'dugsi_teacher');
+    if (!dugsiTeacher) {
+        const usersRes = await adminSession.get('/tenant/users?category=all_staff');
+        const users = unwrap(usersRes) || [];
+        dugsiTeacher = users.find((u) => u.role === 'dugsi_teacher');
+    }
+
     if (!dugsiTeacher) {
         console.log('  ⚠️ No Macallin Dugsi account found. Run the "staff" step first.');
         return;
     }
 
-    const classesRes = await adminSession.get('/branch/classes');
-    const classes = unwrap(classesRes) || [];
-    if (!classes.length) {
+    if (!availableClasses.length) {
         console.log('  ⚠️ No classes found. Run the "academics" step first.');
         return;
     }
 
     try {
-        await adminSession.post('/dugsi/admin/allocations', {
+        await adminSession.post('/dugsi/admin/allocate-classes', {
             teacherUserId: dugsiTeacher._id,
-            classIds: classes.map((c) => c._id)
+            classIds: availableClasses.map((c) => c._id)
         });
-        console.log(`  ✅ Allocated ${classes.length} classes to Macallin Dugsi (${dugsiTeacher.name}).`);
+        console.log(`  ✅ Allocated ${availableClasses.length} classes to Macallin Dugsi (${dugsiTeacher.name}).`);
     } catch (err) {
         console.log(`  ℹ️ Dugsi Allocation: ${err.message}`);
     }
@@ -488,7 +495,11 @@ async function stepFees(adminSession) {
     const branch = unwrap(branchesRes)[0];
     const yearsRes = await adminSession.get('/tenant/academic-years');
     const currentYear = (unwrap(yearsRes) || []).find((y) => y.isCurrent);
-    const classes = unwrap(await adminSession.get('/branch/classes')) || [];
+    
+    // Available classes from tenant-scoped endpoint
+    const allocRes = await adminSession.get('/dugsi/admin/allocations');
+    const allocData = unwrap(allocRes) || {};
+    const classes = allocData.availableClasses || [];
 
     if (!currentYear) throw new Error('No current academic year found!');
 
