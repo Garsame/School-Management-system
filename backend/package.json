@@ -14,6 +14,7 @@
     "migrate:roles:dry": "node scripts/seedSystemRoles.js --dry-run",
     "demo:wipe-and-bootstrap": "node scripts/demoSchool/01-bootstrap.js",
     "demo:build": "node scripts/demoSchool/build.js --skip-bootstrap",
+    "school:configure": "node scripts/configureSchool.js",
     "map": "node scripts/generateAppMap.js --check"
   },
   "keywords": [],

@@ -19,6 +19,7 @@
     "lint": "npm --prefix frontend run lint",
     "demo:wipe-and-bootstrap": "npm --prefix backend run demo:wipe-and-bootstrap",
     "demo:build": "npm --prefix backend run demo:build",
+    "school:configure": "npm --prefix backend run school:configure",
     "map": "npm --prefix backend run map"
   }
 }
