@@ -6,13 +6,7 @@ const tenantService = {
 
   // Branding
   getBranding: () => api.get('/tenant/settings/branding'),
-  updateBranding: (data) => api.put(
-    '/tenant/settings/branding',
-    data,
-    data instanceof FormData
-      ? { headers: { 'Content-Type': 'multipart/form-data' } }
-      : undefined
-  ),
+  updateBranding: (data) => api.put('/tenant/settings/branding', data),
 
   // Branches
   getBranches: () => api.get('/tenant/branches'),

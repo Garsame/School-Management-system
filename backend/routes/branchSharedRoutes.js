@@ -28,6 +28,7 @@ router.get('/sections', requirePermission('branch.classes.view'), getSections);
 router.get('/subjects', requirePermission('branch.classes.view'), getSubjects);
 router.get('/class-subjects', requirePermission('branch.classes.view'), getClassSubjects);
 router.get('/academic-years/current', requirePermission('branch.classes.view'), getCurrentAcademicYear);
+router.get('/student-id-config', requirePermission('branch.classes.view'), require('../controllers/branchAdminController').getStudentIdConfig);
 router.get('/students', requirePermission('students.view'), getStudents);
 
 module.exports = router;

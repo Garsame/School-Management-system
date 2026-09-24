@@ -326,7 +326,7 @@ const Students = () => {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                     <input 
                         className="w-full pl-10 pr-4 h-11 border border-[var(--border)] bg-white rounded-xl text-slate-800 outline-none transition-all placeholder:text-slate-400 focus:border-[var(--primary)] focus:ring-4 focus:ring-blue-100/60 text-sm"
-                        placeholder="Search by name or admission no..."
+                        placeholder="Search student by name, admission no, parent..."
                         value={filters.q}
                         onChange={(e) => handleFilterChange('q', e.target.value)}
                     />
@@ -367,7 +367,7 @@ const Students = () => {
                                         onClick={() => navigate(`/registrar/students/${s._id}`)}
                                     >
                                         <td className="px-4 py-3 font-mono text-xs font-semibold text-slate-800">{s.admissionNumber}</td>
-                                        <td className="px-4 py-3 font-semibold text-slate-700 text-sm">{s.firstName} {s.lastName}</td>
+                                        <td className="px-4 py-3 font-semibold text-slate-700 text-sm">{[s.firstName, s.middleName, s.lastName].filter(Boolean).join(' ')}</td>
                                         <td className="px-4 py-3 text-sm text-slate-700">{s.currentEnrollment?.classId?.name || '-'}</td>
                                         <td className="px-4 py-3 text-sm text-slate-600">{s.currentEnrollment?.academicYearId?.name || '-'}</td>
                                         <td className="px-4 py-3 text-sm">

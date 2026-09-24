@@ -51,6 +51,9 @@ router.get('/class-subjects', requirePermission('branch.classes.view'), require(
 router.post('/class-subjects', requirePermission('branch.subjects.manage'), require('../controllers/branchAdminController').createClassSubject);
 router.delete('/class-subjects/:id', requirePermission('branch.subjects.manage'), require('../controllers/branchAdminController').deleteClassSubject);
 
+router.get('/student-id-config', requirePermission('branch.classes.view'), require('../controllers/branchAdminController').getStudentIdConfig);
+router.put('/student-id-config', requirePermission('branch.classes.update'), require('../controllers/branchAdminController').updateStudentIdConfig);
+
 // Academic years are shared reference data, but they still need a gate: without the
 // blanket role check below, any branch-scoped account could read them. Anyone doing
 // academic work in the branch holds at least one of these.

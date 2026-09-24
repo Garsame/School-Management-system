@@ -6,6 +6,7 @@ const { logAction } = require('../services/auditLogService');
 const mongoose = require('mongoose');
 const { recordInvoicePayment, recordStudentPayment, reverseInvoicePayment } = require('../services/paymentService');
 const { getStudentPaymentRecord } = require('../services/studentAccountService');
+const { buildStudentSearchCriteria } = require('../utils/studentSearch');
 const exportService = require('../services/exportService');
 
 const getDayBounds = (value) => {
@@ -114,16 +115,13 @@ exports.searchInvoices = async (req, res) => {
         let found = false;
 
         if (q && String(q).trim()) {
-            const search = String(q).trim().slice(0, 80).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const students = await Student.find({
+            const criteria = buildStudentSearchCriteria(q);
+            const studentFilter = {
                 tenantId: req.user.tenantId,
-                ...branchScope(req),
-                $or: [
-                    { admissionNumber: { $regex: search, $options: 'i' } },
-                    { firstName: { $regex: search, $options: 'i' } },
-                    { lastName: { $regex: search, $options: 'i' } }
-                ]
-            }).select('_id').limit(25);
+                ...branchScope(req)
+            };
+            if (criteria.length) studentFilter.$and = criteria;
+            const students = await Student.find(studentFilter).select('_id').limit(50);
             const choices = [{ studentId: { $in: students.map(student => student._id) } }];
             if (mongoose.Types.ObjectId.isValid(String(q).trim())) choices.push({ _id: String(q).trim() });
             query.$or = choices;
@@ -263,17 +261,21 @@ exports.createPayment = async (req, res) => {
 // @access  cashier.invoices.search
 exports.searchStudentAccounts = async (req, res) => {
     try {
-        const tokens = String(req.query.q || '').trim().split(/\s+/).filter(Boolean).slice(0, 4);
-        if (!tokens.length || tokens.join('').length < 2) return res.json({ success: true, data: [] });
+        const criteria = buildStudentSearchCriteria(req.query.q);
+        if (!criteria.length) return res.json({ success: true, data: [] });
 
-        const students = await Student.find({
+        const studentFilter = {
             tenantId: req.user.tenantId,
             ...branchScope(req),
-            $and: tokens.map((token) => {
-                const pattern = { $regex: token.slice(0, 40).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' };
-                return { $or: [{ firstName: pattern }, { lastName: pattern }, { admissionNumber: pattern }] };
-            })
-        }).select('firstName lastName admissionNumber status').limit(20).lean();
+            $and: criteria
+        };
+
+        const students = await Student.find(studentFilter)
+            .select('firstName middleName lastName admissionNumber studentCode status')
+            .limit(20)
+            .lean();
+
+        if (!students.length) return res.json({ success: true, data: [] });
 
         const owed = await Invoice.aggregate([
             { $match: {
@@ -290,8 +292,9 @@ exports.searchStudentAccounts = async (req, res) => {
             success: true,
             data: students.map((student) => ({
                 _id: student._id,
-                name: `${student.firstName} ${student.lastName}`.trim(),
+                name: [student.firstName, student.middleName, student.lastName].filter(Boolean).join(' ').trim(),
                 admissionNumber: student.admissionNumber,
+                studentCode: student.studentCode,
                 status: student.status,
                 owed: Math.round((owedByStudent.get(String(student._id))?.owed || 0) * 100) / 100,
                 unpaidMonths: owedByStudent.get(String(student._id))?.months || 0

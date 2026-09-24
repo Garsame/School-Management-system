@@ -77,10 +77,12 @@ const Payments = () => {
                     <Select 
                         label="Method"
                         options={[
-                            {label: 'Cash', value: 'Cash'},
-                            {label: 'Card', value: 'Card'},
-                            {label: 'Bank Transfer', value: 'Bank Transfer'},
-                            {label: 'Online', value: 'Online'}
+                            { label: 'Cash', value: 'CASH' },
+                            { label: 'EVC Plus', value: 'EVC_PLUS' },
+                            { label: 'Zaad', value: 'ZAAD' },
+                            { label: 'Bank Transfer', value: 'BANK_TRANSFER' },
+                            { label: 'Card / POS', value: 'CARD' },
+                            { label: 'Other', value: 'OTHER' }
                         ]}
                         value={draftFilters.method}
                         onChange={e => setDraftFilters({...draftFilters, method: e.target.value})}
@@ -139,7 +141,7 @@ const Payments = () => {
                                         <td className="px-4 py-3 font-bold text-slate-700">
                                             INV-{typeof pay.invoiceId === 'object' && pay.invoiceId ? pay.invoiceId._id?.slice(-6) : typeof pay.invoiceId === 'string' ? pay.invoiceId.slice(-6) : 'N/A'}
                                         </td>
-                                        <td className="px-4 py-3 font-semibold text-slate-700">{pay.invoiceId?.studentId ? `${pay.invoiceId.studentId.firstName} ${pay.invoiceId.studentId.lastName}` : 'N/A'}<span className="block font-mono text-[10px] text-slate-400">{pay.invoiceId?.studentId?.admissionNumber || ''}</span></td>
+                                        <td className="px-4 py-3 font-semibold text-slate-700">{pay.invoiceId?.studentId ? [pay.invoiceId.studentId.firstName, pay.invoiceId.studentId.middleName, pay.invoiceId.studentId.lastName].filter(Boolean).join(' ') : 'N/A'}<span className="block font-mono text-[10px] text-slate-400">{pay.invoiceId?.studentId?.admissionNumber || ''}</span></td>
                                         <td className="px-4 py-3 text-slate-500">
                                             {new Date(pay.date || pay.createdAt).toLocaleDateString()} {new Date(pay.date || pay.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </td>

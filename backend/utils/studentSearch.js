@@ -8,14 +8,18 @@ const SEARCHABLE_STUDENT_FIELDS = [
     'admissionNumber',
     'studentCode',
     'guardianInfo.name',
-    'guardians.name'
+    'guardianInfo.phone',
+    'guardianInfo.email',
+    'guardians.name',
+    'notes'
 ];
 
 const buildStudentSearchCriteria = (query) => {
     const terms = String(query || '').trim().split(/\s+/).filter(Boolean);
+    if (!terms.length) return [];
 
     return terms.map((term) => {
-        const matcher = new RegExp(escapeRegex(term), 'i');
+        const matcher = new RegExp(escapeRegex(term).slice(0, 50), 'i');
         return {
             $or: SEARCHABLE_STUDENT_FIELDS.map((field) => ({ [field]: matcher }))
         };

@@ -392,4 +392,162 @@ const transferStudent = async (req, res) => {
     }
 };
 
-module.exports = { promoteStudents, transferStudent, getTransferBranches, getTransferClasses, getTransferSections };
+// @desc    Transfer a student to another class in the same branch
+// @route   POST /api/academic/transfer/class
+const transferStudentClass = async (req, res) => {
+    const { studentId, newClassId, newSectionId, reason } = req.body;
+    if (!studentId || !newClassId) {
+        return res.status(400).json({ message: 'Student and destination class are required.' });
+    }
+
+    try {
+        const studentQuery = { _id: studentId, tenantId: req.tenantId };
+        if (req.branchId) studentQuery.branchId = req.branchId;
+        const student = await Student.findOne(studentQuery);
+        if (!student) return res.status(403).json({ message: 'Access denied for this academic resource.' });
+
+        const effectiveBranchId = student.branchId || req.branchId;
+
+        const [activeYear, targetClass] = await Promise.all([
+            AcademicYear.findOne({ tenantId: req.tenantId, isCurrent: true }),
+            Class.findOne({ _id: newClassId, tenantId: req.tenantId, branchId: effectiveBranchId })
+        ]);
+
+        if (!activeYear) {
+            return res.status(400).json({ message: 'No active academic year found.' });
+        }
+        if (!targetClass) {
+            return res.status(400).json({ message: 'Destination class not found in this branch.' });
+        }
+
+        let targetSection = null;
+        if (newSectionId) {
+            targetSection = await Section.findOne({
+                _id: newSectionId,
+                tenantId: req.tenantId,
+                branchId: effectiveBranchId,
+                classId: newClassId,
+                isActive: { $ne: false }
+            });
+            if (!targetSection) return res.status(400).json({ message: 'Invalid destination section.' });
+            if (targetSection.capacity > 0) {
+                const sectionCount = await Enrollment.countDocuments({
+                    tenantId: req.tenantId,
+                    branchId: effectiveBranchId,
+                    sectionId: targetSection._id,
+                    academicYearId: activeYear._id,
+                    isCurrent: true
+                });
+                if (sectionCount >= targetSection.capacity) {
+                    return res.status(409).json({ message: 'Destination section is full.' });
+                }
+            }
+        }
+
+        const currentEnrollments = await Enrollment.find({
+            tenantId: req.tenantId,
+            studentId,
+            branchId: effectiveBranchId,
+            academicYearId: activeYear._id,
+            status: { $in: ['Current', 'Active', 'active'] }
+        }).populate('classId', 'name gradeLevel').populate('sectionId', 'name');
+
+        if (currentEnrollments.length === 0) {
+            return res.status(400).json({ message: 'Student has no active enrollment in the current academic year. Use Re-Enrollment instead.' });
+        }
+
+        const currentEnrollment = currentEnrollments[0];
+        const isSameClass = String(currentEnrollment.classId?._id || currentEnrollment.classId) === String(newClassId);
+        const isSameSection = String(currentEnrollment.sectionId?._id || currentEnrollment.sectionId || '') === String(newSectionId || '');
+
+        if (isSameClass && isSameSection) {
+            return res.status(400).json({ message: 'Student is already enrolled in this class and section.' });
+        }
+
+        const previousClassSnapshot = {
+            classId: currentEnrollment.classId?._id || currentEnrollment.classId,
+            className: currentEnrollment.classId?.name || '',
+            sectionId: currentEnrollment.sectionId?._id || currentEnrollment.sectionId || null,
+            sectionName: currentEnrollment.sectionId?.name || ''
+        };
+
+        let newEnrollment = null;
+        try {
+            await Enrollment.updateMany(
+                { _id: { $in: currentEnrollments.map(({ _id }) => _id) }, tenantId: req.tenantId },
+                { $set: { status: 'Transferred' } }
+            );
+
+            newEnrollment = await Enrollment.create({
+                tenantId: req.tenantId,
+                branchId: effectiveBranchId,
+                studentId,
+                classId: newClassId,
+                sectionId: targetSection?._id || null,
+                academicYearId: activeYear._id,
+                status: 'Current'
+            });
+
+            if (student.status !== 'Active') {
+                await Student.updateOne({ _id: studentId, tenantId: req.tenantId }, { status: 'Active', updatedBy: req.user?._id });
+            }
+        } catch (error) {
+            if (newEnrollment) await Enrollment.deleteOne({ _id: newEnrollment._id, tenantId: req.tenantId }).catch(() => {});
+            for (const enrollment of currentEnrollments) {
+                await Enrollment.updateOne({ _id: enrollment._id, tenantId: req.tenantId }, { $set: { status: enrollment.status } }).catch(() => {});
+            }
+            throw error;
+        }
+
+        await logAction({
+            tenantId: req.tenantId,
+            branchId: effectiveBranchId,
+            actorUserId: req.user?._id,
+            actorRole: req.user?.role || 'branch_admin',
+            action: 'STUDENT_CLASS_TRANSFER',
+            entityType: 'Student',
+            entityId: student._id.toString(),
+            before: previousClassSnapshot,
+            after: {
+                classId: newClassId,
+                className: targetClass.name,
+                sectionId: targetSection?._id || null,
+                sectionName: targetSection?.name || '',
+                reason: String(reason || 'Class transfer').trim()
+            },
+            ip: req.ip,
+            userAgent: req.get?.('User-Agent')
+        });
+
+        const populatedEnrollment = await Enrollment.findById(newEnrollment._id)
+            .populate('classId', 'name gradeLevel')
+            .populate('sectionId', 'name')
+            .populate('academicYearId', 'name isCurrent');
+
+        res.json({
+            success: true,
+            message: 'Student transferred to new class successfully.',
+            data: {
+                enrollment: populatedEnrollment,
+                previousClass: previousClassSnapshot,
+                newClass: {
+                    id: targetClass._id,
+                    name: targetClass.name,
+                    section: targetSection?.name || null
+                }
+            }
+        });
+    } catch (error) {
+        if (error.code === 11000) return res.status(409).json({ message: 'Student already has an active enrollment in this academic year.' });
+        res.status(error.statusCode || 500).json({ message: error.message || 'Class transfer failed.' });
+    }
+};
+
+module.exports = {
+    promoteStudents,
+    transferStudent,
+    transferStudentClass,
+    getTransferBranches,
+    getTransferClasses,
+    getTransferSections
+};

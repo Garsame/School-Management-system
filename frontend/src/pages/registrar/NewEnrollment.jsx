@@ -171,7 +171,7 @@ const NewEnrollment = () => {
                                         disabled={Boolean(s.currentEnrollment) || ['Graduated', 'Transferred'].includes(s.status)}
                                     >
                                         <div>
-                                            <div className="font-bold text-slate-800 text-sm">{s.firstName} {s.lastName}</div>
+                                            <div className="font-bold text-slate-800 text-sm">{[s.firstName, s.middleName, s.lastName].filter(Boolean).join(' ')}</div>
                                             <div className="text-xs text-slate-500">{s.admissionNumber}</div>
                                         </div>
                                         <span className={`text-xs font-bold ${s.currentEnrollment ? 'text-amber-700' : 'text-[var(--primary)]'}`}>

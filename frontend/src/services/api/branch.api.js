@@ -144,6 +144,11 @@ export const transferStudent = async (data) => {
     return response.data;
 };
 
+export const transferStudentClass = async (data) => {
+    const response = await http.post('/academic/transfer/class', data);
+    return response.data;
+};
+
 // --- Exams ---
 export const getExams = async (filters = {}) => {
     const query = new URLSearchParams(filters).toString();
@@ -234,3 +239,15 @@ export const getBranchOverview = async (academicYearId = '') => {
     const response = await http.get(`/branch/reports/overview?academicYearId=${academicYearId}`);
     return response.data;
 };
+
+// --- Student ID Format Configuration ---
+export const getStudentIdConfig = async () => {
+    const response = await http.get('/branch/student-id-config');
+    return response.data;
+};
+
+export const updateStudentIdConfig = async (data) => {
+    const response = await http.put('/branch/student-id-config', data);
+    return response.data;
+};
+

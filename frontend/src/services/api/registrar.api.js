@@ -41,6 +41,10 @@ export const createEnrollment = async (data) => {
     return await http.post('/registrar/enrollments', data);
 };
 
+export const transferStudentClass = async (data) => {
+    return await http.post('/academic/transfer/class', data);
+};
+
 export const apiResetStudentPassword = async (id) => {
     return await http.put(`/registrar/students/${id}/reset-password`);
 };

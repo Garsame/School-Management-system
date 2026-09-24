@@ -88,7 +88,7 @@ exports.getCandidateStudents = async (req, res) => {
             classId: { $in: classIds },
             academicYearId: academicYear._id,
             status: { $in: ['Current', 'Active', 'active'] }
-        }).populate('studentId', 'firstName lastName admissionNumber gender').populate('classId', 'name gradeLevel').lean();
+        }).populate('studentId', 'firstName middleName lastName admissionNumber studentCode gender').populate('classId', 'name gradeLevel').lean();
 
         const studentIds = enrollments.map((e) => e.studentId?._id).filter(Boolean);
 
@@ -112,8 +112,9 @@ exports.getCandidateStudents = async (req, res) => {
 
             return {
                 studentId: s._id,
-                name: `${s.firstName} ${s.lastName}`.trim(),
+                name: [s.firstName, s.middleName, s.lastName].filter(Boolean).join(' ').trim(),
                 admissionNumber: s.admissionNumber,
+                studentCode: s.studentCode,
                 gender: s.gender,
                 classId: e.classId?._id,
                 className: e.classId?.name,
@@ -277,7 +278,7 @@ exports.getMyDugsiStudents = async (req, res) => {
             teacherUserId: targetTeacherId,
             academicYearId: academicYear._id,
             status: 'ACTIVE'
-        }).populate('studentId', 'firstName lastName admissionNumber gender').lean();
+        }).populate('studentId', 'firstName middleName lastName admissionNumber studentCode gender').lean();
 
         const studentIds = enrollments.map((e) => e.studentId?._id).filter(Boolean);
 
@@ -311,8 +312,9 @@ exports.getMyDugsiStudents = async (req, res) => {
             return {
                 _id: s._id,
                 dugsiEnrollmentId: e._id,
-                name: `${s.firstName} ${s.lastName}`.trim(),
+                name: [s.firstName, s.middleName, s.lastName].filter(Boolean).join(' ').trim(),
                 admissionNumber: s.admissionNumber,
+                studentCode: s.studentCode,
                 gender: s.gender,
                 className: classMap.get(String(s._id)) || 'N/A',
                 learningStage: e.learningStage,

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { createAcademicYear, createClass, getAcademicYears, getClasses } = require('../controllers/academicController');
-const { promoteStudents, transferStudent, getTransferBranches, getTransferClasses, getTransferSections } = require('../controllers/promotionController');
+const { promoteStudents, transferStudent, transferStudentClass, getTransferBranches, getTransferClasses, getTransferSections } = require('../controllers/promotionController');
 const { protect, tenantGuard, branchGuard } = require('../middleware/auth');
 const { requireAnyPermission, requirePermission } = require('../middleware/permissions');
 
@@ -17,5 +17,6 @@ router.get('/transfer/branches', requirePermission('branch.transfers.run'), bran
 router.get('/transfer/branches/:targetBranchId/classes', requirePermission('branch.transfers.run'), branchGuard, getTransferClasses);
 router.get('/transfer/branches/:targetBranchId/classes/:classId/sections', requirePermission('branch.transfers.run'), branchGuard, getTransferSections);
 router.post('/transfer', requirePermission('branch.transfers.run'), branchGuard, transferStudent);
+router.post('/transfer/class', requireAnyPermission(['branch.transfers.run', 'enrollments.create']), branchGuard, transferStudentClass);
 
 module.exports = router;

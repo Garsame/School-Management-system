@@ -9,6 +9,7 @@ const User = require('../models/User');
 const { generateTemporaryPassword } = require('../utils/passwords');
 const { normalizeDate } = require('../utils/userProfile');
 const { provisionParentAccess, rollbackParentAccess } = require('../services/parentAccessService');
+const { buildStudentSearchCriteria } = require('../utils/studentSearch');
 
 const applyBranchScope = (req, query) => {
     if (req.scope === 'branch') query.branchId = req.branchId;
@@ -203,17 +204,14 @@ const admitStudent = async (req, res) => {
 const getStudents = async (req, res) => {
     try {
         const query = applyBranchScope(req, { tenantId: req.tenantId });
-        const { q, classId, academicYearId, branchId, status } = req.query;
+        const { q, classId, sectionId, academicYearId, branchId, status } = req.query;
         if (branchId && req.scope !== 'branch') query.branchId = branchId;
         if (status) query.status = status;
-        if (q) {
-            const search = String(q).trim();
-            query.$or = [
-                { firstName: { $regex: search, $options: 'i' } },
-                { lastName: { $regex: search, $options: 'i' } },
-                { admissionNumber: { $regex: search, $options: 'i' } },
-                { studentCode: { $regex: search, $options: 'i' } }
-            ];
+        if (q && String(q).trim()) {
+            const criteria = buildStudentSearchCriteria(q);
+            if (criteria.length) {
+                query.$and = (query.$and || []).concat(criteria);
+            }
         }
         
         if (req.role === 'teacher') {
@@ -234,12 +232,13 @@ const getStudents = async (req, res) => {
             
             query._id = { $in: enrollments.map(e => e.studentId) };
         }
-        if ((classId || academicYearId) && req.role !== 'teacher') {
+        if ((classId || sectionId || academicYearId) && req.role !== 'teacher') {
             const enrollments = await Enrollment.find({
                 tenantId: req.tenantId,
                 ...(req.scope === 'branch' ? { branchId: req.branchId } : {}),
                 ...(branchId && req.scope !== 'branch' ? { branchId } : {}),
                 ...(classId ? { classId } : {}),
+                ...(sectionId ? { sectionId } : {}),
                 ...(academicYearId ? { academicYearId } : { status: { $in: ['Current', 'Active', 'active'] } })
             }).select('studentId');
             query._id = { $in: [...new Set(enrollments.map((enrollment) => String(enrollment.studentId)))] };

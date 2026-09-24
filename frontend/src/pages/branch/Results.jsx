@@ -79,7 +79,7 @@ const Results = () => {
             'Status'
         ];
         const rows = results.map((row) => [
-            `${row.student?.firstName || ''} ${row.student?.lastName || ''}`.trim(),
+            [row.student?.firstName, row.student?.middleName, row.student?.lastName].filter(Boolean).join(' ').trim(),
             row.student?.admissionNumber || '',
             ...(row.categoryMarks || []).map((mark) => mark.marksObtained ?? ''),
             row.percentage ?? '',
@@ -160,7 +160,7 @@ const Results = () => {
                                         <tr key={row.student?.id || row.student?._id}>
                                             <td className="px-4 py-3">
                                                 <div className="font-bold text-[#141824]">
-                                                    {row.student?.firstName} {row.student?.lastName}
+                                                    {[row.student?.firstName, row.student?.middleName, row.student?.lastName].filter(Boolean).join(' ')}
                                                 </div>
                                                 <div className="text-[10px] font-semibold text-[#8a94ad] uppercase font-mono mt-0.5">ID: {row.student?.admissionNumber}</div>
                                             </td>

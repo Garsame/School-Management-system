@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getAdmissionSummary, getStudentById, updateStudent, apiResetStudentPassword } from '../../services/api/registrar.api';
-import { Spinner, Button, Input, Badge, Toast } from '../../components/ui';
-import { Printer, RefreshCw, ShieldAlert } from 'lucide-react';
+import { getAdmissionSummary, getStudentById, updateStudent, apiResetStudentPassword, transferStudentClass } from '../../services/api/registrar.api';
+import { getClasses, getSections } from '../../services/api/branch.api';
+import { Spinner, Button, Input, Badge, Toast, Modal } from '../../components/ui';
+import { ArrowRightLeft, Printer, RefreshCw, ShieldAlert } from 'lucide-react';
 import { confirmAction } from '../../components/feedback/notificationService';
 import { documentHeader, downloadHtmlDocument, escapeHtml, formatPrintDate, printHtmlDocument, signatureBlock } from '../../utils/printDocument';
 import { useBranding } from '../../context/BrandingContext';
@@ -23,6 +24,72 @@ const StudentDetails = () => {
     const [toast, setToast] = useState(null);
     const [error, setError] = useState(null);
     const { branding } = useBranding();
+
+    // Class Transfer Modal State
+    const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+    const [transferClasses, setTransferClasses] = useState([]);
+    const [transferSections, setTransferSections] = useState([]);
+    const [selectedTransferClass, setSelectedTransferClass] = useState('');
+    const [selectedTransferSection, setSelectedTransferSection] = useState('');
+    const [transferReason, setTransferReason] = useState('');
+    const [transferring, setTransferring] = useState(false);
+    const [sectionsLoading, setSectionsLoading] = useState(false);
+
+    const openTransferModal = async () => {
+        setIsTransferModalOpen(true);
+        setSelectedTransferClass('');
+        setSelectedTransferSection('');
+        setTransferReason('');
+        setTransferSections([]);
+        try {
+            const res = await getClasses();
+            setTransferClasses(res?.data || res || []);
+        } catch (err) {
+            console.error('Failed to load classes for transfer:', err);
+            setToast({ type: 'error', message: 'Could not load classes for transfer.' });
+        }
+    };
+
+    const handleTransferClassChange = async (classId) => {
+        setSelectedTransferClass(classId);
+        setSelectedTransferSection('');
+        setTransferSections([]);
+        if (!classId) return;
+        setSectionsLoading(true);
+        try {
+            const res = await getSections(classId);
+            setTransferSections(res?.data || res || []);
+        } catch (err) {
+            console.error('Failed to load sections:', err);
+        } finally {
+            setSectionsLoading(false);
+        }
+    };
+
+    const handleConfirmClassTransfer = async (e) => {
+        if (e) e.preventDefault();
+        if (!selectedTransferClass) {
+            setToast({ type: 'warning', message: 'Please select a destination class.' });
+            return;
+        }
+        setTransferring(true);
+        try {
+            await transferStudentClass({
+                studentId: id,
+                newClassId: selectedTransferClass,
+                newSectionId: selectedTransferSection || undefined,
+                reason: transferReason || 'Class transfer from student profile'
+            });
+            setToast({ type: 'success', message: 'Student transferred to new class successfully.' });
+            setIsTransferModalOpen(false);
+            fetchStudent(id);
+        } catch (err) {
+            console.error(err);
+            setToast({ type: 'error', message: err.response?.data?.message || 'Class transfer failed.' });
+        } finally {
+            setTransferring(false);
+        }
+    };
 
     const fetchStudent = async (studentId) => {
         try {
@@ -245,6 +312,16 @@ const StudentDetails = () => {
                                 <RefreshCw size={14} className={resetting ? 'animate-spin' : ''} />
                                 Reset Password
                             </Button>}
+                            {(hasPermission(user, 'branch.transfers.run') || hasPermission(user, 'enrollments.create') || hasPermission(user, 'students.update')) && (
+                                <Button
+                                    variant="outline"
+                                    className="flex items-center gap-2 text-xs h-10 px-4 border border-[var(--border)] text-blue-700 hover:bg-blue-50"
+                                    onClick={openTransferModal}
+                                >
+                                    <ArrowRightLeft size={14} />
+                                    Transfer Class
+                                </Button>
+                            )}
                             {hasPermission(user, 'students.update') && <Button onClick={() => setEditing(true)} className="text-xs h-10 px-4">Edit Profile</Button>}
                         </>
                     ) : (
@@ -367,13 +444,105 @@ const StudentDetails = () => {
                 </div>
 
                 <div className="phoenix-card p-6 space-y-6">
-                    <div className="border-b border-[#e3e6ed] pb-3">
-                        <h3 className="font-bold text-base text-[#141824]">Enrollment History</h3>
-                        <p className="text-xs text-[#8a94ad] mt-1">Past and current class placements.</p>
+                    <div className="border-b border-[#e3e6ed] pb-3 flex justify-between items-center">
+                        <div>
+                            <h3 className="font-bold text-base text-[#141824]">Enrollment History</h3>
+                            <p className="text-xs text-[#8a94ad] mt-1">Past and current class placements.</p>
+                        </div>
+                        {(hasPermission(user, 'branch.transfers.run') || hasPermission(user, 'enrollments.create') || hasPermission(user, 'students.update')) && (
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-xs h-8 px-3 text-blue-700 hover:bg-blue-50"
+                                onClick={openTransferModal}
+                            >
+                                <ArrowRightLeft size={12} className="mr-1" />
+                                Transfer Class
+                            </Button>
+                        )}
                     </div>
                     <EnrollmentHistory enrollments={student.enrollments || []} />
                 </div>
             </div>
+
+            {/* Inside School Class Transfer Modal */}
+            <Modal
+                isOpen={isTransferModalOpen}
+                onClose={() => setIsTransferModalOpen(false)}
+                title={`Transfer Class: ${student.firstName} ${student.lastName}`}
+                maxWidth="lg"
+            >
+                <form onSubmit={handleConfirmClassTransfer} className="space-y-4">
+                    <div className="rounded-xl border border-blue-100 bg-blue-50/70 p-3.5 text-xs text-blue-900 space-y-1">
+                        <p><strong>Current Active Placement:</strong> {student.enrollments?.find(e => ['Current', 'Active', 'active'].includes(e.status))?.classId?.name || 'Not Enrolled'}</p>
+                        <p className="text-slate-500 font-mono">Admission #: {student.admissionNumber}</p>
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <label className="text-[13px] font-semibold text-slate-700">Destination Class</label>
+                        <select
+                            className="w-full h-11 px-3 border border-[var(--border)] bg-white rounded-xl text-slate-800 outline-none transition-all focus:border-[var(--primary)] focus:ring-4 focus:ring-blue-100/60 text-sm"
+                            value={selectedTransferClass}
+                            onChange={(e) => handleTransferClassChange(e.target.value)}
+                            required
+                        >
+                            <option value="">-- Choose New Class --</option>
+                            {transferClasses.map((cls) => (
+                                <option key={cls._id} value={cls._id}>
+                                    {cls.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <label className="text-[13px] font-semibold text-slate-700">Destination Section</label>
+                        <select
+                            className="w-full h-11 px-3 border border-[var(--border)] bg-white rounded-xl text-slate-800 outline-none transition-all focus:border-[var(--primary)] focus:ring-4 focus:ring-blue-100/60 text-sm"
+                            value={selectedTransferSection}
+                            onChange={(e) => setSelectedTransferSection(e.target.value)}
+                            disabled={!selectedTransferClass || sectionsLoading}
+                        >
+                            <option value="">
+                                {sectionsLoading
+                                    ? 'Loading sections...'
+                                    : transferSections.length
+                                        ? '-- Choose Section --'
+                                        : 'No sections configured'}
+                            </option>
+                            {transferSections.map((sec) => (
+                                <option key={sec._id} value={sec._id}>
+                                    {sec.name} {sec.capacity ? `(Cap: ${sec.capacity})` : ''}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <label className="text-[13px] font-semibold text-slate-700">Reason for transfer</label>
+                        <input
+                            className="w-full h-11 px-3 border border-[var(--border)] bg-white rounded-xl text-slate-800 outline-none transition-all focus:border-[var(--primary)] focus:ring-4 focus:ring-blue-100/60 text-sm"
+                            placeholder="Reason for class transfer"
+                            value={transferReason}
+                            onChange={(e) => setTransferReason(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                        <strong>Transfer effect:</strong> Current enrollment is closed as <em>Transferred</em>, and the student is placed into the new class. All previous bills, marks, and attendance remain preserved.
+                    </div>
+
+                    <div className="pt-3 border-t border-[var(--border)] flex justify-end gap-2">
+                        <Button type="button" variant="ghost" onClick={() => setIsTransferModalOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button type="submit" loading={transferring} disabled={!selectedTransferClass}>
+                            <ArrowRightLeft size={14} className="mr-1.5" />
+                            Confirm Transfer
+                        </Button>
+                    </div>
+                </form>
+            </Modal>
         </div>
     );
 };

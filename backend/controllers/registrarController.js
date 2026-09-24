@@ -69,28 +69,28 @@ const validateSectionAccess = async ({ tenantId, branchId, classId, sectionId, a
     return section;
 };
 
+const { buildStudentSearchCriteria } = require('../utils/studentSearch');
+
 const buildRegistrarStudentQuery = async (req) => {
-    const { classId, academicYearId, status, q } = req.query;
+    const { classId, sectionId, academicYearId, status, q } = req.query;
     const query = { tenantId: req.user.tenantId };
 
     if (req.user.scope === 'branch') {
         query.branchId = req.user.branchId;
     }
     if (status) query.status = status;
-    if (q) {
-        query.$or = [
-            { firstName: { $regex: q, $options: 'i' } },
-            { lastName: { $regex: q, $options: 'i' } },
-            { admissionNumber: { $regex: q, $options: 'i' } }
-        ];
+    if (q && String(q).trim()) {
+        const criteria = buildStudentSearchCriteria(q);
+        if (criteria.length) query.$and = criteria;
     }
 
-    if (classId || academicYearId) {
+    if (classId || sectionId || academicYearId) {
         const enrollmentQuery = {
             tenantId: req.user.tenantId,
             branchId: req.user.branchId
         };
         if (classId) enrollmentQuery.classId = classId;
+        if (sectionId) enrollmentQuery.sectionId = sectionId;
         if (academicYearId) enrollmentQuery.academicYearId = academicYearId;
         else enrollmentQuery.status = { $in: ['Current', 'Active', 'active'] };
 

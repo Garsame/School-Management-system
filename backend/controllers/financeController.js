@@ -17,6 +17,7 @@ const { getMonthlyCollection, getStudentPaymentRecord } = require('../services/s
 const { XLSX_CONTENT_TYPE, buildWorkbook } = require('../utils/xlsxWriter');
 const Tenant = require('../models/Tenant');
 const exportService = require('../services/exportService');
+const { buildStudentSearchCriteria } = require('../utils/studentSearch');
 const mongoose = require('mongoose');
 const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -407,21 +408,16 @@ const getInvoices = asyncHandler(async (req, res) => {
     if (academicYearId) query.academicYearId = academicYearId;
     if (status) query.status = status;
     if (studentId) query.studentId = studentId;
-    if (q) {
-        const search = escapeRegex(String(q).trim()).slice(0, 80);
-        const students = await Student.find({
-            tenantId: req.tenantId,
-            $or: [
-                { firstName: { $regex: search, $options: 'i' } },
-                { lastName: { $regex: search, $options: 'i' } },
-                { admissionNumber: { $regex: search, $options: 'i' } }
-            ]
-        }).distinct('_id');
+    if (q && String(q).trim()) {
+        const criteria = buildStudentSearchCriteria(q);
+        const searchFilter = { tenantId: req.tenantId };
+        if (criteria.length) searchFilter.$and = criteria;
+        const students = await Student.find(searchFilter).distinct('_id');
         query.studentId = { $in: students };
     }
 
     const invoices = await Invoice.find(query)
-        .populate('studentId', 'firstName lastName admissionNumber')
+        .populate('studentId', 'firstName middleName lastName admissionNumber studentCode')
         .populate('branchId', 'name')
         .populate('academicYearId', 'name')
         .sort({ createdAt: -1 });
@@ -436,18 +432,16 @@ const exportInvoices = asyncHandler(async (req, res) => {
     if (academicYearId) query.academicYearId = academicYearId;
     if (status) query.status = status;
     if (studentId) query.studentId = studentId;
-    if (q) {
-        const search = escapeRegex(String(q).trim()).slice(0, 80);
-        const students = await Student.find({ tenantId: req.tenantId, $or: [
-            { firstName: { $regex: search, $options: 'i' } },
-            { lastName: { $regex: search, $options: 'i' } },
-            { admissionNumber: { $regex: search, $options: 'i' } }
-        ] }).distinct('_id');
+    if (q && String(q).trim()) {
+        const criteria = buildStudentSearchCriteria(q);
+        const searchFilter = { tenantId: req.tenantId };
+        if (criteria.length) searchFilter.$and = criteria;
+        const students = await Student.find(searchFilter).distinct('_id');
         query.studentId = { $in: students };
     }
 
     const invoices = await Invoice.find(query)
-        .populate('studentId', 'firstName lastName admissionNumber')
+        .populate('studentId', 'firstName middleName lastName admissionNumber studentCode')
         .populate('branchId', 'name')
         .populate('academicYearId', 'name')
         .sort({ createdAt: -1 })
@@ -461,7 +455,7 @@ const exportInvoices = asyncHandler(async (req, res) => {
 
 const getInvoiceById = asyncHandler(async (req, res) => {
     const invoice = await Invoice.findOne({ _id: req.params.id, tenantId: req.tenantId })
-        .populate('studentId', 'firstName lastName admissionNumber guardianInfo')
+        .populate('studentId', 'firstName middleName lastName admissionNumber studentCode guardianInfo')
         .populate('branchId', 'name address phone email logoUrl receiptFooter')
         .populate('academicYearId', 'name');
 
@@ -503,12 +497,13 @@ const buildPaymentQuery = async (req) => {
     let invoiceIds = null;
     if (academicYearId) invoiceIds = await Invoice.find({ tenantId: req.tenantId, academicYearId }).distinct('_id');
     if (invoiceIds) query.invoiceId = { $in: invoiceIds };
-    if (q) {
-        const search = escapeRegex(String(q).trim()).slice(0, 80);
-        const studentIds = await Student.find({ tenantId: req.tenantId, $or: [
-            { firstName: { $regex: search, $options: 'i' } }, { lastName: { $regex: search, $options: 'i' } }, { admissionNumber: { $regex: search, $options: 'i' } }
-        ] }).distinct('_id');
+    if (q && String(q).trim()) {
+        const criteria = buildStudentSearchCriteria(q);
+        const studentFilter = { tenantId: req.tenantId };
+        if (criteria.length) studentFilter.$and = criteria;
+        const studentIds = await Student.find(studentFilter).distinct('_id');
         const matchingInvoices = await Invoice.find({ tenantId: req.tenantId, studentId: { $in: studentIds }, ...(academicYearId ? { academicYearId } : {}) }).distinct('_id');
+        const search = escapeRegex(String(q).trim()).slice(0, 80);
         query.$or = [{ reference: { $regex: search, $options: 'i' } }, { receiptNumber: { $regex: search, $options: 'i' } }, { invoiceId: { $in: matchingInvoices } }];
     }
     if (from || to) {
@@ -525,9 +520,9 @@ const getPayments = asyncHandler(async (req, res) => {
     const payments = await Payment.find(query)
         .populate({
             path: 'invoiceId',
-            populate: { path: 'studentId', select: 'firstName lastName admissionNumber' }
+            populate: { path: 'studentId', select: 'firstName middleName lastName admissionNumber studentCode' }
         })
-        .populate('recordedBy', 'name')
+        .populate('recordedBy', 'name firstName lastName')
         .sort({ createdAt: -1 });
 
     res.json({ success: true, data: payments });
@@ -539,7 +534,7 @@ const exportPayments = asyncHandler(async (req, res) => {
     const payments = await Payment.find(query)
         .populate({
             path: 'invoiceId',
-            populate: { path: 'studentId', select: 'firstName lastName admissionNumber' }
+            populate: { path: 'studentId', select: 'firstName middleName lastName admissionNumber studentCode' }
         })
         .populate('recordedBy', 'name firstName lastName email')
         .sort({ createdAt: -1 })
@@ -725,16 +720,20 @@ const getFinanceSections = asyncHandler(async (req, res) => {
  * the chosen year so the finance officer can tell two students of the same name apart.
  */
 const searchBillingStudents = asyncHandler(async (req, res) => {
-    const tokens = String(req.query.q || '').trim().split(/\s+/).filter(Boolean).slice(0, 4);
-    if (!tokens.length || tokens.join('').length < 2) return res.json({ success: true, data: [] });
+    const criteria = buildStudentSearchCriteria(req.query.q);
+    if (!criteria.length) return res.json({ success: true, data: [] });
 
-    const students = await Student.find({
+    const studentFilter = {
         tenantId: req.tenantId,
-        $and: tokens.map((token) => {
-            const pattern = { $regex: escapeRegex(token).slice(0, 40), $options: 'i' };
-            return { $or: [{ firstName: pattern }, { lastName: pattern }, { admissionNumber: pattern }] };
-        })
-    }).select('firstName lastName admissionNumber status').limit(20).lean();
+        $and: criteria
+    };
+
+    const students = await Student.find(studentFilter)
+        .select('firstName middleName lastName admissionNumber studentCode status')
+        .limit(20)
+        .lean();
+
+    if (!students.length) return res.json({ success: true, data: [] });
 
     const academicYearId = mongoose.isValidObjectId(req.query.academicYearId) ? req.query.academicYearId : null;
     const enrollments = academicYearId
@@ -749,8 +748,9 @@ const searchBillingStudents = asyncHandler(async (req, res) => {
         success: true,
         data: students.map((student) => ({
             _id: student._id,
-            name: `${student.firstName} ${student.lastName}`.trim(),
+            name: [student.firstName, student.middleName, student.lastName].filter(Boolean).join(' ').trim(),
             admissionNumber: student.admissionNumber,
+            studentCode: student.studentCode,
             status: student.status,
             className: classByStudent.get(String(student._id)) || null
         }))

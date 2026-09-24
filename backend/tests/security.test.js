@@ -7854,3 +7854,214 @@ test('a student who leaves loses their class and cannot silently come back', asy
         AuditLog.create = originals.auditCreate;
     }
 });
+
+test('transferStudentClass transfers student to another class in same branch, sets old to Transferred and new to Current', async () => {
+    const Student = require('../models/Student');
+    const Enrollment = require('../models/Enrollment');
+    const Class = require('../models/Class');
+    const Section = require('../models/Section');
+    const AcademicYear = require('../models/AcademicYear');
+    const AuditLog = require('../models/AuditLog');
+    const { transferStudentClass } = require('../controllers/promotionController');
+
+    const originals = {
+        studentFindOne: Student.findOne,
+        classFindOne: Class.findOne,
+        sectionFindOne: Section.findOne,
+        yearFindOne: AcademicYear.findOne,
+        enrollmentFind: Enrollment.find,
+        enrollmentFindById: Enrollment.findById,
+        enrollmentCreate: Enrollment.create,
+        enrollmentUpdateMany: Enrollment.updateMany,
+        auditCreate: AuditLog.create
+    };
+
+    const tenantId = new mongoose.Types.ObjectId();
+    const branchId = new mongoose.Types.ObjectId();
+    const studentId = new mongoose.Types.ObjectId();
+    const currentClassId = new mongoose.Types.ObjectId();
+    const newClassId = new mongoose.Types.ObjectId();
+    const newSectionId = new mongoose.Types.ObjectId();
+    const academicYearId = new mongoose.Types.ObjectId();
+
+    let updatedOldEnrollment = null;
+    let createdNewEnrollment = null;
+
+    try {
+        Student.findOne = async () => ({
+            _id: studentId,
+            tenantId,
+            branchId,
+            status: 'Active',
+            admissionNumber: 'STU-001',
+            firstName: 'Amina',
+            lastName: 'Hassan'
+        });
+
+        AcademicYear.findOne = async () => ({
+            _id: academicYearId,
+            tenantId,
+            name: '2026/2027',
+            isCurrent: true
+        });
+
+        Class.findOne = async ({ _id }) => {
+            if (String(_id) === String(newClassId)) {
+                return { _id: newClassId, tenantId, branchId, name: 'Grade 2B' };
+            }
+            return null;
+        };
+
+        Section.findOne = async () => ({
+            _id: newSectionId,
+            tenantId,
+            branchId,
+            classId: newClassId,
+            name: 'Stream 1',
+            capacity: 30
+        });
+
+        Enrollment.countDocuments = async () => 10;
+
+        Enrollment.find = () => ({
+            populate: function() {
+                return this;
+            },
+            then: function(resolve) {
+                resolve([{
+                    _id: new mongoose.Types.ObjectId(),
+                    studentId,
+                    branchId,
+                    classId: { _id: currentClassId, name: 'Grade 2A' },
+                    sectionId: null,
+                    academicYearId,
+                    status: 'Current'
+                }]);
+            }
+        });
+
+        Enrollment.updateMany = async (filter, update) => {
+            updatedOldEnrollment = { filter, update };
+            return { modifiedCount: 1 };
+        };
+
+        Enrollment.create = async (data) => {
+            createdNewEnrollment = { ...data, _id: new mongoose.Types.ObjectId() };
+            return createdNewEnrollment;
+        };
+
+        Enrollment.findById = () => ({
+            populate: function() {
+                return this;
+            },
+            then: function(resolve) {
+                resolve({
+                    _id: createdNewEnrollment?._id,
+                    studentId,
+                    branchId,
+                    classId: { _id: newClassId, name: 'Grade 2B' },
+                    sectionId: { _id: newSectionId, name: 'Stream 1' },
+                    academicYearId: { _id: academicYearId, name: '2026/2027', isCurrent: true },
+                    status: 'Current'
+                });
+            }
+        });
+
+        AuditLog.create = async () => ({});
+
+        const req = {
+            tenantId,
+            branchId,
+            user: { _id: new mongoose.Types.ObjectId(), role: 'branch_admin' },
+            body: {
+                studentId: String(studentId),
+                newClassId: String(newClassId),
+                newSectionId: String(newSectionId),
+                reason: 'Stream balancing'
+            },
+            ip: '127.0.0.1',
+            get: () => ''
+        };
+        const res = createResponse();
+
+        await transferStudentClass(req, res);
+
+        assert.equal(res.statusCode, 200);
+        assert.equal(res.body.success, true);
+        assert.equal(res.body.data.newClass.name, 'Grade 2B');
+        assert.equal(res.body.data.previousClass.className, 'Grade 2A');
+        assert.equal(updatedOldEnrollment?.update?.$set?.status, 'Transferred');
+        assert.equal(createdNewEnrollment?.status, 'Current');
+        assert.equal(String(createdNewEnrollment?.classId), String(newClassId));
+        assert.equal(String(createdNewEnrollment?.sectionId), String(newSectionId));
+    } finally {
+        Student.findOne = originals.studentFindOne;
+        Class.findOne = originals.classFindOne;
+        Section.findOne = originals.sectionFindOne;
+        AcademicYear.findOne = originals.yearFindOne;
+        Enrollment.find = originals.enrollmentFind;
+        Enrollment.findById = originals.enrollmentFindById;
+        Enrollment.create = originals.enrollmentCreate;
+        Enrollment.updateMany = originals.enrollmentUpdateMany;
+        AuditLog.create = originals.auditCreate;
+    }
+});
+
+test('transferStudentClass rejects destination class belonging to another branch or non-enrolled student', async () => {
+    const Student = require('../models/Student');
+    const Enrollment = require('../models/Enrollment');
+    const Class = require('../models/Class');
+    const AcademicYear = require('../models/AcademicYear');
+    const { transferStudentClass } = require('../controllers/promotionController');
+
+    const originals = {
+        studentFindOne: Student.findOne,
+        classFindOne: Class.findOne,
+        yearFindOne: AcademicYear.findOne,
+        enrollmentFind: Enrollment.find
+    };
+
+    const tenantId = new mongoose.Types.ObjectId();
+    const branchId = new mongoose.Types.ObjectId();
+    const studentId = new mongoose.Types.ObjectId();
+    const targetClassId = new mongoose.Types.ObjectId();
+
+    try {
+        Student.findOne = async () => ({
+            _id: studentId,
+            tenantId,
+            branchId,
+            status: 'Active'
+        });
+
+        AcademicYear.findOne = async () => ({
+            _id: new mongoose.Types.ObjectId(),
+            tenantId,
+            isCurrent: true
+        });
+
+        // Target class not found in branch
+        Class.findOne = async () => null;
+
+        const req = {
+            tenantId,
+            branchId,
+            user: { _id: new mongoose.Types.ObjectId(), role: 'branch_admin' },
+            body: {
+                studentId: String(studentId),
+                newClassId: String(targetClassId)
+            }
+        };
+        const res = createResponse();
+
+        await transferStudentClass(req, res);
+
+        assert.equal(res.statusCode, 400);
+        assert.match(res.body.message, /Destination class not found/);
+    } finally {
+        Student.findOne = originals.studentFindOne;
+        Class.findOne = originals.classFindOne;
+        AcademicYear.findOne = originals.yearFindOne;
+        Enrollment.find = originals.enrollmentFind;
+    }
+});

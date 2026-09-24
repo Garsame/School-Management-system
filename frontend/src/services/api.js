@@ -40,6 +40,9 @@ const getLoginPathForRole = (role = '', path = '') => {
 
 api.interceptors.request.use(
     (config) => {
+        if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+            delete config.headers['Content-Type'];
+        }
         const user = getStoredUser();
         if (user?.role === 'teacher' && config.url !== '/auth/me') {
             config.headers['X-Branch-Id'] = getStoredTeacherBranchId() || user.branchId;

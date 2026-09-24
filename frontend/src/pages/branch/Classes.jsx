@@ -4,10 +4,11 @@ import {
     getClassCategories, createClassCategory,
     getSections, createSection,
     getSubjects, createSubject,
-    getClassSubjects, createClassSubject, deleteClassSubject
+    getClassSubjects, createClassSubject, deleteClassSubject,
+    getStudentIdConfig, updateStudentIdConfig
 } from '../../services/api/branch.api';
 import { Table, Button, Modal, Input, Spinner, Toast, Badge, Select } from '../../components/ui';
-import { Plus, Layers, BookOpen, Layout, Grid, Trash2, ShieldCheck, GraduationCap, Target } from 'lucide-react';
+import { Plus, Layers, BookOpen, Layout, Grid, Trash2, ShieldCheck, GraduationCap, Target, Fingerprint } from 'lucide-react';
 import { confirmAction } from '../../components/feedback/notificationService';
 import { useAuth } from '../../context/AuthContext';
 import { hasPermission } from '../../utils/permissions';
@@ -21,16 +22,38 @@ const Classes = () => {
     const [currentItem, setCurrentItem] = useState({});
     const [saving, setSaving] = useState(false);
     const [toast, setToast] = useState(null);
+    const [idConfig, setIdConfig] = useState({
+        prefix: 'KS',
+        includeYear: true,
+        separator: '-',
+        padding: 3,
+        academicYear: '2026/2027',
+        preview: 'KS-2026-001'
+    });
+    const [savingIdConfig, setSavingIdConfig] = useState(false);
+
+    const computePreview = (prefix, includeYear, sep, padding, year) => {
+        const p = String(prefix || 'KS').trim().toUpperCase();
+        const cleanYear = String(year || '2026/2027').trim();
+        const ym = cleanYear.match(/\d{4}/);
+        const yr = ym ? ym[0] : cleanYear;
+        const seq = '1'.padStart(padding || 3, '0');
+        if (includeYear && yr) {
+            return sep ? `${p}${sep}${yr}${sep}${seq}` : `${p}${yr}${seq}`;
+        }
+        return sep ? `${p}${sep}${seq}` : `${p}${seq}`;
+    };
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [catRes, classRes, secRes, subRes, clsSubRes] = await Promise.all([
+            const [catRes, classRes, secRes, subRes, clsSubRes, idCfgRes] = await Promise.all([
                 getClassCategories(),
                 getClasses(),
                 getSections(),
                 getSubjects(),
-                getClassSubjects()
+                getClassSubjects(),
+                getStudentIdConfig().catch(() => null)
             ]);
             setData({
                 categories: catRes?.data || catRes || [],
@@ -39,6 +62,10 @@ const Classes = () => {
                 subjects: subRes?.data || subRes || [],
                 classSubjects: clsSubRes?.data || clsSubRes || []
             });
+            if (idCfgRes?.data || idCfgRes) {
+                const cfg = idCfgRes.data || idCfgRes;
+                setIdConfig(prev => ({ ...prev, ...cfg }));
+            }
         } catch (err) {
             console.error(err);
             setToast({ type: 'error', message: 'Failed to synchronize academic data' });
@@ -73,6 +100,26 @@ const Classes = () => {
         }
     };
 
+    const handleSaveIdConfig = async (e) => {
+        e.preventDefault();
+        setSavingIdConfig(true);
+        try {
+            const res = await updateStudentIdConfig({
+                prefix: idConfig.prefix,
+                includeYear: idConfig.includeYear,
+                separator: idConfig.separator,
+                padding: Number(idConfig.padding) || 3
+            });
+            const updated = res?.data || res;
+            setIdConfig(prev => ({ ...prev, ...updated }));
+            setToast({ type: 'success', message: 'Student ID format updated successfully' });
+        } catch (err) {
+            setToast({ type: 'error', message: err?.response?.data?.message || 'Failed to save student ID configuration' });
+        } finally {
+            setSavingIdConfig(false);
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setSaving(true);
@@ -104,6 +151,7 @@ const Classes = () => {
         { id: 'sections', name: 'Sections', icon: Layout },
         { id: 'subjects', name: 'Master Subjects', icon: BookOpen },
         { id: 'curriculum', name: 'Class Curriculum', icon: GraduationCap },
+        { id: 'student-id', name: 'Student ID Format', icon: Fingerprint },
     ];
 
     return (
@@ -114,7 +162,7 @@ const Classes = () => {
                     <h1 className="phoenix-page-title">Academic Configuration</h1>
                     <p className="phoenix-page-subtitle">Define the foundation of your school curriculum.</p>
                 </div>
-                {hasPermission(user, 'branch.classes.create') && <Button onClick={handleOpenCreate} className="flex items-center gap-2 !h-9 text-xs" variant="primary">
+                {activeTab !== 'student-id' && hasPermission(user, 'branch.classes.create') && <Button onClick={handleOpenCreate} className="flex items-center gap-2 !h-9 text-xs" variant="primary">
                     <Plus size={16} /> Add {activeTab === 'curriculum' ? 'Curriculum Link' : activeTab.slice(0, -1).replace('class-', '')}
                 </Button>}
             </div>
@@ -276,8 +324,107 @@ const Classes = () => {
                             </div>
                         </div>
                     )}
+
+                    {activeTab === 'student-id' && (
+                        <div className="phoenix-card p-6 bg-white space-y-6 max-w-3xl">
+                            <div className="border-b border-[#e3e6ed] pb-4">
+                                <h3 className="text-base font-bold text-[#141824] flex items-center gap-2">
+                                    <Fingerprint size={18} className="text-[#3874ff]" />
+                                    Student ID Format Configuration
+                                </h3>
+                                <p className="text-xs text-[#8a94ad] mt-1">
+                                    Define how new student admission numbers and IDs are automatically generated for your school.
+                                </p>
+                            </div>
+
+                            {/* Live Preview Box */}
+                            <div className="bg-[#f5f8ff] border border-[#d0e1fd] rounded-lg p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+                                <div>
+                                    <span className="text-[10px] font-bold text-[#3874ff] uppercase tracking-wider block">Generated ID Preview</span>
+                                    <span className="text-2xl font-mono font-extrabold text-[#141824] mt-1 block">
+                                        {computePreview(idConfig.prefix, idConfig.includeYear, idConfig.separator, idConfig.padding, idConfig.academicYear)}
+                                    </span>
+                                    <span className="text-xs text-[#6e7891] mt-0.5 block">Next sequential student code in academic year {idConfig.academicYear || '2026/2027'}</span>
+                                </div>
+                                <Badge variant="primary" className="!text-xs !py-1.5 !px-3 font-mono font-bold">
+                                    Format: &lt;Prefix&gt;{idConfig.includeYear !== false ? '+<Year>' : ''}+&lt;Sequence&gt;
+                                </Badge>
+                            </div>
+
+                            <form onSubmit={handleSaveIdConfig} className="space-y-5">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-[#141824] mb-1">School ID Prefix</label>
+                                        <input
+                                            type="text"
+                                            value={idConfig.prefix || ''}
+                                            onChange={(e) => setIdConfig({ ...idConfig, prefix: e.target.value.toUpperCase() })}
+                                            placeholder="e.g. KS"
+                                            className="w-full h-10 px-3 border border-[#cbd0dd] rounded text-sm font-bold font-mono focus:border-[#3874ff] focus:outline-none uppercase"
+                                            required
+                                        />
+                                        <span className="text-[11px] text-[#8a94ad] mt-1 block">Institution code prefix (e.g. KS for Kings School)</span>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-[#141824] mb-1">Separator</label>
+                                        <select
+                                            value={idConfig.separator !== undefined ? idConfig.separator : '-'}
+                                            onChange={(e) => setIdConfig({ ...idConfig, separator: e.target.value })}
+                                            className="w-full h-10 px-3 border border-[#cbd0dd] rounded text-sm font-semibold focus:border-[#3874ff] focus:outline-none bg-white"
+                                        >
+                                            <option value="-">Hyphen (-)</option>
+                                            <option value="/">Slash (/)</option>
+                                            <option value="">None (No separator)</option>
+                                        </select>
+                                        <span className="text-[11px] text-[#8a94ad] mt-1 block">Character between prefix, year, and number</span>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-[#141824] mb-1">Number of Sequence Digits</label>
+                                        <select
+                                            value={idConfig.padding || 3}
+                                            onChange={(e) => setIdConfig({ ...idConfig, padding: Number(e.target.value) })}
+                                            className="w-full h-10 px-3 border border-[#cbd0dd] rounded text-sm font-semibold focus:border-[#3874ff] focus:outline-none bg-white"
+                                        >
+                                            <option value={3}>3 digits (001, 002, ...)</option>
+                                            <option value={4}>4 digits (0001, 0002, ...)</option>
+                                            <option value={5}>5 digits (00001, 00002, ...)</option>
+                                        </select>
+                                        <span className="text-[11px] text-[#8a94ad] mt-1 block">Zero-padding format for student sequence</span>
+                                    </div>
+
+                                    <div className="flex items-center pt-6">
+                                        <label className="flex items-center gap-3 cursor-pointer select-none">
+                                            <input
+                                                type="checkbox"
+                                                checked={idConfig.includeYear !== false}
+                                                onChange={(e) => setIdConfig({ ...idConfig, includeYear: e.target.checked })}
+                                                className="h-4 w-4 text-[#3874ff] rounded border-[#cbd0dd] focus:ring-0"
+                                            />
+                                            <div>
+                                                <span className="text-xs font-bold text-[#141824] block">Include Academic Year</span>
+                                                <span className="text-[11px] text-[#8a94ad] block">Embed academic year (e.g. 2026) in the ID</span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {hasPermission(user, 'branch.classes.update') && (
+                                    <div className="pt-4 border-t border-[#e3e6ed] flex justify-end">
+                                        <Button type="submit" variant="primary" disabled={savingIdConfig} className="!h-9 text-xs flex items-center gap-2">
+                                            {savingIdConfig ? <Spinner size="sm" /> : <ShieldCheck size={16} />}
+                                            Save Student ID Settings
+                                        </Button>
+                                    </div>
+                                )}
+                            </form>
+                        </div>
+                    )}
                     
-                    {data[activeTab === 'curriculum' ? 'classSubjects' : activeTab]?.length === 0 && (
+                    {activeTab !== 'student-id' && data[activeTab === 'curriculum' ? 'classSubjects' : activeTab]?.length === 0 && (
                         <div className="phoenix-card p-8 text-center border-dashed border border-[#e3e6ed] bg-white">
                             <div className="flex flex-col items-center gap-4">
                                 <Plus size={32} className="text-[#cbd0dd]" />

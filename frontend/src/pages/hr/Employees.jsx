@@ -41,7 +41,7 @@ const Employees = () => {
 
     const branches = useMemo(() => [...new Set(employees.map((item) => item.branchId?.name || 'Head office'))].sort(), [employees]);
     const visible = useMemo(() => employees.filter((item) => {
-        const matchesQuery = `${item.name} ${item.employeeId || ''} ${item.role}`.toLowerCase().includes(query.toLowerCase());
+        const matchesQuery = `${item.name} ${item.email || ''} ${item.employeeId || ''} ${item.role}`.toLowerCase().includes(query.toLowerCase());
         return matchesQuery && (!branch || (item.branchId?.name || 'Head office') === branch);
     }), [employees, query, branch]);
     const missingSalary = employees.filter((item) => Number(item.employmentInfo?.basicSalary || 0) <= 0).length;

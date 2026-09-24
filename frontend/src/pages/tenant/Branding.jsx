@@ -104,7 +104,8 @@ const Branding = () => {
             setTimeout(() => setSuccess(false), 3000);
         } catch (error) {
             console.error('Failed to update branding:', error);
-            notify('Failed to save branding changes.', 'error');
+            const msg = error?.response?.data?.message || error?.message || 'Failed to save branding changes.';
+            notify(msg, 'error');
         } finally {
             setLoading(false);
         }

@@ -204,6 +204,7 @@ const StudentResults = () => {
                         placeholder="Student, parent, or admission number..."
                         value={filters.q}
                         onChange={(e) => setFilters(prev => ({ ...prev, q: e.target.value }))}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
                         icon={<Search size={16} />}
                         className="!h-10 text-xs"
                     />
@@ -219,7 +220,7 @@ const StudentResults = () => {
                         <Table headers={['Student Name', 'Admission No.', 'Action']}>
                             {students.map(std => (
                                 <tr key={std._id}>
-                                    <td className="px-4 py-3 font-bold text-[#141824]">{std.firstName} {std.lastName}</td>
+                                    <td className="px-4 py-3 font-bold text-[#141824]">{[std.firstName, std.middleName, std.lastName].filter(Boolean).join(' ')}</td>
                                     <td className="px-4 py-3 font-mono text-xs text-[#525b75]">{std.admissionNumber}</td>
                                     <td className="px-4 py-3">
                                         <Button size="sm" variant="outline" onClick={() => handleViewResults(std)} className="!h-7 text-[10px] uppercase font-bold tracking-wider">
@@ -242,7 +243,7 @@ const StudentResults = () => {
                         <article className="phoenix-card p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div>
                                 <h2 className="text-base font-bold text-[#141824]">
-                                    {studentInfo?.firstName} {studentInfo?.lastName}
+                                    {[studentInfo?.firstName, studentInfo?.middleName, studentInfo?.lastName].filter(Boolean).join(' ')}
                                 </h2>
                                 <p className="text-[#6e7891] text-xs mt-1">
                                     Admission No: {studentInfo?.admissionNumber || '--'} • Class: {enrollment?.className || '--'}

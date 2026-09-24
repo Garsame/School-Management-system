@@ -2211,3 +2211,81 @@ exports.deleteExam = async (req, res) => {
         sendError(res, 500, 'Server Error');
     }
 };
+
+// @desc    Get Student ID Configuration & Live Preview
+// @route   GET /api/branch/student-id-config
+exports.getStudentIdConfig = async (req, res) => {
+    try {
+        const Tenant = require('../models/Tenant');
+        const AcademicYear = require('../models/AcademicYear');
+        const { formatStudentCode } = require('../services/counterService');
+
+        const [tenant, currentYear] = await Promise.all([
+            Tenant.findById(req.user.tenantId).lean(),
+            AcademicYear.findOne({ tenantId: req.user.tenantId, isCurrent: true }).lean()
+        ]);
+
+        const cfg = tenant?.studentIdConfig || {
+            prefix: 'KS',
+            includeYear: true,
+            separator: '-',
+            padding: 3
+        };
+
+        const currentYearName = currentYear?.name || '2026/2027';
+        const preview = formatStudentCode(cfg.prefix, currentYearName, 1, cfg);
+
+        sendResponse(res, true, {
+            prefix: cfg.prefix || 'KS',
+            includeYear: cfg.includeYear !== false,
+            separator: cfg.separator !== undefined ? cfg.separator : '-',
+            padding: cfg.padding || 3,
+            academicYear: currentYearName,
+            preview
+        });
+    } catch (error) {
+        sendError(res, 500, error.message || 'Server Error');
+    }
+};
+
+// @desc    Update Student ID Configuration
+// @route   PUT /api/branch/student-id-config
+exports.updateStudentIdConfig = async (req, res) => {
+    try {
+        const Tenant = require('../models/Tenant');
+        const AcademicYear = require('../models/AcademicYear');
+        const { formatStudentCode } = require('../services/counterService');
+
+        const { prefix, includeYear, separator, padding } = req.body;
+        const tenant = await Tenant.findById(req.user.tenantId);
+        if (!tenant) return sendError(res, 404, 'Tenant not found');
+
+        const cleanPrefix = String(prefix || 'KS').trim().toUpperCase();
+        if (!cleanPrefix) return sendError(res, 400, 'Prefix is required');
+
+        tenant.studentIdConfig = {
+            prefix: cleanPrefix,
+            includeYear: includeYear !== false,
+            separator: typeof separator === 'string' ? separator.trim() : '-',
+            padding: Number(padding) >= 2 && Number(padding) <= 6 ? Number(padding) : 3
+        };
+
+        await tenant.save();
+
+        const currentYear = await AcademicYear.findOne({ tenantId: req.user.tenantId, isCurrent: true }).lean();
+        const currentYearName = currentYear?.name || '2026/2027';
+        const preview = formatStudentCode(tenant.studentIdConfig.prefix, currentYearName, 1, tenant.studentIdConfig);
+
+        sendResponse(res, true, {
+            prefix: tenant.studentIdConfig.prefix,
+            includeYear: tenant.studentIdConfig.includeYear,
+            separator: tenant.studentIdConfig.separator,
+            padding: tenant.studentIdConfig.padding,
+            academicYear: currentYearName,
+            preview
+        }, 'Student ID format updated successfully');
+    } catch (error) {
+        sendError(res, 500, error.message || 'Server Error');
+    }
+};
+

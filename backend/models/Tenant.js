@@ -41,6 +41,12 @@ const tenantSchema = new mongoose.Schema({
       maxStudents: { type: Number, default: 50 },
       storageLimit: { type: String, default: "5GB" }
   },
+  studentIdConfig: {
+      prefix: { type: String, default: "KS", trim: true },
+      includeYear: { type: Boolean, default: true },
+      separator: { type: String, default: "-", trim: true },
+      padding: { type: Number, default: 3, min: 2, max: 6 }
+  },
   isActive: { type: Boolean, default: false },
   isApproved: { type: Boolean, default: false },
 }, { timestamps: true });

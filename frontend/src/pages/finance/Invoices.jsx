@@ -154,7 +154,7 @@ const Invoices = () => {
                                             <td className="px-4 py-3 text-slate-600 font-mono text-xs">INV-{inv._id.slice(-6)}</td>
                                             <td className="px-4 py-3 text-slate-900 font-bold">
                                                 {inv.studentId && typeof inv.studentId === 'object'
-                                                    ? <Link to={`/finance/students/${inv.studentId._id}`} className="hover:text-[var(--primary)] hover:underline">{inv.studentId.firstName} {inv.studentId.lastName}</Link>
+                                                    ? <Link to={`/finance/students/${inv.studentId._id}`} className="hover:text-[var(--primary)] hover:underline">{[inv.studentId.firstName, inv.studentId.middleName, inv.studentId.lastName].filter(Boolean).join(' ')}</Link>
                                                     : (inv.studentName || 'N/A')}
                                                 <span className="block font-mono text-[10px] font-medium text-slate-400">{inv.studentId?.admissionNumber || ''}</span>
                                             </td>

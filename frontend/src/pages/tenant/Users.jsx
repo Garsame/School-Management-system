@@ -255,7 +255,7 @@ const UsersManagement = () => {
                     <Search className="phoenix-input-icon" size={16} />
                     <input 
                       type="text" 
-                      placeholder="Search administrators by name, email or role..."
+                      placeholder="Search staff by name, email, or role..."
                       className="phoenix-control phoenix-control-with-icon"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
@@ -309,24 +309,28 @@ const UsersManagement = () => {
                                 </tr>
                             ) : users.filter(user => {
                                 const term = searchTerm.toLowerCase();
+                                const userName = (user.name || [user.firstName, user.lastName].filter(Boolean).join(' ') || '').toLowerCase();
                                 return (
-                                    user.name.toLowerCase().includes(term) ||
-                                    user.email.toLowerCase().includes(term) ||
-                                    user.role.toLowerCase().includes(term)
+                                    userName.includes(term) ||
+                                    (user.email || '').toLowerCase().includes(term) ||
+                                    (user.role || '').toLowerCase().includes(term) ||
+                                    (user.roleName || '').toLowerCase().includes(term)
                                 );
                             }).length === 0 ? (
                                 <tr>
                                     <td colSpan="5" className="px-4 py-10 text-center font-semibold text-slate-400 text-sm">
-                                        No administrator accounts found matching the current filters.
+                                        No staff accounts found matching the current filters.
                                     </td>
                                 </tr>
                             ) : (
                                 users.filter(user => {
                                     const term = searchTerm.toLowerCase();
+                                    const userName = (user.name || [user.firstName, user.lastName].filter(Boolean).join(' ') || '').toLowerCase();
                                     return (
-                                        user.name.toLowerCase().includes(term) ||
-                                        user.email.toLowerCase().includes(term) ||
-                                        user.role.toLowerCase().includes(term)
+                                        userName.includes(term) ||
+                                        (user.email || '').toLowerCase().includes(term) ||
+                                        (user.role || '').toLowerCase().includes(term) ||
+                                        (user.roleName || '').toLowerCase().includes(term)
                                     );
                                 }).map((user) => (
                                     <tr key={user._id} className="hover:bg-slate-50/50 transition-colors group">

@@ -11,13 +11,22 @@ const Students = () => {
     const [years, setYears] = useState([]);
     const [sections, setSections] = useState([]);
     const [filters, setFilters] = useState({ classId: '', sectionId: '', academicYearId: '', status: '', q: '' });
+    const [debouncedQ, setDebouncedQ] = useState('');
     const [toast, setToast] = useState(null);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedQ(filters.q);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [filters.q]);
 
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
+            const queryFilters = { ...filters, q: debouncedQ };
             const [studentRes, classRes, yearRes] = await Promise.all([
-                getStudents(filters),
+                getStudents(queryFilters),
                 getClasses(),
                 getAcademicYears()
             ]);
@@ -29,7 +38,7 @@ const Students = () => {
         } finally {
             setLoading(false);
         }
-    }, [filters]);
+    }, [filters.classId, filters.sectionId, filters.academicYearId, filters.status, debouncedQ]);
 
     useEffect(() => {
         if (!filters.classId) {
@@ -115,7 +124,7 @@ const Students = () => {
                                 return (
                                 <tr key={std._id}>
                                     <td className="px-4 py-3 font-mono text-xs font-bold text-[#6e7891]">{std.admissionNumber}</td>
-                                    <td className="px-4 py-3 font-bold text-[#141824]">{std.firstName} {std.lastName}</td>
+                                    <td className="px-4 py-3 font-bold text-[#141824]">{[std.firstName, std.middleName, std.lastName].filter(Boolean).join(' ')}</td>
                                     <td className="px-4 py-3 text-[#525b75]">{enrollment?.classId?.name || '-'}{enrollment?.sectionId?.name ? ` · ${enrollment.sectionId.name}` : ''}</td>
                                     <td className="px-4 py-3 text-[#525b75]">{enrollment?.academicYearId?.name || '-'}</td>
                                     <td className="px-4 py-3">
