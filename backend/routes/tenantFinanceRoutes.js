@@ -14,11 +14,15 @@ const {
     searchBillingStudents,
     getMonthlyCollectionReport,
     exportMonthlyCollection,
-    getStudentPaymentRecordController
+    getStudentPaymentRecordController,
+    getDiscountedStudents,
+    getStudentDiscountPreview,
+    setStudentDiscount,
+    removeStudentDiscount
 } = require('../controllers/financeController');
 const { getCompensationRequests, reviewCompensationRequest } = require('../controllers/compensationController');
 const { protect, requireScope, tenantGuard } = require('../middleware/auth');
-const { requirePermission } = require('../middleware/permissions');
+const { requirePermission, requireAnyPermission } = require('../middleware/permissions');
 const { financeRateLimiter } = require('../middleware/rateLimiter');
 
 // All routes require authentication, correct scope and tenant context
@@ -29,12 +33,18 @@ router.use(protect);
 router.use(requireScope('tenant'));
 router.use(tenantGuard);
 
-// A) Fee Structure Management
+// A) Fee Structure & Discount Management
 router.post('/fee-structures', requirePermission('finance.feeStructures.create'), createFeeStructure);
 router.get('/fee-structures', requirePermission('finance.feeStructures.view'), getFeeStructures);
 router.get('/fee-structures/:id', requirePermission('finance.feeStructures.view'), getFeeStructureById);
 router.put('/fee-structures/:id', requirePermission('finance.feeStructures.update'), updateFeeStructure);
 router.delete('/fee-structures/:id', requirePermission('finance.feeStructures.delete'), deleteFeeStructure);
+
+// Student Discounts & Scholarships
+router.get('/discounts', requirePermission('finance.discounts.view'), getDiscountedStudents);
+router.get('/discounts/preview/:studentId', requirePermission('finance.discounts.view'), getStudentDiscountPreview);
+router.put('/discounts/:studentId', requirePermission('finance.discounts.manage'), setStudentDiscount);
+router.delete('/discounts/:studentId', requirePermission('finance.discounts.manage'), removeStudentDiscount);
 
 // B) Invoice Governance & Policies
 router.get('/policies', requirePermission('finance.policies.view'), getFinancePolicies);
@@ -60,7 +70,13 @@ router.get('/payments/export.csv', requirePermission('finance.payments.view'), e
 router.get('/payments/summary', requirePermission('finance.payments.summary'), getPaymentsSummary);
 router.get('/outstanding', requirePermission('finance.outstanding.view'), getOutstandingBalances);
 router.get('/outstanding/export.csv', requirePermission('finance.outstanding.view'), exportOutstandingBalances);
-router.get('/lookups/classes', requirePermission('finance.outstanding.view'), getFinanceClasses);
+router.get('/lookups/classes', requireAnyPermission([
+    'finance.outstanding.view',
+    'finance.feeStructures.view',
+    'finance.feeStructures.create',
+    'finance.invoices.generate',
+    'finance.invoices.view'
+]), getFinanceClasses);
 router.get('/lookups/sections', requirePermission('finance.outstanding.view'), getFinanceSections);
 
 // E) Receipts & Branding

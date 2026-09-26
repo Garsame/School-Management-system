@@ -4,6 +4,7 @@ const User = require('../models/User');
 const Tenant = require('../models/Tenant');
 const { logActivity } = require('../utils/logger');
 const {
+    DEFAULT_ROLE_PERMISSIONS,
     findUnassignablePermissions,
     getAssignablePermissions,
     sanitizeAssignablePermissionsForScope
@@ -65,6 +66,20 @@ const resolveTenantPlanTier = async (tenantId) => {
 };
 
 const getRoles = asyncHandler(async (req, res) => {
+    // If any built-in system roles are missing newly introduced default permissions, merge them in.
+    const existingRoles = await Role.find({ tenantId: req.tenantId });
+    for (const role of existingRoles) {
+        if (role.isSystem && DEFAULT_ROLE_PERMISSIONS[role.key]) {
+            const defaults = DEFAULT_ROLE_PERMISSIONS[role.key];
+            const currentSet = new Set(role.permissions || []);
+            const missing = defaults.filter((perm) => !currentSet.has(perm));
+            if (missing.length > 0) {
+                role.permissions = [...(role.permissions || []), ...missing];
+                await role.save();
+            }
+        }
+    }
+
     const roles = await Role.find({ tenantId: req.tenantId }).sort({ isSystem: -1, name: 1 });
     const counts = await User.aggregate([
         { $match: { tenantId: req.tenantId } },

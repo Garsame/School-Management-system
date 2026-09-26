@@ -136,7 +136,7 @@ const StaffPermissions = () => {
                         ) : visibleUsers.map((user) => (
                             <tr key={user._id}>
                                 <td className="px-4 py-3"><p className="text-sm font-semibold text-[#141824]">{user.name}</p><p className="text-xs text-[#8a94ad]">{user.email}</p></td>
-                                <td className="px-4 py-3 text-sm capitalize text-[#525b75]">{user.role.replace('_', ' ')}</td>
+                                <td className="px-4 py-3 text-sm capitalize text-[#525b75]">{(user.role || '').replace(/_/g, ' ')}</td>
                                 <td className="px-4 py-3 text-sm text-[#525b75]">{branches.find((branch) => branch._id === user.branchId)?.name || 'Assigned branch'}</td>
                                 <td className="px-4 py-3 text-right"><button type="button" className="phoenix-secondary-button !h-8 !px-3" onClick={() => openPermissions(user)}><KeyRound size={14} /> Permissions</button></td>
                             </tr>
@@ -150,7 +150,7 @@ const StaffPermissions = () => {
                     <div className="phoenix-modal-scrim" onClick={() => setModal((current) => ({ ...current, open: false }))} />
                     <div className="phoenix-modal-panel max-w-3xl">
                         <div className="phoenix-modal-header">
-                            <div><h2 className="phoenix-section-title">Permissions for {modal.user?.name}</h2><p className="phoenix-section-copy">{modal.roleName || modal.user?.role.replace(/_/g, ' ')} · Default is what the role gives. Allow or deny only for this person.</p></div>
+                            <div><h2 className="phoenix-section-title">Permissions for {modal.user?.name || 'User'}</h2><p className="phoenix-section-copy">{modal.roleName || (modal.user?.role || '').replace(/_/g, ' ')} · Default is what the role gives. Allow or deny only for this person.</p></div>
                             <button type="button" className="phoenix-icon-button" onClick={() => setModal((current) => ({ ...current, open: false }))}><X size={18} /></button>
                         </div>
                         <div className="phoenix-modal-body max-h-[60vh] space-y-3 overflow-y-auto">

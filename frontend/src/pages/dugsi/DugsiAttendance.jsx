@@ -104,7 +104,7 @@ const DugsiAttendance = () => {
                     <Button
                         onClick={handleSave}
                         disabled={saving || loading || register.length === 0}
-                        className="bg-teal-600 hover:bg-teal-700 text-white flex items-center gap-2"
+                        className="flex items-center gap-2"
                     >
                         {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                         Save Register
@@ -162,7 +162,7 @@ const DugsiAttendance = () => {
             <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                 {loading ? (
                     <div className="flex h-48 items-center justify-center">
-                        <Loader2 className="h-6 w-6 animate-spin text-teal-600" />
+                        <Loader2 className="h-6 w-6 animate-spin text-[var(--primary)]" />
                     </div>
                 ) : register.length === 0 ? (
                     <div className="p-12 text-center">

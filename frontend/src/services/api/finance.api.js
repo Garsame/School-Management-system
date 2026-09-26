@@ -9,6 +9,11 @@ export const updateFeeStructure = (id, data) => http.put(`/tenant/finance/fee-st
 export const deleteFeeStructure = (id) => http.delete(`/tenant/finance/fee-structures/${id}`).then(unwrap);
 export const setFeeStructureOpen = (id, isOpen) => http.put(`/tenant/finance/fee-structures/${id}/open`, { isOpen }).then(unwrap);
 
+export const getDiscountedStudents = (params) => http.get('/tenant/finance/discounts', { params }).then(unwrap);
+export const getStudentDiscountPreview = (studentId, params) => http.get(`/tenant/finance/discounts/preview/${studentId}`, { params }).then(unwrap);
+export const setStudentDiscount = (studentId, data) => http.put(`/tenant/finance/discounts/${studentId}`, data).then(unwrap);
+export const removeStudentDiscount = (studentId) => http.delete(`/tenant/finance/discounts/${studentId}`).then(unwrap);
+
 export const getFinancePolicies = () => http.get('/tenant/finance/policies').then(unwrap);
 export const updateFinancePolicies = (data) => http.put('/tenant/finance/policies', data).then(unwrap);
 

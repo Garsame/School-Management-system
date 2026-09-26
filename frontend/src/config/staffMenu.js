@@ -3,6 +3,7 @@ import {
     AlertCircle,
     ArrowRightLeft,
     ArrowUpCircle,
+    Award,
     BadgeDollarSign,
     Banknote,
     BarChart3,
@@ -69,18 +70,42 @@ export const STAFF_AREAS = [
         scope: 'tenant',
         items: [
             { label: 'Dashboard', path: '/tenant', icon: LayoutDashboard, permission: 'tenant.dashboard.view', keywords: ['home', 'main', 'index', 'overview'] },
-            { label: 'Branding', path: '/tenant/branding', icon: Palette, permission: 'tenant.branding.view', keywords: ['logo', 'color', 'theme', 'appearance', 'style', 'white-label'] },
-            { label: 'Branches', path: '/tenant/branches', icon: MapPin, permission: 'tenant.branches.view', keywords: ['campus', 'location', 'schools', 'branch', 'offices'] },
-            { label: 'Staff Accounts', path: '/tenant/users', icon: Users, permission: 'tenant.users.view', keywords: ['administrators', 'finance director', 'accounts', 'admins', 'staff', 'users', 'teacher', 'create user'] },
-            { label: 'Roles & Features', path: '/tenant/roles', icon: ShieldCheck, permission: 'tenant.roles.view', keywords: ['roles', 'features', 'access', 'permissions', 'turn off', 'rename'] },
-            { label: 'Staff Permissions', path: '/tenant/staff-permissions', icon: KeyRound, permission: 'tenant.users.permissions.view', keywords: ['staff', 'cashier', 'teacher', 'registrar', 'security', 'permissions', 'exceptions'] },
-            { label: 'Academic Years', path: '/tenant/academic-years', icon: Calendar, permission: 'tenant.academicYears.view', keywords: ['calendar', 'terms', 'semesters', 'years', 'dates'] },
-            { label: 'Academic Policy', path: '/tenant/academic-policy', icon: GraduationCap, permission: 'tenant.academicPolicy.view', keywords: ['curriculum', 'grade', 'rules', 'classes', 'education'] },
-            { label: 'Students', path: '/tenant/students', icon: GraduationCap, permission: 'students.view', keywords: ['students', 'classes', 'history', 'enrollment'] },
-            { label: 'Attendance', path: '/tenant/attendance', icon: CalendarCheck, permission: 'attendance.oversight.view', feature: 'attendance', keywords: ['attendance', 'register', 'present', 'absent', 'late'] },
-            { label: 'Dugsi Oversight', path: '/tenant/dugsi', icon: BookOpen, permission: 'dugsi.overview.view', keywords: ['dugsi', 'quran', 'oversight', 'classes', 'allocations'] },
+            {
+                key: 'school_setup',
+                label: 'School Setup',
+                icon: Settings,
+                keywords: ['branding', 'branches', 'academic years', 'curriculum', 'policy'],
+                children: [
+                    { label: 'Branding', path: '/tenant/branding', icon: Palette, permission: 'tenant.branding.view', keywords: ['logo', 'color', 'theme', 'appearance', 'style', 'white-label'] },
+                    { label: 'Branches', path: '/tenant/branches', icon: MapPin, permission: 'tenant.branches.view', keywords: ['campus', 'location', 'schools', 'branch', 'offices'] },
+                    { label: 'Academic Years', path: '/tenant/academic-years', icon: Calendar, permission: 'tenant.academicYears.view', keywords: ['calendar', 'terms', 'semesters', 'years', 'dates'] },
+                    { label: 'Academic Policy', path: '/tenant/academic-policy', icon: GraduationCap, permission: 'tenant.academicPolicy.view', keywords: ['curriculum', 'grade', 'rules', 'classes', 'education'] }
+                ]
+            },
+            {
+                key: 'staff_security',
+                label: 'Staff & Roles',
+                icon: ShieldCheck,
+                keywords: ['staff', 'accounts', 'roles', 'permissions', 'audit', 'logs'],
+                children: [
+                    { label: 'Staff Accounts', path: '/tenant/users', icon: Users, permission: 'tenant.users.view', keywords: ['administrators', 'finance director', 'accounts', 'admins', 'staff', 'users', 'teacher', 'create user'] },
+                    { label: 'Roles & Features', path: '/tenant/roles', icon: ShieldCheck, permission: 'tenant.roles.view', keywords: ['roles', 'features', 'access', 'permissions', 'turn off', 'rename'] },
+                    { label: 'Staff Permissions', path: '/tenant/staff-permissions', icon: KeyRound, permission: 'tenant.users.permissions.view', keywords: ['staff', 'cashier', 'teacher', 'registrar', 'security', 'permissions', 'exceptions'] },
+                    { label: 'Audit Logs', path: '/tenant/audit-logs', icon: ClipboardList, permission: 'tenant.audit.view', keywords: ['history', 'security', 'actions', 'events', 'records', 'activity'] }
+                ]
+            },
+            {
+                key: 'school_academics',
+                label: 'Academics & Operations',
+                icon: BookOpen,
+                keywords: ['students', 'attendance', 'dugsi', 'classes', 'oversight'],
+                children: [
+                    { label: 'Students', path: '/tenant/students', icon: GraduationCap, permission: 'students.view', keywords: ['students', 'classes', 'history', 'enrollment'] },
+                    { label: 'Attendance', path: '/tenant/attendance', icon: CalendarCheck, permission: 'attendance.oversight.view', feature: 'attendance', keywords: ['attendance', 'register', 'present', 'absent', 'late'] },
+                    { label: 'Dugsi Oversight', path: '/tenant/dugsi', icon: BookOpen, permission: 'dugsi.overview.view', keywords: ['dugsi', 'quran', 'oversight', 'classes', 'allocations'] }
+                ]
+            },
             { label: 'Reports', path: '/tenant/reports', icon: BarChart3, permission: 'tenant.reports.view', keywords: ['stats', 'analytics', 'charts', 'performance', 'summary'] },
-            { label: 'Audit Logs', path: '/tenant/audit-logs', icon: ClipboardList, permission: 'tenant.audit.view', keywords: ['history', 'security', 'actions', 'events', 'records', 'activity'] },
             { label: 'My Profile', path: '/tenant/profile', icon: UserIcon, homeOnly: true, keywords: ['profile', 'account', 'personal', 'avatar'] }
         ]
     },
@@ -91,10 +116,26 @@ export const STAFF_AREAS = [
         scope: 'tenant',
         items: [
             { label: 'HR Dashboard', path: '/hr', icon: LayoutDashboard, permission: 'hr.dashboard.view', keywords: ['overview', 'summary', 'home'] },
-            { label: 'Employees', path: '/hr/employees', icon: UserRound, permission: 'hr.employees.view', keywords: ['staff', 'salary profiles', 'compensation'] },
-            { label: 'Leave Management', path: '/hr/leaves', icon: CalendarCheck, permission: 'hr.leaves.review', feature: 'leaves', keywords: ['absence', 'time off', 'requests'] },
-            { label: 'Payroll', path: '/hr/payroll', icon: WalletCards, permission: 'payroll.view', feature: 'payroll', keywords: ['salary', 'pay run', 'payslips', 'approve'] },
-            { label: 'Payroll Reports', path: '/hr/reports', icon: BarChart3, permission: 'payroll.view', feature: 'payroll', keywords: ['totals', 'analysis', 'history'] },
+            {
+                key: 'hr_staff_leaves',
+                label: 'Staff & Leaves',
+                icon: UserRound,
+                keywords: ['employees', 'staff', 'leaves', 'vacation', 'timeoff'],
+                children: [
+                    { label: 'Employees', path: '/hr/employees', icon: UserRound, permission: 'hr.employees.view', keywords: ['staff', 'salary profiles', 'compensation'] },
+                    { label: 'Leave Management', path: '/hr/leaves', icon: CalendarCheck, permission: 'hr.leaves.review', feature: 'leaves', keywords: ['absence', 'time off', 'requests'] }
+                ]
+            },
+            {
+                key: 'hr_payroll_group',
+                label: 'Payroll & Compensation',
+                icon: WalletCards,
+                keywords: ['payroll', 'salary', 'payslips', 'reports', 'pay run'],
+                children: [
+                    { label: 'Payroll', path: '/hr/payroll', icon: WalletCards, permission: 'payroll.view', feature: 'payroll', keywords: ['salary', 'pay run', 'payslips', 'approve'] },
+                    { label: 'Payroll Reports', path: '/hr/reports', icon: BarChart3, permission: 'payroll.view', feature: 'payroll', keywords: ['totals', 'analysis', 'history'] }
+                ]
+            },
             { label: 'My Profile', path: '/hr/profile', icon: UserIcon, homeOnly: true, keywords: ['account', 'personal', 'avatar'] }
         ]
     },
@@ -105,15 +146,43 @@ export const STAFF_AREAS = [
         scope: 'tenant',
         items: [
             { label: 'Finance Dashboard', path: '/finance', icon: LayoutDashboard, permission: 'finance.dashboard.view', keywords: ['home', 'main', 'index', 'overview', 'summary'] },
-            { label: 'Policies', path: '/finance/policies', icon: Settings, permission: 'finance.policies.view', keywords: ['rules', 'setup', 'general', 'settings', 'open', 'close', 'fee structure'] },
-            { label: 'Fee Structures', path: '/finance/fee-structures', icon: CreditCard, permission: 'finance.feeStructures.view', keywords: ['pricing', 'structures', 'tuition', 'setup', 'monthly fee'] },
-            { label: 'Invoices', path: '/finance/invoices', icon: FileText, permission: 'finance.invoices.view', keywords: ['billing', 'charges', 'student invoices', 'invoice list', 'generate', 'month'] },
-            { label: 'Monthly Collection', path: '/finance/monthly', icon: CalendarRange, permission: 'finance.invoices.view', keywords: ['month', 'monthly', 'who paid', 'partial', 'unpaid', 'late', 'debt', 'excel', 'collection'] },
-            { label: 'Payments', path: '/finance/payments', icon: History, permission: 'finance.payments.view', keywords: ['ledger', 'history', 'received', 'transactions'] },
-            { label: 'Salary Approvals', path: '/finance/salary-approvals', icon: BadgeDollarSign, permission: 'finance.compensation.view', keywords: ['salary', 'employee', 'compensation', 'approval', 'payroll'] },
-            { label: 'Payroll Approvals', path: '/finance/payroll-approvals', icon: ClipboardCheck, permission: 'payroll.view', feature: 'payroll', keywords: ['monthly payroll', 'reviewed', 'salary run', 'approve', 'pay'] },
+            {
+                key: 'finance_payments',
+                label: 'Payments',
+                icon: Receipt,
+                keywords: ['pay', 'payment', 'record', 'lookup', 'history', 'outstanding', 'collection', 'ledger'],
+                children: [
+                    { label: 'Record Payment', path: '/cashier/payments/new', icon: Receipt, permission: 'cashier.payments.create', keywords: ['pay', 'new', 'payment', 'record', 'collect', 'receive'] },
+                    { label: 'Invoice Lookup', path: '/cashier/invoices', icon: FileText, permission: 'cashier.invoices.search', keywords: ['invoice', 'search', 'find', 'lookup'] },
+                    { label: 'Payment History', path: '/cashier/payments', icon: History, permission: 'cashier.payments.view', keywords: ['history', 'log', 'payments', 'past', 'receipts'] },
+                    { label: 'Monthly Collection', path: '/finance/monthly', icon: CalendarRange, permission: 'finance.invoices.view', keywords: ['month', 'monthly', 'who paid', 'partial', 'unpaid', 'late', 'debt', 'excel', 'collection'] },
+                    { label: 'Outstanding', path: '/finance/outstanding', icon: AlertCircle, permission: 'finance.outstanding.view', keywords: ['debtors', 'debt', 'unpaid', 'balances'] },
+                    { label: 'Payments Ledger', path: '/finance/payments', icon: History, permission: 'finance.payments.view', keywords: ['ledger', 'history', 'received', 'transactions'] }
+                ]
+            },
+            {
+                key: 'finance_salary',
+                label: 'Salary & Payroll',
+                icon: BadgeDollarSign,
+                keywords: ['salary', 'approvals', 'payroll', 'compensation', 'pay run'],
+                children: [
+                    { label: 'Salary Approvals', path: '/finance/salary-approvals', icon: BadgeDollarSign, permission: 'finance.compensation.view', keywords: ['salary', 'employee', 'compensation', 'approval', 'payroll'] },
+                    { label: 'Payroll Approvals', path: '/finance/payroll-approvals', icon: ClipboardCheck, permission: 'payroll.view', feature: 'payroll', keywords: ['monthly payroll', 'reviewed', 'salary run', 'approve', 'pay'] }
+                ]
+            },
+            {
+                key: 'finance_setup',
+                label: 'Settings & Fee Structure',
+                icon: Settings,
+                keywords: ['policies', 'fee structures', 'invoices', 'billing', 'rules'],
+                children: [
+                    { label: 'Policies', path: '/finance/policies', icon: Settings, permission: 'finance.policies.view', keywords: ['rules', 'setup', 'general', 'settings', 'open', 'close', 'fee structure'] },
+                    { label: 'Fee Structures', path: '/finance/fee-structures', icon: CreditCard, permission: 'finance.feeStructures.view', keywords: ['pricing', 'structures', 'tuition', 'setup', 'monthly fee'] },
+                    { label: 'Discounts & Scholarships', path: '/finance/discounts', icon: Award, permission: 'finance.discounts.view', keywords: ['discounts', 'scholarships', 'aid', 'concession', 'waiver', 'free', 'percentage'] },
+                    { label: 'Invoices', path: '/finance/invoices', icon: FileText, permission: 'finance.invoices.view', keywords: ['billing', 'charges', 'student invoices', 'invoice list', 'generate', 'month'] }
+                ]
+            },
             { label: 'Reports', path: '/finance/reports', icon: PieChart, permission: 'finance.reports.view', keywords: ['revenue', 'charts', 'stats', 'analytics', 'intel'] },
-            { label: 'Outstanding', path: '/finance/outstanding', icon: AlertCircle, permission: 'finance.outstanding.view', keywords: ['debtors', 'debt', 'unpaid', 'balances'] },
             { label: 'My Profile', path: '/finance/profile', icon: UserIcon, homeOnly: true, keywords: ['profile', 'account', 'personal', 'avatar'] }
         ]
     },
@@ -124,10 +193,26 @@ export const STAFF_AREAS = [
         scope: 'any',
         items: [
             { label: 'Desk Dashboard', path: '/cashier', icon: LayoutDashboard, permission: 'cashier.dashboard.view', keywords: ['home', 'main', 'index', 'overview', 'summary', 'cashier'] },
-            { label: 'Invoice Lookup', path: '/cashier/invoices', icon: FileText, permission: 'cashier.invoices.search', keywords: ['invoice', 'search', 'find', 'lookup'] },
-            { label: 'Record Payment', path: '/cashier/payments/new', icon: Receipt, permission: 'cashier.payments.create', keywords: ['pay', 'new', 'payment', 'record', 'collect', 'receive'] },
-            { label: 'Payment History', path: '/cashier/payments', icon: History, permission: 'cashier.payments.view', keywords: ['history', 'log', 'payments', 'past', 'receipts'] },
-            { label: 'Salary Payments', path: '/cashier/salary-payments', icon: Banknote, permission: 'payroll.pay', feature: 'payroll', keywords: ['salary', 'payroll', 'employee', 'staff payout'] },
+            {
+                key: 'payments_student_ops',
+                label: 'Student Payments',
+                icon: Receipt,
+                keywords: ['pay', 'new', 'payment', 'record', 'lookup', 'history'],
+                children: [
+                    { label: 'Record Payment', path: '/cashier/payments/new', icon: Receipt, permission: 'cashier.payments.create', keywords: ['pay', 'new', 'payment', 'record', 'collect', 'receive'] },
+                    { label: 'Invoice Lookup', path: '/cashier/invoices', icon: FileText, permission: 'cashier.invoices.search', keywords: ['invoice', 'search', 'find', 'lookup'] },
+                    { label: 'Payment History', path: '/cashier/payments', icon: History, permission: 'cashier.payments.view', keywords: ['history', 'log', 'payments', 'past', 'receipts'] }
+                ]
+            },
+            {
+                key: 'payments_staff_payouts',
+                label: 'Staff Payouts',
+                icon: Banknote,
+                keywords: ['salary', 'payroll', 'employee', 'staff payout'],
+                children: [
+                    { label: 'Salary Payments', path: '/cashier/salary-payments', icon: Banknote, permission: 'payroll.pay', feature: 'payroll', keywords: ['salary', 'payroll', 'employee', 'staff payout'] }
+                ]
+            },
             { label: 'My Profile', path: '/cashier/profile', icon: UserIcon, homeOnly: true, keywords: ['profile', 'account', 'personal', 'avatar'] }
         ]
     },
@@ -138,10 +223,18 @@ export const STAFF_AREAS = [
         scope: 'branch',
         items: [
             { label: 'Dashboard', path: '/registrar', icon: LayoutDashboard, permission: 'registrar.dashboard.view', keywords: ['home', 'main', 'index', 'overview', 'summary'] },
-            { label: 'New Admission', path: '/registrar/admissions', icon: UserPlus, permission: 'students.create', keywords: ['admission', 'new student', 'admit'] },
-            { label: 'Students Directory', path: '/registrar/students', icon: Users, permission: 'students.view', quietFor: { roles: ['teacher'] }, keywords: ['student', 'directory', 'list', 'search'] },
+            {
+                key: 'admissions_ops',
+                label: 'Student Admissions',
+                icon: UserPlus,
+                keywords: ['admission', 'students', 'directory', 're-enrollment'],
+                children: [
+                    { label: 'New Admission', path: '/registrar/admissions', icon: UserPlus, permission: 'students.create', keywords: ['admission', 'new student', 'admit'] },
+                    { label: 'Students Directory', path: '/registrar/students', icon: Users, permission: 'students.view', quietFor: { roles: ['teacher'] }, keywords: ['student', 'directory', 'list', 'search'] },
+                    { label: 'Re-Enrollment', path: '/registrar/enrollments/new', icon: Users, permission: 'enrollments.create', keywords: ['enroll', 're-enroll', 'register'] }
+                ]
+            },
             { label: 'Attendance', path: '/registrar/attendance', icon: CalendarCheck, permission: 'attendance.oversight.view', feature: 'attendance', keywords: ['attendance', 'register', 'present', 'absent', 'late'] },
-            { label: 'Re-Enrollment', path: '/registrar/enrollments/new', icon: Users, permission: 'enrollments.create', keywords: ['enroll', 're-enroll', 'register'] },
             { label: 'My Profile', path: '/registrar/profile', icon: UserIcon, homeOnly: true, keywords: ['profile', 'account', 'personal', 'avatar'] }
         ]
     },
@@ -153,45 +246,53 @@ export const STAFF_AREAS = [
         items: [
             { label: 'Dashboard', path: '/branch', icon: LayoutDashboard, permission: 'branch.dashboard.view', keywords: ['home', 'main', 'index', 'overview', 'summary'] },
             {
-                label: 'Classes', path: '/branch/classes', icon: BookOpen, permission: 'branch.classes.view',
-                quietFor: { roles: ['teacher', 'registrar'], unless: ['branch.classes.create', 'branch.classes.update', 'branch.sections.manage', 'branch.subjects.manage'] },
-                keywords: ['class', 'sections', 'grades', 'subjects']
+                key: 'branch_academics',
+                label: 'Academics & Schedule',
+                icon: BookOpen,
+                keywords: ['class', 'sections', 'grades', 'subjects', 'timetable', 'schedule', 'dugsi'],
+                children: [
+                    {
+                        label: 'Classes', path: '/branch/classes', icon: BookOpen, permission: 'branch.classes.view',
+                        quietFor: { roles: ['teacher', 'registrar'], unless: ['branch.classes.create', 'branch.classes.update', 'branch.sections.manage', 'branch.subjects.manage'] },
+                        keywords: ['class', 'sections', 'grades', 'subjects']
+                    },
+                    {
+                        label: 'Timetable', path: '/branch/timetable', icon: CalendarDays, permission: 'branch.timetable.view',
+                        quietFor: { roles: ['teacher'], unless: ['branch.timetable.manage'] },
+                        keywords: ['schedule', 'hours', 'calendar', 'timetable']
+                    },
+                    { label: 'Dugsi Oversight', path: '/branch/dugsi', icon: BookOpen, permission: 'dugsi.overview.view', keywords: ['dugsi', 'quran', 'oversight', 'classes', 'allocations'] }
+                ]
             },
             {
-                label: 'Timetable', path: '/branch/timetable', icon: CalendarDays, permission: 'branch.timetable.view',
-                quietFor: { roles: ['teacher'], unless: ['branch.timetable.manage'] },
-                keywords: ['schedule', 'hours', 'calendar', 'timetable']
-            },
-            {
-                key: 'teachers',
-                label: 'Teachers',
+                key: 'branch_staff_mgmt',
+                label: 'Teachers & Staff',
                 icon: BriefcaseBusiness,
-                keywords: ['teacher', 'teachers', 'faculty'],
+                keywords: ['teachers', 'staff', 'leaves', 'payroll'],
                 children: [
-                    { label: 'Add teacher', path: '/branch/teachers/new', icon: UserPlus, permission: 'branch.staff.create', keywords: ['new teacher', 'create teacher'] },
-                    { label: 'View and manage', path: '/branch/teachers', icon: Users, permission: 'branch.staff.view', keywords: ['teacher list', 'manage teachers'] },
-                    { label: 'Teacher assignments', path: '/branch/assignments', icon: BookOpen, permission: 'branch.assignments.view', keywords: ['teachers', 'classes', 'assign', 'subjects'] }
+                    { label: 'Teachers', path: '/branch/teachers', icon: Users, permission: 'branch.staff.view', keywords: ['teacher list', 'manage teachers'] },
+                    { label: 'Add Teacher', path: '/branch/teachers/new', icon: UserPlus, permission: 'branch.staff.create', keywords: ['new teacher', 'create teacher'] },
+                    { label: 'Teacher Assignments', path: '/branch/assignments', icon: BookOpen, permission: 'branch.assignments.view', keywords: ['teachers', 'classes', 'assign', 'subjects'] },
+                    { label: 'Staff', path: '/branch/staff', icon: UserRound, permission: 'branch.staff.view', keywords: ['staff list', 'manage staff'] },
+                    { label: 'Add Staff', path: '/branch/staff/new', icon: UserPlus, permission: 'branch.staff.create', keywords: ['new registrar', 'new cashier', 'create staff'] },
+                    { label: 'Leaves Manager', path: '/branch/hr/leaves', icon: CalendarCheck, permission: 'hr.leaves.review', feature: 'leaves', keywords: ['leave', 'vacation', 'timeoff', 'review'] },
+                    { label: 'Payroll Dashboard', path: '/branch/hr/payroll', icon: DollarSign, permission: 'payroll.view', feature: 'payroll', keywords: ['salary', 'pay', 'payroll', 'slips'] }
                 ]
             },
             {
-                key: 'staff',
-                label: 'Staff',
-                icon: UserRound,
-                keywords: ['staff', 'registrar', 'cashier'],
+                key: 'branch_students_exams',
+                label: 'Students & Exams',
+                icon: GraduationCap,
+                keywords: ['students', 'promotions', 'transfers', 'exams', 'results'],
                 children: [
-                    { label: 'Add staff', path: '/branch/staff/new', icon: UserPlus, permission: 'branch.staff.create', keywords: ['new registrar', 'new cashier', 'create staff'] },
-                    { label: 'View and manage', path: '/branch/staff', icon: Users, permission: 'branch.staff.view', keywords: ['staff list', 'manage staff'] }
+                    { label: 'Students', path: '/branch/students', icon: GraduationCap, permission: 'branch.students.view', quietFor: { roles: ['teacher', 'registrar'] }, keywords: ['student', 'pupils', 'admissions', 'enrolment'] },
+                    { label: 'Promotions', path: '/branch/promotions', icon: ArrowUpCircle, permission: 'branch.promotions.run', keywords: ['promote', 'passing', 'next grade'] },
+                    { label: 'Transfers', path: '/branch/transfers', icon: ArrowRightLeft, permission: 'branch.transfers.run', keywords: ['transfer', 'move student', 'another branch'] },
+                    { label: 'Exams', path: '/branch/exams', icon: FileText, permission: 'branch.exams.view', keywords: ['exam', 'test', 'grading', 'terms'] },
+                    { label: 'Results', path: '/branch/results', icon: Activity, permission: 'branch.results.view', keywords: ['scores', 'marks', 'report cards', 'performance'] },
+                    { label: 'Student Results', path: '/branch/results/student', icon: Activity, permission: 'branch.results.view', keywords: ['student marks', 'scorecards'] }
                 ]
             },
-            { label: 'Leaves Manager', path: '/branch/hr/leaves', icon: CalendarCheck, permission: 'hr.leaves.review', feature: 'leaves', keywords: ['leave', 'vacation', 'timeoff', 'review'] },
-            { label: 'Payroll Dashboard', path: '/branch/hr/payroll', icon: DollarSign, permission: 'payroll.view', feature: 'payroll', keywords: ['salary', 'pay', 'payroll', 'slips'] },
-            { label: 'Students', path: '/branch/students', icon: GraduationCap, permission: 'branch.students.view', quietFor: { roles: ['teacher', 'registrar'] }, keywords: ['student', 'pupils', 'admissions', 'enrolment'] },
-            { label: 'Promotions', path: '/branch/promotions', icon: ArrowUpCircle, permission: 'branch.promotions.run', keywords: ['promote', 'passing', 'next grade'] },
-            { label: 'Transfers', path: '/branch/transfers', icon: ArrowRightLeft, permission: 'branch.transfers.run', keywords: ['transfer', 'move student', 'another branch'] },
-            { label: 'Exams', path: '/branch/exams', icon: FileText, permission: 'branch.exams.view', keywords: ['exam', 'test', 'grading', 'terms'] },
-            { label: 'Results', path: '/branch/results', icon: Activity, permission: 'branch.results.view', keywords: ['scores', 'marks', 'report cards', 'performance'] },
-            { label: 'Student Results', path: '/branch/results/student', icon: Activity, permission: 'branch.results.view', keywords: ['student marks', 'scorecards'] },
-            { label: 'Dugsi Oversight', path: '/branch/dugsi', icon: BookOpen, permission: 'dugsi.overview.view', keywords: ['dugsi', 'quran', 'oversight', 'classes', 'allocations'] },
             { label: 'Reports', path: '/branch/reports', icon: PieChart, permission: 'branch.reports.view', keywords: ['stats', 'analytics', 'data', 'overview'] },
             { label: 'My Profile', path: '/branch/account', icon: UserIcon, homeOnly: true, keywords: ['profile', 'account', 'personal', 'avatar'] }
         ]
@@ -207,12 +308,19 @@ export const STAFF_AREAS = [
             { label: 'My Schedule', path: '/teacher/schedule', icon: CalendarDays, permission: 'teacher.schedule.view' },
             { label: 'Open Attendance', path: '/teacher/attendance', icon: CalendarCheck, permission: 'teacher.attendance.view' },
             { label: 'Leaves Request', path: '/teacher/leaves', icon: CalendarCheck, anyPermission: ['teacher.leaves.create', 'hr.leaves.create'] },
-            { label: 'Templates', path: '/teacher/templates', icon: FileSpreadsheet, permission: 'teacher.examTemplates.view' },
-            { label: 'Categories', path: '/teacher/categories', icon: Settings, permission: 'teacher.examCategories.view' },
-            { label: 'Exams List', path: '/teacher/exams', icon: BookOpen, permission: 'teacher.exams.view' },
-            { label: 'Enter Results', path: '/teacher/results-entry', icon: PenTool, permission: 'teacher.results.enter' },
-            { label: 'Results Viewer', path: '/teacher/results', icon: BarChart3, permission: 'teacher.results.view' },
-            { label: 'Grading Policy', path: '/teacher/grading-policy', icon: FileSpreadsheet, permission: 'teacher.gradingPolicy.view' },
+            {
+                key: 'teacher_exams_eval',
+                label: 'Exams & Grading',
+                icon: FileSpreadsheet,
+                children: [
+                    { label: 'Exams List', path: '/teacher/exams', icon: BookOpen, permission: 'teacher.exams.view' },
+                    { label: 'Enter Results', path: '/teacher/results-entry', icon: PenTool, permission: 'teacher.results.enter' },
+                    { label: 'Results Viewer', path: '/teacher/results', icon: BarChart3, permission: 'teacher.results.view' },
+                    { label: 'Templates', path: '/teacher/templates', icon: FileSpreadsheet, permission: 'teacher.examTemplates.view' },
+                    { label: 'Categories', path: '/teacher/categories', icon: Settings, permission: 'teacher.examCategories.view' },
+                    { label: 'Grading Policy', path: '/teacher/grading-policy', icon: FileSpreadsheet, permission: 'teacher.gradingPolicy.view' }
+                ]
+            },
             { label: 'My Profile', path: '/teacher/profile', icon: UserIcon, homeOnly: true }
         ]
     },

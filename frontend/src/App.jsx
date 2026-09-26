@@ -39,6 +39,7 @@ const DugsiOversight = lazy(() => import('./pages/branch/DugsiOversight'));
 const FinanceDashboard = lazy(() => import('./pages/finance/FinanceDashboard'));
 const FinancePolicies = lazy(() => import('./pages/finance/Policies'));
 const FeeStructures = lazy(() => import('./pages/finance/FeeStructures'));
+const Discounts = lazy(() => import('./pages/finance/Discounts'));
 const Invoices = lazy(() => import('./pages/finance/Invoices'));
 const InvoiceDetails = lazy(() => import('./pages/finance/InvoiceDetails'));
 const InvoiceGenerate = lazy(() => import('./pages/finance/InvoiceGenerate'));
@@ -118,13 +119,11 @@ import NotificationCenter from './components/feedback/NotificationCenter';
 // Every staff area renders in the same frame. The menu inside it is built from the
 // signed-in person's permissions, and each page checks its own permission, so a role
 // reaches another area's page by holding its feature rather than by its name.
-const StaffArea = ({ scope = null }) => (
-  <StaffAreaGuard scope={scope}>
-    <BrandingProvider>
-      <PermissionRouteGuard>
-        <StaffLayout />
-      </PermissionRouteGuard>
-    </BrandingProvider>
+const StaffArea = () => (
+  <StaffAreaGuard>
+    <PermissionRouteGuard>
+      <StaffLayout />
+    </PermissionRouteGuard>
   </StaffAreaGuard>
 );
 
@@ -156,148 +155,129 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <NotificationCenter />
-        <Suspense fallback={<RouteLoader />}>
-          <PasswordChangeGate>
-          <Routes>
-            {/* Main App Routes */}
-            <Route path="/" element={<Landing />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<RegisterTenant />} />
-            <Route path="/tenant/register" element={<RegisterTenant />} />
-            <Route path="/change-password" element={<ChangePassword />} />
-            <Route
-              path="/dashboard/*"
-              element={<Navigate to="/login" replace />}
-            />
+        <BrandingProvider>
+          <NotificationCenter />
+          <Suspense fallback={<RouteLoader />}>
+            <PasswordChangeGate>
+            <Routes>
+              {/* Main App Routes */}
+              <Route path="/" element={<Landing />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<RegisterTenant />} />
+              <Route path="/tenant/register" element={<RegisterTenant />} />
+              <Route path="/change-password" element={<ChangePassword />} />
+              <Route
+                path="/dashboard/*"
+                element={<Navigate to="/login" replace />}
+              />
 
-            {/* Tenant Super Admin Routes */}
-            <Route path="/tenant">
-              <Route path="login" element={<Navigate to="/login" replace />} />
+              {/* Shared Staff Area for all staff roles and permissions */}
+              <Route element={<StaffArea />}>
+                {/* Tenant Super Admin Routes */}
+                <Route path="/tenant">
+                  <Route index element={<TenantDashboard />} />
+                  <Route path="branding" element={<TenantBranding />} />
+                  <Route path="branches" element={<TenantBranches />} />
+                  <Route path="users" element={<TenantUsers />} />
+                  <Route path="roles" element={<TenantRoles />} />
+                  <Route path="staff-permissions" element={<TenantStaffPermissions />} />
+                  <Route path="academic-years" element={<TenantAcademicYears />} />
+                  <Route path="academic-policy" element={<TenantAcademicPolicy />} />
+                  <Route path="reports" element={<TenantReports />} />
+                  <Route path="students" element={<TenantStudents />} />
+                  <Route path="students/:studentId" element={<TenantStudentDetails />} />
+                  <Route path="audit-logs" element={<TenantAuditLogs />} />
+                  <Route path="attendance" element={<AttendanceOversight />} />
+                  <Route path="dugsi" element={<DugsiOversight />} />
+                  <Route path="profile" element={<AccountProfile />} />
+                </Route>
 
-              <Route element={<StaffArea scope="tenant" />}>
-                <Route index element={<TenantDashboard />} />
-                <Route path="branding" element={<TenantBranding />} />
-                <Route path="branches" element={<TenantBranches />} />
-                <Route path="users" element={<TenantUsers />} />
-                <Route path="roles" element={<TenantRoles />} />
-                <Route path="staff-permissions" element={<TenantStaffPermissions />} />
-                <Route path="academic-years" element={<TenantAcademicYears />} />
-                <Route path="academic-policy" element={<TenantAcademicPolicy />} />
-                <Route path="reports" element={<TenantReports />} />
-                <Route path="students" element={<TenantStudents />} />
-                <Route path="students/:studentId" element={<TenantStudentDetails />} />
-                <Route path="audit-logs" element={<TenantAuditLogs />} />
-                <Route path="attendance" element={<AttendanceOversight />} />
-                <Route path="dugsi" element={<DugsiOversight />} />
-                <Route path="profile" element={<AccountProfile />} />
+                {/* Finance Director Routes */}
+                <Route path="/finance">
+                  <Route index element={<FinanceDashboard />} />
+                  <Route path="policies" element={<FinancePolicies />} />
+                  <Route path="fee-structures" element={<FeeStructures />} />
+                  <Route path="discounts" element={<Discounts />} />
+                  <Route path="invoices" element={<Invoices />} />
+                  <Route path="invoices/:invoiceId" element={<InvoiceDetails />} />
+                  <Route path="invoices/generate" element={<InvoiceGenerate />} />
+                  <Route path="monthly" element={<MonthlyCollection />} />
+                  <Route path="students/:studentId" element={<StudentPaymentRecord />} />
+                  <Route path="payments" element={<Payments />} />
+                  <Route path="salary-approvals" element={<CompensationApprovals />} />
+                  <Route path="payroll-approvals" element={<PayrollDashboard />} />
+                  <Route path="reports" element={<Reports />} />
+                  <Route path="outstanding" element={<Outstanding />} />
+                  <Route path="profile" element={<AccountProfile />} />
+                </Route>
+
+                {/* HR Routes */}
+                <Route path="/hr">
+                  <Route index element={<HRDashboard />} />
+                  <Route path="employees" element={<HREmployees />} />
+                  <Route path="leaves" element={<StaffLeavesManager />} />
+                  <Route path="payroll" element={<PayrollDashboard />} />
+                  <Route path="reports" element={<HRReports />} />
+                  <Route path="profile" element={<AccountProfile />} />
+                </Route>
+
+                {/* Branch Admin Routes */}
+                <Route path="/branch">
+                  <Route index element={<BranchDashboard />} />
+                  <Route path="account" element={<AccountProfile />} />
+                  <Route path="classes" element={<BranchClasses />} />
+                  <Route path="teachers" element={<BranchStaff mode="teachers" />} />
+                  <Route path="teachers/new" element={<BranchStaffCreate mode="teachers" />} />
+                  <Route path="staff" element={<BranchStaff mode="staff" />} />
+                  <Route path="staff/new" element={<BranchStaffCreate mode="staff" />} />
+                  <Route path="students" element={<BranchStudents />} />
+                  <Route path="students/:studentId" element={<BranchStudentDetails />} />
+                  <Route path="promotions" element={<BranchPromotions />} />
+                  <Route path="transfers" element={<BranchTransfer />} />
+                  <Route path="exams" element={<BranchExams />} />
+                  <Route path="results" element={<BranchResults />} />
+                  <Route path="results/student" element={<BranchStudentResults />} />
+                  <Route path="assignments" element={<BranchTeacherAssignments />} />
+                  <Route path="timetable" element={<BranchTimetableBuilder />} />
+                  <Route path="timetable/class/:classId" element={<BranchTimetableBuilder />} />
+                  <Route path="dugsi" element={<DugsiOversight />} />
+                  <Route path="reports" element={<BranchReports />} />
+                  <Route path="hr/leaves" element={<StaffLeavesManager />} />
+                  <Route path="hr/payroll" element={<PayrollDashboard />} />
+                </Route>
+
+                {/* Registrar Routes */}
+                <Route path="/registrar">
+                  <Route index element={<RegistrarDashboard />} />
+                  <Route path="admissions" element={<RegistrarAdmissions />} />
+                  <Route path="students" element={<RegistrarStudents />} />
+                  <Route path="students/:studentId" element={<RegistrarStudentDetails />} />
+                  <Route path="enrollments/new" element={<RegistrarNewEnrollment />} />
+                  <Route path="attendance" element={<AttendanceOversight />} />
+                  <Route path="profile" element={<AccountProfile />} />
+                </Route>
+
+                {/* Cashier Routes */}
+                <Route path="/cashier">
+                  <Route index element={<CashierDashboard />} />
+                  <Route path="invoices" element={<CashierInvoices />} />
+                  <Route path="invoices/:id" element={<CashierInvoiceDetails />} />
+                  <Route path="payments/new" element={<CashierNewPayment />} />
+                  <Route path="payments" element={<CashierPayments />} />
+                  <Route path="salary-payments" element={<PayrollDashboard />} />
+                  <Route path="receipts/:paymentId" element={<CashierReceipt />} />
+                  <Route path="profile" element={<AccountProfile />} />
+                </Route>
+
+                {/* Dugsi Quran Routes */}
+                <Route path="/dugsi">
+                  <Route index element={<Navigate to="/dugsi/students" replace />} />
+                  <Route path="students" element={<DugsiStudents />} />
+                  <Route path="attendance" element={<DugsiAttendance />} />
+                  <Route path="progress" element={<DugsiProgress />} />
+                  <Route path="profile" element={<AccountProfile />} />
+                </Route>
               </Route>
-            </Route>
-
-            {/* Finance Director Routes */}
-            <Route path="/finance">
-              <Route element={<StaffArea scope="tenant" />}>
-                <Route index element={<FinanceDashboard />} />
-                <Route path="policies" element={<FinancePolicies />} />
-                <Route path="fee-structures" element={<FeeStructures />} />
-                <Route path="invoices" element={<Invoices />} />
-                <Route path="invoices/:invoiceId" element={<InvoiceDetails />} />
-                <Route path="invoices/generate" element={<InvoiceGenerate />} />
-                <Route path="monthly" element={<MonthlyCollection />} />
-                <Route path="students/:studentId" element={<StudentPaymentRecord />} />
-                <Route path="payments" element={<Payments />} />
-                <Route path="salary-approvals" element={<CompensationApprovals />} />
-                <Route path="payroll-approvals" element={<PayrollDashboard />} />
-                <Route path="reports" element={<Reports />} />
-                <Route path="outstanding" element={<Outstanding />} />
-                <Route path="profile" element={<AccountProfile />} />
-              </Route>
-            </Route>
-
-            <Route path="/hr" element={<StaffArea scope="tenant" />}>
-              <Route index element={<HRDashboard />} />
-              <Route path="employees" element={<HREmployees />} />
-              <Route path="leaves" element={<StaffLeavesManager />} />
-              <Route path="payroll" element={<PayrollDashboard />} />
-              <Route path="reports" element={<HRReports />} />
-              <Route path="profile" element={<AccountProfile />} />
-            </Route>
-
-            {/* Branch Admin Routes */}
-            <Route path="/branch">
-              <Route path="login" element={<Navigate to="/login" replace />} />
-              <Route path="register" element={<Navigate to="/login" replace />} />
-              <Route element={<StaffArea scope="branch" />}>
-                <Route index element={<BranchDashboard />} />
-                <Route path="account" element={<AccountProfile />} />
-                <Route path="classes" element={<BranchClasses />} />
-                <Route path="teachers" element={<BranchStaff mode="teachers" />} />
-                <Route path="teachers/new" element={<BranchStaffCreate mode="teachers" />} />
-                <Route path="staff" element={<BranchStaff mode="staff" />} />
-                <Route path="staff/new" element={<BranchStaffCreate mode="staff" />} />
-                <Route path="students" element={<BranchStudents />} />
-                <Route path="students/:studentId" element={<BranchStudentDetails />} />
-                <Route path="promotions" element={<BranchPromotions />} />
-                <Route path="transfers" element={<BranchTransfer />} />
-                <Route path="exams" element={<BranchExams />} />
-                <Route path="results" element={<BranchResults />} />
-                <Route path="results/student" element={<BranchStudentResults />} />
-                <Route path="assignments" element={<BranchTeacherAssignments />} />
-                <Route path="timetable" element={<BranchTimetableBuilder />} />
-                <Route path="timetable/class/:classId" element={<BranchTimetableBuilder />} />
-                <Route path="dugsi" element={<DugsiOversight />} />
-                <Route path="reports" element={<BranchReports />} />
-
-                {/* HR Modules */}
-                <Route path="hr/leaves" element={<StaffLeavesManager />} />
-                <Route path="hr/payroll" element={<PayrollDashboard />} />
-              </Route>
-            </Route>
-
-            {/* Registrar Routes */}
-            <Route path="/registrar/login" element={<Navigate to="/login" replace />} />
-            <Route path="/registrar/register" element={<Navigate to="/login" replace />} />
-            <Route element={<StaffArea scope="branch" />}>
-              <Route path="/registrar">
-                <Route index element={<RegistrarDashboard />} />
-                <Route path="admissions" element={<RegistrarAdmissions />} />
-                <Route path="students" element={<RegistrarStudents />} />
-                <Route path="students/:studentId" element={<RegistrarStudentDetails />} />
-                <Route path="enrollments/new" element={<RegistrarNewEnrollment />} />
-                <Route path="attendance" element={<AttendanceOversight />} />
-                <Route path="profile" element={<AccountProfile />} />
-              </Route>
-            </Route>
-
-            {/* Cashier Routes */}
-            <Route path="/cashier/login" element={<Navigate to="/login" replace />} />
-            <Route path="/cashier/register" element={<Navigate to="/login" replace />} />
-            {/* Works at either scope: a school-wide finance role can hold the desk. */}
-            <Route element={<StaffArea />}>
-              <Route path="/cashier">
-                <Route index element={<CashierDashboard />} />
-                <Route path="invoices" element={<CashierInvoices />} />
-                <Route path="invoices/:id" element={<CashierInvoiceDetails />} />
-                <Route path="payments/new" element={<CashierNewPayment />} />
-                <Route path="payments" element={<CashierPayments />} />
-                <Route path="salary-payments" element={<PayrollDashboard />} />
-                <Route path="receipts/:paymentId" element={<CashierReceipt />} />
-                <Route path="profile" element={<AccountProfile />} />
-              </Route>
-            </Route>
-
-            {/* Dugsi Quran Routes */}
-            <Route path="/dugsi/login" element={<Navigate to="/login" replace />} />
-            <Route path="/dugsi/register" element={<Navigate to="/login" replace />} />
-            <Route element={<StaffArea scope="branch" />}>
-              <Route path="/dugsi">
-                <Route index element={<Navigate to="/dugsi/students" replace />} />
-                <Route path="students" element={<DugsiStudents />} />
-                <Route path="attendance" element={<DugsiAttendance />} />
-                <Route path="progress" element={<DugsiProgress />} />
-                <Route path="profile" element={<AccountProfile />} />
-              </Route>
-            </Route>
 
             {/* Teacher Routes */}
             <Route path="/teacher/login" element={<Navigate to="/login" replace />} />
@@ -396,6 +376,7 @@ function App() {
           </Routes>
           </PasswordChangeGate>
         </Suspense>
+        </BrandingProvider>
       </AuthProvider>
     </Router>
   );

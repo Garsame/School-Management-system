@@ -63,6 +63,16 @@ const PaymentRecordView = ({ record, audience = 'staff', actions = null }) => {
                         )}
                     </div>
                     <div className="flex items-center gap-2">
+                        {student.discount?.enabled && (
+                            <Badge
+                                variant={student.discount.type === 'PERCENTAGE' && student.discount.value >= 100 ? 'success' : 'warning'}
+                                className="font-bold"
+                            >
+                                {student.discount.type === 'PERCENTAGE'
+                                    ? (student.discount.value >= 100 ? '100% Scholarship' : `${student.discount.value}% Discount`)
+                                    : `-$${student.discount.value} Discount`}
+                            </Badge>
+                        )}
                         {student.status !== 'Active' && <Badge variant="outline">{student.status}</Badge>}
                         {actions}
                     </div>

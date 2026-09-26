@@ -145,7 +145,7 @@ const DugsiOversight = () => {
                 {canAssign && (
                     <Button
                         onClick={() => setModalOpen(true)}
-                        className="bg-teal-600 hover:bg-teal-700 text-white flex items-center gap-2"
+                        className="flex items-center gap-2"
                     >
                         <Plus className="h-4 w-4" />
                         Assign Classes to Teacher
@@ -158,7 +158,7 @@ const DugsiOversight = () => {
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                     <div className="flex items-center justify-between">
                         <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Students in Dugsi</span>
-                        <div className="rounded-lg bg-teal-50 p-2 text-teal-600">
+                        <div className="rounded-lg bg-[var(--primary-soft)] p-2 text-[var(--primary)]">
                             <Users className="h-4 w-4" />
                         </div>
                     </div>
@@ -214,7 +214,7 @@ const DugsiOversight = () => {
                     onClick={() => setActiveTab('circles')}
                     className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors ${
                         activeTab === 'circles'
-                            ? 'border-teal-600 text-teal-700'
+                            ? 'border-[var(--primary)] text-[var(--primary)]'
                             : 'border-transparent text-slate-500 hover:text-slate-700'
                     }`}
                 >
@@ -224,7 +224,7 @@ const DugsiOversight = () => {
                     onClick={() => setActiveTab('allocations')}
                     className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors ${
                         activeTab === 'allocations'
-                            ? 'border-teal-600 text-teal-700'
+                            ? 'border-[var(--primary)] text-[var(--primary)]'
                             : 'border-transparent text-slate-500 hover:text-slate-700'
                     }`}
                 >
@@ -237,7 +237,7 @@ const DugsiOversight = () => {
                 <div className="space-y-4">
                     {loading ? (
                         <div className="flex h-48 items-center justify-center">
-                            <Loader2 className="h-6 w-6 animate-spin text-teal-600" />
+                            <Loader2 className="h-6 w-6 animate-spin text-[var(--primary)]" />
                         </div>
                     ) : circles.length === 0 ? (
                         <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center">
@@ -384,7 +384,7 @@ const DugsiOversight = () => {
                                                 key={c._id}
                                                 className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition-all ${
                                                     isChecked
-                                                        ? 'bg-teal-50/80 border-teal-500 ring-1 ring-teal-500'
+                                                        ? 'bg-[var(--primary-soft)] border-[var(--primary)] ring-1 ring-[var(--primary)]'
                                                         : 'bg-white border-slate-200 hover:border-slate-300'
                                                 }`}
                                             >
@@ -393,7 +393,7 @@ const DugsiOversight = () => {
                                                         type="checkbox"
                                                         checked={isChecked}
                                                         onChange={() => toggleClassSelection(c._id)}
-                                                        className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                                                        className="h-4 w-4 rounded border-slate-300 text-[var(--primary)] focus:ring-[var(--primary)] cursor-pointer"
                                                     />
                                                     <span className="text-xs font-semibold text-slate-900">{c.name}</span>
                                                 </div>
@@ -405,13 +405,13 @@ const DugsiOversight = () => {
                             </div>
 
                             <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-                                <Button variant="secondary" onClick={() => setModalOpen(false)}>
+                                <Button variant="outline" onClick={() => setModalOpen(false)}>
                                     Cancel
                                 </Button>
                                 <Button
                                     type="submit"
                                     disabled={submitting || !selectedClassIds.size}
-                                    className="bg-teal-600 hover:bg-teal-700 text-white"
+                                    variant="primary"
                                 >
                                     {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Assign Classes'}
                                 </Button>

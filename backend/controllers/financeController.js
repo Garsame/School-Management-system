@@ -11,7 +11,7 @@ const Student = require('../models/Student');
 const Enrollment = require('../models/Enrollment');
 const { logActivity } = require('../utils/logger');
 const { getRevenueReport } = require('../services/financeService');
-const { generateMonthlyInvoices } = require('../services/monthlyBillingService');
+const { generateMonthlyInvoices, pickFeeStructure, monthlyCharge, calculateStudentInvoice } = require('../services/monthlyBillingService');
 const { listAcademicYearMonths } = require('../utils/billingMonths');
 const { getMonthlyCollection, getStudentPaymentRecord } = require('../services/studentAccountService');
 const { XLSX_CONTENT_TYPE, buildWorkbook } = require('../utils/xlsxWriter');
@@ -718,7 +718,11 @@ const getReceiptBranding = asyncHandler(async (req, res) => {
 const getFinanceClasses = asyncHandler(async (req, res) => {
     const query = { tenantId: req.tenantId };
     if (req.query.branchId) query.branchId = req.query.branchId;
-    res.json({ success: true, data: await Class.find(query).select('name branchId').sort({ name: 1 }) });
+    const classes = await Class.find(query)
+        .select('name branchId gradeLevel categoryId')
+        .populate('categoryId', 'name')
+        .sort({ name: 1 });
+    res.json({ success: true, data: classes });
 });
 
 const getFinanceSections = asyncHandler(async (req, res) => {
@@ -749,12 +753,12 @@ const searchBillingStudents = asyncHandler(async (req, res) => {
     if (!students.length) return res.json({ success: true, data: [] });
 
     const academicYearId = mongoose.isValidObjectId(req.query.academicYearId) ? req.query.academicYearId : null;
-    const enrollments = academicYearId
-        ? await Enrollment.find({ tenantId: req.tenantId, academicYearId, isCurrent: true, studentId: { $in: students.map((student) => student._id) } })
-            .populate('classId', 'name')
-            .select('studentId classId')
-            .lean()
-        : [];
+    const enrollmentFilter = { tenantId: req.tenantId, isCurrent: true, studentId: { $in: students.map((s) => s._id) } };
+    if (academicYearId) enrollmentFilter.academicYearId = academicYearId;
+    const enrollments = await Enrollment.find(enrollmentFilter)
+        .populate('classId', 'name')
+        .select('studentId classId')
+        .lean();
     const classByStudent = new Map(enrollments.map((enrollment) => [String(enrollment.studentId), enrollment.classId?.name || null]));
 
     res.json({
@@ -893,6 +897,191 @@ const getRevenueReportController = asyncHandler(async (req, res) => {
     res.json({ success: true, data: report });
 });
 
+// ==========================================
+// H) Student Discounts & Scholarships
+// ==========================================
+
+const getDiscountedStudents = asyncHandler(async (req, res) => {
+    const { branchId, search } = req.query;
+    const query = { tenantId: req.tenantId, 'discount.enabled': true };
+    if (branchId) query.branchId = branchId;
+    if (search && String(search).trim()) {
+        const criteria = buildStudentSearchCriteria(search);
+        if (criteria.length) query.$and = criteria;
+    }
+
+    const students = await Student.find(query)
+        .populate('branchId', 'name')
+        .sort({ updatedAt: -1, lastName: 1 });
+
+    const studentIds = students.map((s) => s._id);
+    const enrollments = await Enrollment.find({
+        tenantId: req.tenantId,
+        studentId: { $in: studentIds },
+        isCurrent: true
+    }).populate('classId', 'name gradeLevel categoryId branchId')
+      .populate('academicYearId', 'name')
+      .lean();
+
+    const enrollmentByStudent = new Map(enrollments.map((e) => [String(e.studentId), e]));
+    const structures = await FeeStructure.find({ tenantId: req.tenantId }).lean();
+
+    const data = students.map((student) => {
+        const enrollment = enrollmentByStudent.get(String(student._id));
+        const schoolClass = enrollment?.classId;
+        const structure = schoolClass ? pickFeeStructure(structures, schoolClass) : null;
+        const baseCharge = structure ? monthlyCharge(structure) : { items: [], amount: 0 };
+        const calculated = calculateStudentInvoice(student, baseCharge);
+
+        return {
+            _id: student._id,
+            firstName: student.firstName,
+            middleName: student.middleName,
+            lastName: student.lastName,
+            admissionNumber: student.admissionNumber,
+            studentCode: student.studentCode,
+            status: student.status,
+            branch: student.branchId,
+            class: schoolClass ? { _id: schoolClass._id, name: schoolClass.name, gradeLevel: schoolClass.gradeLevel } : null,
+            academicYear: enrollment?.academicYearId ? { _id: enrollment.academicYearId._id, name: enrollment.academicYearId.name } : null,
+            discount: student.discount,
+            baseMonthlyFee: baseCharge.amount,
+            discountedMonthlyFee: calculated.totalAmount,
+            feeStructureName: structure?.name || null
+        };
+    });
+
+    res.json({ success: true, data });
+});
+
+const getStudentDiscountPreview = asyncHandler(async (req, res) => {
+    const student = await Student.findOne({ _id: req.params.studentId, tenantId: req.tenantId })
+        .populate('branchId', 'name')
+        .lean();
+
+    if (!student) {
+        res.status(404);
+        throw new Error('Student not found');
+    }
+
+    const enrollment = await Enrollment.findOne({
+        tenantId: req.tenantId,
+        studentId: student._id,
+        isCurrent: true
+    }).populate('classId', 'name gradeLevel categoryId branchId')
+      .populate('academicYearId', 'name')
+      .lean();
+
+    const schoolClass = enrollment?.classId;
+    const structures = await FeeStructure.find({ tenantId: req.tenantId }).lean();
+    const structure = schoolClass ? pickFeeStructure(structures, schoolClass) : null;
+    const baseCharge = structure ? monthlyCharge(structure) : { items: [], amount: 0 };
+
+    const draftDiscount = req.query.type
+        ? {
+            enabled: true,
+            type: req.query.type,
+            value: Number(req.query.value) || 0,
+            reason: req.query.reason || ''
+        }
+        : student.discount;
+
+    const calculated = calculateStudentInvoice({ discount: draftDiscount }, baseCharge);
+
+    res.json({
+        success: true,
+        data: {
+            student: {
+                _id: student._id,
+                firstName: student.firstName,
+                middleName: student.middleName,
+                lastName: student.lastName,
+                admissionNumber: student.admissionNumber,
+                studentCode: student.studentCode,
+                status: student.status,
+                branch: student.branchId,
+                discount: student.discount
+            },
+            class: schoolClass ? { _id: schoolClass._id, name: schoolClass.name, gradeLevel: schoolClass.gradeLevel } : null,
+            academicYear: enrollment?.academicYearId || null,
+            feeStructure: structure ? { _id: structure._id, name: structure.name } : null,
+            baseMonthlyFee: baseCharge.amount,
+            baseItems: baseCharge.items,
+            calculatedMonthlyFee: calculated.totalAmount,
+            calculatedItems: calculated.items
+        }
+    });
+});
+
+const setStudentDiscount = asyncHandler(async (req, res) => {
+    const { type = 'PERCENTAGE', value, reason } = req.body;
+    const numValue = Number(value);
+    if (!Number.isFinite(numValue) || numValue < 0) {
+        res.status(400);
+        throw new Error('Discount value must be a valid positive number');
+    }
+    if (type === 'PERCENTAGE' && numValue > 100) {
+        res.status(400);
+        throw new Error('Percentage discount cannot exceed 100%');
+    }
+
+    const student = await Student.findOne({ _id: req.params.studentId, tenantId: req.tenantId });
+    if (!student) {
+        res.status(404);
+        throw new Error('Student not found');
+    }
+
+    student.discount = {
+        enabled: true,
+        type: type === 'FIXED' ? 'FIXED' : 'PERCENTAGE',
+        value: numValue,
+        reason: String(reason || '').trim(),
+        updatedAt: new Date(),
+        updatedBy: req.user?._id
+    };
+
+    await student.save();
+
+    await logActivity({
+        req,
+        action: 'STUDENT_DISCOUNT_UPDATED',
+        entityType: 'Student',
+        entityId: student._id.toString(),
+        details: { discount: student.discount }
+    });
+
+    res.json({ success: true, data: student.discount, message: 'Discount updated successfully' });
+});
+
+const removeStudentDiscount = asyncHandler(async (req, res) => {
+    const student = await Student.findOne({ _id: req.params.studentId, tenantId: req.tenantId });
+    if (!student) {
+        res.status(404);
+        throw new Error('Student not found');
+    }
+
+    student.discount = {
+        enabled: false,
+        type: 'PERCENTAGE',
+        value: 0,
+        reason: '',
+        updatedAt: new Date(),
+        updatedBy: req.user?._id
+    };
+
+    await student.save();
+
+    await logActivity({
+        req,
+        action: 'STUDENT_DISCOUNT_REMOVED',
+        entityType: 'Student',
+        entityId: student._id.toString(),
+        details: { studentId: student._id }
+    });
+
+    res.json({ success: true, message: 'Discount removed successfully' });
+});
+
 module.exports = {
     createFeeStructure, getFeeStructures, getFeeStructureById, updateFeeStructure, deleteFeeStructure,
     getFinancePolicies, updateFinancePolicies, setFeeStructureOpen, getBillingMonths, generateInvoices,
@@ -900,5 +1089,6 @@ module.exports = {
     getPayments, exportPayments, getPaymentsSummary, getOutstandingBalances, exportOutstandingBalances, getFinanceClasses, getFinanceSections, searchBillingStudents,
     getMonthlyCollectionReport, exportMonthlyCollection, getStudentPaymentRecordController,
     getReceiptBranding,
-    getRevenueReport: getRevenueReportController
+    getRevenueReport: getRevenueReportController,
+    getDiscountedStudents, getStudentDiscountPreview, setStudentDiscount, removeStudentDiscount
 };

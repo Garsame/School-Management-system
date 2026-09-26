@@ -164,7 +164,7 @@ const DugsiProgress = () => {
 
             {loading ? (
                 <div className="flex h-48 items-center justify-center">
-                    <Loader2 className="h-6 w-6 animate-spin text-teal-600" />
+                    <Loader2 className="h-6 w-6 animate-spin text-[var(--primary)]" />
                 </div>
             ) : students.length === 0 ? (
                 <div className="rounded-xl border border-slate-200 bg-white p-12 text-center">
@@ -180,7 +180,7 @@ const DugsiProgress = () => {
                     <div className="lg:col-span-5 space-y-6">
                         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                             <h2 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
-                                <Sparkles className="h-4 w-4 text-teal-600" />
+                                <Sparkles className="h-4 w-4 text-[var(--primary)]" />
                                 Record Today&apos;s Recitation
                             </h2>
 
@@ -202,10 +202,10 @@ const DugsiProgress = () => {
 
                                 {/* Active Student Info Card */}
                                 {activeStudent && (
-                                    <div className="rounded-xl bg-teal-50/60 border border-teal-100 p-3 flex items-center justify-between text-xs">
+                                    <div className="rounded-xl bg-[var(--surface-soft)] border border-[var(--border)] p-3 flex items-center justify-between text-xs">
                                         <div>
-                                            <span className="text-teal-900 font-semibold">{activeStudent.name}</span>
-                                            <div className="text-teal-700">Class: {activeStudent.className}</div>
+                                            <span className="text-slate-900 font-semibold">{activeStudent.name}</span>
+                                            <div className="text-slate-600">Class: {activeStudent.className}</div>
                                         </div>
                                         <Badge variant={activeStudent.learningStage === 'MEMORIZING' ? 'success' : 'info'}>
                                             {activeStudent.learningStage === 'MEMORIZING' ? 'Memorization (Hifz)' : 'Reading (Qaida)'}
@@ -303,14 +303,14 @@ const DugsiProgress = () => {
                                         placeholder="E.g., Excellent recitation, reviewed first half of juz..."
                                         value={formData.notes}
                                         onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                                        className="w-full rounded-lg border border-slate-300 p-2 text-xs focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                                        className="w-full rounded-lg border border-slate-300 p-2 text-xs focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
                                     />
                                 </div>
 
                                 <Button
                                     type="submit"
                                     disabled={saving}
-                                    className="w-full bg-teal-600 hover:bg-teal-700 text-white flex items-center justify-center gap-2"
+                                    className="w-full flex items-center justify-center gap-2"
                                 >
                                     {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                                     Save Progress Entry
@@ -339,7 +339,7 @@ const DugsiProgress = () => {
 
                             {historyLoading ? (
                                 <div className="flex h-48 items-center justify-center">
-                                    <Loader2 className="h-6 w-6 animate-spin text-teal-600" />
+                                    <Loader2 className="h-6 w-6 animate-spin text-[var(--primary)]" />
                                 </div>
                             ) : history.length === 0 ? (
                                 <div className="py-16 text-center text-sm text-slate-400">
@@ -358,7 +358,7 @@ const DugsiProgress = () => {
                                                         {log.surahName || `Surah #${log.surahNumber}`}
                                                     </span>
                                                     {log.juz && (
-                                                        <span className="text-xs font-semibold text-teal-700 bg-teal-100 px-2 py-0.5 rounded-md">
+                                                        <span className="text-xs font-semibold text-[var(--primary)] bg-[var(--primary-soft)] px-2 py-0.5 rounded-md">
                                                             Juz {log.juz}
                                                         </span>
                                                     )}

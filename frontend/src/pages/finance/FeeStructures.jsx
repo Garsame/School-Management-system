@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { fetchFeeStructures, createFeeStructure, deleteFeeStructure, updateFeeStructure } from '../../services/api/finance.api';
-import { getBranches, getAcademicYears, getClasses, getClassCategories } from '../../services/api/tenant.api';
+import { fetchFeeStructures, createFeeStructure, deleteFeeStructure, updateFeeStructure, getFinanceClasses } from '../../services/api/finance.api';
+import { getBranches, getAcademicYears, getBranchClasses, getClassCategories } from '../../services/api/tenant.api';
 import { Button, Input, Select, Badge } from '../../components/ui';
 import { Trash2, Plus, CreditCard, X, Loader2, Pencil } from 'lucide-react';
 import { confirmAction, notify } from '../../components/feedback/notificationService';
@@ -94,9 +94,8 @@ const FeeStructures = () => {
     const [years, setYears] = useState([]);
     const [classes, setClasses] = useState([]);
     const [categories, setCategories] = useState([]);
-    // The grades this school actually teaches, worked out from its classes. This used to be
-    // a hardcoded list of Grade 1 to 12, which left out any class on another grade: a school
-    // with a Baby Class and a Top Class on grade 0 could never give them a fee by grade.
+    // The grades this school actually teaches, worked out from its classes. This dynamically
+    // discovers all grades (numerical, 0, or named), and names the classes sharing each grade.
     const [gradeOptions, setGradeOptions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isCreating, setIsCreating] = useState(false);
@@ -114,15 +113,13 @@ const FeeStructures = () => {
                 fetchFeeStructures(),
                 getBranches(),
                 getAcademicYears(),
-                // Every class in the school, so the grade list matches reality.
-                getClasses().catch(() => [])
+                getFinanceClasses().catch(() => [])
             ]);
             setStructures(unwrapList(fs));
             setBranches(unwrapList(b).map(i => ({ label: i.name, value: i._id })));
             setYears(unwrapList(y).map(i => ({ label: i.name, value: i._id })));
 
-            // Several classes can share a grade, so name them in the label. "Grade 0" means
-            // nothing on its own; "Grade 0 — Baby Class, Top Class" is unmistakable.
+            // Several classes can share a grade, so name them in the label.
             const byGrade = new Map();
             for (const item of unwrapList(allClasses)) {
                 const grade = String(item.gradeLevel ?? '').trim();
@@ -131,14 +128,22 @@ const FeeStructures = () => {
                 byGrade.get(grade).push(item.name);
             }
             const grades = [...byGrade.entries()]
-                .sort((a, b) => Number(a[0]) - Number(b[0]))
+                .sort((a, b) => {
+                    const numA = Number(a[0]);
+                    const numB = Number(b[0]);
+                    if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+                    return a[0].localeCompare(b[0]);
+                })
                 .map(([grade, names]) => ({
                     value: grade,
                     label: `Grade ${grade} — ${names.sort().join(', ')}`
                 }));
             setGradeOptions(grades);
+            if (grades.length > 0 && !formData.gradeLevel) {
+                setFormData(prev => ({ ...prev, gradeLevel: grades[0].value }));
+            }
         } catch (e) {
-            console.error(e);
+            console.error('Failed to load initial fee structures data', e);
         } finally {
             setLoading(false);
         }
@@ -151,18 +156,34 @@ const FeeStructures = () => {
             return;
         }
 
-        const loadClasses = async () => {
+        const loadBranchData = async () => {
             try {
-                const [response, categoryResponse] = await Promise.all([getClasses({ branchId: formData.branchId }), getClassCategories(formData.branchId)]);
-                setClasses(unwrapList(response).map(item => ({ label: item.name, value: item._id })));
-                setCategories(unwrapList(categoryResponse).map(item => ({ label: item.name, value: item._id })));
+                const [classesResult, categoriesResult] = await Promise.allSettled([
+                    getBranchClasses(formData.branchId),
+                    getClassCategories(formData.branchId)
+                ]);
+
+                if (classesResult.status === 'fulfilled') {
+                    const list = unwrapList(classesResult.value);
+                    setClasses(list.map(item => ({ label: item.name, value: item._id })));
+                } else {
+                    setClasses([]);
+                }
+
+                if (categoriesResult.status === 'fulfilled') {
+                    const list = unwrapList(categoriesResult.value);
+                    setCategories(list.map(item => ({ label: item.name, value: item._id })));
+                } else {
+                    setCategories([]);
+                }
             } catch (error) {
-                console.error(error);
+                console.error('Failed to load branch academic lookups', error);
                 setClasses([]);
+                setCategories([]);
             }
         };
 
-        loadClasses();
+        loadBranchData();
     }, [formData.branchId]);
 
     const hasTarget = formData.targetType === 'SCHOOL_GRADE'
@@ -238,18 +259,69 @@ const FeeStructures = () => {
                 <article className="phoenix-card">
                     <div className="phoenix-card-body space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Select label="Fee applies to" options={[{ label: 'All campuses by grade', value: 'SCHOOL_GRADE' }, { label: 'Campus level/category override', value: 'CATEGORY' }, { label: 'One class override', value: 'CLASS' }]} value={formData.targetType} onChange={e => setFormData({...formData, targetType: e.target.value, branchId: '', classId: '', categoryId: ''})} className="!h-10 text-xs" required />
+                            <Select
+                                label="Fee applies to"
+                                options={[
+                                    { label: 'All campuses by grade', value: 'SCHOOL_GRADE' },
+                                    { label: 'Campus level/category override', value: 'CATEGORY' },
+                                    { label: 'One class override', value: 'CLASS' }
+                                ]}
+                                value={formData.targetType}
+                                onChange={e => setFormData({
+                                    ...formData,
+                                    targetType: e.target.value,
+                                    branchId: '',
+                                    classId: '',
+                                    categoryId: '',
+                                    gradeLevel: e.target.value === 'SCHOOL_GRADE' ? (gradeOptions[0]?.value || '1') : ''
+                                })}
+                                className="!h-10 text-xs"
+                                required
+                            />
                             {formData.targetType === 'SCHOOL_GRADE' ? (
-                                <Select label="Grade" options={[{ label: `All ${gradeOptions.length} grades in this school (same fee)`, value: 'ALL' }, ...gradeOptions]} value={formData.gradeLevel} onChange={e => setFormData({...formData, gradeLevel: e.target.value})} className="!h-10 text-xs" required />
+                                <Select
+                                    label="Grade"
+                                    options={gradeOptions.length > 0
+                                        ? [{ label: `All ${gradeOptions.length} grades in this school (same fee)`, value: 'ALL' }, ...gradeOptions]
+                                        : [{ label: 'No grades found (classes need grade levels)', value: '' }]}
+                                    value={formData.gradeLevel}
+                                    onChange={e => setFormData({ ...formData, gradeLevel: e.target.value })}
+                                    className="!h-10 text-xs"
+                                    required
+                                />
                             ) : (
-                                <Select label="Campus" options={branches} value={formData.branchId} onChange={e => setFormData({...formData, branchId: e.target.value, classId: '', categoryId: ''})} className="!h-10 text-xs" required />
+                                <Select
+                                    label="Campus"
+                                    options={branches}
+                                    value={formData.branchId}
+                                    onChange={e => setFormData({ ...formData, branchId: e.target.value, classId: '', categoryId: '' })}
+                                    placeholder="Select Campus"
+                                    className="!h-10 text-xs"
+                                    required
+                                />
                             )}
-                            {formData.targetType !== 'SCHOOL_GRADE' && <Select label={formData.targetType === 'CATEGORY' ? 'Level / Category' : 'Class'} options={formData.targetType === 'CATEGORY' ? categories : classes} value={formData.targetType === 'CATEGORY' ? formData.categoryId : formData.classId} onChange={e => setFormData({...formData, [formData.targetType === 'CATEGORY' ? 'categoryId' : 'classId']: e.target.value})} disabled={!formData.branchId} className="!h-10 text-xs" required />}
+                            {formData.targetType !== 'SCHOOL_GRADE' && (
+                                <Select
+                                    label={formData.targetType === 'CATEGORY' ? 'Level / Category' : 'Class'}
+                                    options={formData.targetType === 'CATEGORY' ? categories : classes}
+                                    value={formData.targetType === 'CATEGORY' ? formData.categoryId : formData.classId}
+                                    onChange={e => setFormData({ ...formData, [formData.targetType === 'CATEGORY' ? 'categoryId' : 'classId']: e.target.value })}
+                                    disabled={!formData.branchId}
+                                    placeholder={!formData.branchId
+                                        ? 'Select Campus first'
+                                        : (formData.targetType === 'CATEGORY'
+                                            ? (categories.length === 0 ? 'No categories found in this campus' : 'Select Category')
+                                            : (classes.length === 0 ? 'No classes found in this campus' : 'Select Class'))}
+                                    className="!h-10 text-xs"
+                                    required
+                                />
+                            )}
                             <Select
                                 label="Academic Year"
                                 options={years}
                                 value={formData.academicYearId}
-                                onChange={e => setFormData({...formData, academicYearId: e.target.value})}
+                                onChange={e => setFormData({ ...formData, academicYearId: e.target.value })}
+                                placeholder="Select Academic Year"
                                 className="!h-10 text-xs"
                                 required
                             />

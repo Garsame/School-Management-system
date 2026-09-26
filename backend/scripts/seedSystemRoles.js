@@ -59,15 +59,26 @@ const seedRolesForTenant = async (tenantId) => {
     const Role = require('../models/Role');
     const created = [];
     for (const key of TENANT_ROLE_KEYS) {
-        const existing = await Role.findOne({ tenantId, key }).select('_id').lean();
-        if (existing) continue;
+        const existing = await Role.findOne({ tenantId, key });
+        const defaultPerms = DEFAULT_ROLE_PERMISSIONS[key] || [];
+        if (existing) {
+            if (existing.isSystem) {
+                const currentSet = new Set(existing.permissions || []);
+                const missing = defaultPerms.filter((perm) => !currentSet.has(perm));
+                if (missing.length > 0) {
+                    existing.permissions = [...(existing.permissions || []), ...missing];
+                    await existing.save();
+                }
+            }
+            continue;
+        }
         created.push(await Role.create({
             tenantId,
             key,
             name: ROLE_PRESENTATION[key].name,
             description: ROLE_PRESENTATION[key].description,
             scope: ROLE_SCOPE[key],
-            permissions: DEFAULT_ROLE_PERMISSIONS[key] || [],
+            permissions: defaultPerms,
             dataScope: dataScopeFor(key),
             isSystem: true,
             isActive: true
@@ -94,14 +105,29 @@ const seedSystemRoles = async ({ dryRun = false } = {}) => {
     const User = require('../models/User');
 
     const tenants = await Tenant.find({}).select('_id name').lean();
-    const stats = { tenants: tenants.length, rolesCreated: 0, rolesExisting: 0, usersLinked: 0, usersUnmatched: 0 };
+    const stats = { tenants: tenants.length, rolesCreated: 0, rolesExisting: 0, rolesUpdated: 0, usersLinked: 0, usersUnmatched: 0 };
 
     const tenantRoleKeys = TENANT_ROLE_KEYS;
 
     for (const tenant of tenants) {
         for (const key of tenantRoleKeys) {
-            const existing = await Role.findOne({ tenantId: tenant._id, key }).select('_id').lean();
-            if (existing) { stats.rolesExisting += 1; continue; }
+            const existing = await Role.findOne({ tenantId: tenant._id, key });
+            const defaultPerms = DEFAULT_ROLE_PERMISSIONS[key] || [];
+            if (existing) {
+                stats.rolesExisting += 1;
+                if (existing.isSystem) {
+                    const currentSet = new Set(existing.permissions || []);
+                    const missing = defaultPerms.filter((perm) => !currentSet.has(perm));
+                    if (missing.length > 0) {
+                        stats.rolesUpdated += 1;
+                        if (!dryRun) {
+                            existing.permissions = [...(existing.permissions || []), ...missing];
+                            await existing.save();
+                        }
+                    }
+                }
+                continue;
+            }
             stats.rolesCreated += 1;
             if (dryRun) continue;
             await Role.create({
@@ -110,7 +136,7 @@ const seedSystemRoles = async ({ dryRun = false } = {}) => {
                 name: ROLE_PRESENTATION[key].name,
                 description: ROLE_PRESENTATION[key].description,
                 scope: ROLE_SCOPE[key],
-                permissions: DEFAULT_ROLE_PERMISSIONS[key] || [],
+                permissions: defaultPerms,
                 dataScope: dataScopeFor(key),
                 isSystem: true,
                 isActive: true

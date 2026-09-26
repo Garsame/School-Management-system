@@ -61,8 +61,8 @@ const StaffLayout = ({ children }) => {
             to={item.path}
             onClick={() => setSidebarOpen(false)}
             className={nested
-                ? `flex items-center gap-2 rounded-md px-3 py-2 text-xs font-semibold ${activePath === item.path ? 'school-sidebar-link-active' : 'school-sidebar-link'}`
-                : `flex items-center gap-3 ${activePath === item.path ? 'school-sidebar-link-active' : 'school-sidebar-link'}`}
+                ? `flex items-center gap-2 rounded-md px-3 py-2 text-xs font-semibold transition-colors ${activePath === item.path ? 'school-sidebar-link-active' : 'school-sidebar-link'}`
+                : `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-semibold transition-colors ${activePath === item.path ? 'school-sidebar-link-active' : 'school-sidebar-link'}`}
         >
             <item.icon size={nested ? 14 : 16} />
             <span>{item.label}</span>
@@ -79,16 +79,16 @@ const StaffLayout = ({ children }) => {
                 <button
                     type="button"
                     onClick={() => setOpenGroups((current) => ({ ...current, [openKey]: !(current[openKey] ?? isGroupActive) }))}
-                    className={`flex w-full items-center gap-3 ${isGroupActive ? 'school-sidebar-link-active' : 'school-sidebar-link'}`}
+                    className="school-sidebar-link flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-semibold transition-colors"
                     aria-expanded={isOpen}
                 >
                     <item.icon size={16} />
                     <span className="flex-1 text-left">{item.label}</span>
-                    <ChevronDown size={14} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDown size={14} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
                 </button>
                 <div className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`} aria-hidden={!isOpen}>
                     <div className="min-h-0 overflow-hidden">
-                        <div className="ml-6 space-y-0.5 border-l border-[#e3e6ed] pl-2 pt-0.5">
+                        <div className="ml-4 space-y-0.5 pl-2 pt-0.5">
                             {item.children.map((child) => renderLink(child, true))}
                         </div>
                     </div>

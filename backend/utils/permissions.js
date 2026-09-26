@@ -182,6 +182,8 @@ const PERMISSION_CATALOG = Object.freeze([
     createPermission('finance.feeStructures.create', 'Create fee structures', 'Finance', 'Create fee structures.', ['finance_director']),
     createPermission('finance.feeStructures.update', 'Update fee structures', 'Finance', 'Edit fee structures.', ['finance_director']),
     createPermission('finance.feeStructures.delete', 'Delete fee structures', 'Finance', 'Delete fee structures.', ['finance_director']),
+    createPermission('finance.discounts.view', 'View student discounts', 'Finance', 'View student discounts and scholarships.', ['finance_director', 'super_admin', 'branch_admin', 'cashier']),
+    createPermission('finance.discounts.manage', 'Manage student discounts', 'Finance', 'Grant, modify, or remove student discounts and scholarships.', ['finance_director', 'super_admin', 'branch_admin']),
     createPermission('finance.invoices.view', 'View invoices', 'Finance', 'View invoices.', ['finance_director']),
     createPermission('finance.invoices.generate', 'Generate invoices', 'Finance', 'Generate invoices for students.', ['finance_director']),
     createPermission('finance.invoices.detail', 'View invoice details', 'Finance', 'View invoice detail pages.', ['finance_director']),

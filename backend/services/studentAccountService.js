@@ -71,7 +71,7 @@ const getStudentPaymentRecord = async ({ tenantId, studentId, branchId = null, n
     const studentFilter = { _id: studentId, tenantId };
     if (branchId) studentFilter.branchId = branchId;
     const student = await Student.findOne(studentFilter)
-        .select('firstName lastName admissionNumber status branchId withdrawalDate withdrawalReason')
+        .select('firstName lastName admissionNumber status branchId withdrawalDate withdrawalReason discount')
         .lean();
     if (!student) throw accountError('Student not found', 404);
 
@@ -103,6 +103,7 @@ const getStudentPaymentRecord = async ({ tenantId, studentId, branchId = null, n
             name: nameOf(student),
             admissionNumber: student.admissionNumber,
             status: student.status,
+            discount: student.discount || null,
             leftOn: student.status === 'Left' ? student.withdrawalDate || null : null,
             className: enrollment?.classId?.name || null,
             academicYear: enrollment?.academicYearId?.name || null,

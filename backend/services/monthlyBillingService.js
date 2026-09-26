@@ -117,6 +117,53 @@ const notifyInvoicesCreated = async ({ tenantId, invoices, studentsById, month }
     }
 };
 
+const calculateStudentInvoice = (student, baseCharge) => {
+    const discount = student?.discount;
+    if (!discount || !discount.enabled || !discount.value || discount.value <= 0) {
+        return {
+            items: baseCharge.items,
+            totalAmount: baseCharge.amount,
+            paidAmount: 0,
+            balance: baseCharge.amount,
+            status: baseCharge.amount === 0 ? 'PAID' : 'UNPAID'
+        };
+    }
+
+    const baseAmount = baseCharge.amount;
+    let discountAmount = 0;
+    let discountLabel = '';
+
+    if (discount.type === 'PERCENTAGE') {
+        const pct = Math.min(100, Math.max(0, Number(discount.value) || 0));
+        discountAmount = Math.round(baseAmount * (pct / 100) * 100) / 100;
+        if (pct >= 100) {
+            discountLabel = `Full Scholarship (100%)${discount.reason ? ` — ${discount.reason}` : ''}`;
+        } else {
+            discountLabel = `Discount (${pct}%)${discount.reason ? ` — ${discount.reason}` : ''}`;
+        }
+    } else {
+        discountAmount = Math.min(baseAmount, Math.round((Number(discount.value) || 0) * 100) / 100);
+        discountLabel = `Discount${discount.reason ? ` — ${discount.reason}` : ''}`;
+    }
+
+    const finalAmount = Math.max(0, Math.round((baseAmount - discountAmount) * 100) / 100);
+    const invoiceItems = [...baseCharge.items];
+    if (discountAmount > 0) {
+        invoiceItems.push({
+            name: discountLabel,
+            amount: -discountAmount
+        });
+    }
+
+    return {
+        items: invoiceItems,
+        totalAmount: finalAmount,
+        paidAmount: 0,
+        balance: finalAmount,
+        status: finalAmount === 0 ? 'PAID' : 'UNPAID'
+    };
+};
+
 const insertInvoices = async (docs) => {
     if (!docs.length) return { inserted: [], raced: 0 };
     try {
@@ -198,7 +245,7 @@ const generateMonthlyInvoices = async ({
     const classIds = [...new Set([...enrollmentByStudent.values()].map((enrollment) => idOf(enrollment.classId)))];
 
     const [students, classes, structures, existing, branches] = await Promise.all([
-        Student.find({ _id: { $in: studentIds }, tenantId }).select('firstName lastName admissionNumber status').lean(),
+        Student.find({ _id: { $in: studentIds }, tenantId }).select('firstName lastName admissionNumber status discount').lean(),
         Class.find({ _id: { $in: classIds }, tenantId }).select('name gradeLevel categoryId branchId').lean(),
         FeeStructure.find({ tenantId, academicYearId }).lean(),
         Invoice.find({ tenantId, academicYearId, billingPeriodKey: month.key, studentId: { $in: studentIds } }).select('studentId').lean(),
@@ -251,6 +298,7 @@ const generateMonthlyInvoices = async ({
         if (!row.structure) continue;
 
         const charge = monthlyCharge(row.structure);
+        const bill = calculateStudentInvoice(student, charge);
         row.toBill += 1;
         docs.push({
             tenantId,
@@ -260,11 +308,11 @@ const generateMonthlyInvoices = async ({
             feeStructureId: row.structure._id,
             billingPeriodKey: month.key,
             billingPeriodLabel: month.label,
-            items: charge.items,
-            totalAmount: charge.amount,
-            paidAmount: 0,
-            balance: charge.amount,
-            status: 'UNPAID',
+            items: bill.items,
+            totalAmount: bill.totalAmount,
+            paidAmount: bill.paidAmount,
+            balance: bill.balance,
+            status: bill.status,
             dueDate: resolvedDueDate
         });
     }
@@ -323,7 +371,9 @@ const describeStudentOutcome = ({ summary, enrollments, dryRun, created }) => {
 };
 
 module.exports = {
+    calculateStudentInvoice,
     explainMissingFee,
     generateMonthlyInvoices,
+    monthlyCharge,
     pickFeeStructure
 };

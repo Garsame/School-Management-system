@@ -159,7 +159,7 @@ const DugsiStudents = () => {
                     </p>
                 </div>
                 {canManage && (
-                    <Button onClick={openAddModal} className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white">
+                    <Button onClick={openAddModal} className="flex items-center gap-2">
                         <UserPlus className="h-4 w-4" />
                         Add Students from Classes
                     </Button>
@@ -167,12 +167,12 @@ const DugsiStudents = () => {
             </div>
 
             {/* Allocated Classes Banner */}
-            <div className="rounded-xl border border-teal-100 bg-teal-50/60 p-4">
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
                 <div className="flex items-center gap-3">
-                    <BookOpen className="h-5 w-5 text-teal-600" />
+                    <BookOpen className="h-5 w-5 text-[var(--primary)]" />
                     <div>
-                        <h4 className="text-sm font-semibold text-teal-900">My Allocated Classes</h4>
-                        <p className="text-xs text-teal-700 mt-0.5">
+                        <h4 className="text-sm font-semibold text-slate-900">My Allocated Classes</h4>
+                        <p className="text-xs text-slate-600 mt-0.5">
                             {allocatedClasses.length > 0
                                 ? `You can select Dugsi students from: ${allocatedClasses.map((c) => c.name).join(', ')}`
                                 : 'No classes assigned yet by the administrator. Contact your school admin to allocate classes.'}
@@ -209,7 +209,7 @@ const DugsiStudents = () => {
             <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                 {loading ? (
                     <div className="flex h-48 items-center justify-center">
-                        <Loader2 className="h-6 w-6 animate-spin text-teal-600" />
+                        <Loader2 className="h-6 w-6 animate-spin text-[var(--primary)]" />
                     </div>
                 ) : filteredStudents.length === 0 ? (
                     <div className="p-12 text-center">
@@ -356,7 +356,7 @@ const DugsiStudents = () => {
                         <div className="p-6 overflow-y-auto flex-1 divide-y divide-slate-100">
                             {candidatesLoading ? (
                                 <div className="flex h-48 items-center justify-center">
-                                    <Loader2 className="h-6 w-6 animate-spin text-teal-600" />
+                                    <Loader2 className="h-6 w-6 animate-spin text-[var(--primary)]" />
                                 </div>
                             ) : filteredCandidates.length === 0 ? (
                                 <div className="py-12 text-center text-sm text-slate-500">
@@ -365,58 +365,58 @@ const DugsiStudents = () => {
                             ) : (
                                 <div className="space-y-2">
                                     {filteredCandidates.map((c) => {
-                                        const isChecked = selectedStudentIds.has(c.studentId);
-                                        const isAlreadyInMine = c.isEnrolledWithMe;
-                                        const isOtherDugsi = c.isEnrolledInDugsi && !c.isEnrolledWithMe;
+                                         const isChecked = selectedStudentIds.has(c.studentId);
+                                         const isAlreadyInMine = c.isEnrolledWithMe;
+                                         const isOtherDugsi = c.isEnrolledInDugsi && !c.isEnrolledWithMe;
 
-                                        return (
-                                            <div
-                                                key={c.studentId}
-                                                className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
-                                                    isOtherDugsi
-                                                        ? 'bg-amber-50/50 border-amber-200 opacity-80'
-                                                        : isAlreadyInMine
-                                                        ? 'bg-teal-50/60 border-teal-200'
-                                                        : isChecked
-                                                        ? 'bg-teal-50/80 border-teal-500 ring-1 ring-teal-500'
-                                                        : 'bg-white border-slate-200 hover:border-slate-300'
-                                                }`}
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <input
-                                                        type="checkbox"
-                                                        disabled={isOtherDugsi || isAlreadyInMine}
-                                                        checked={isChecked || isAlreadyInMine}
-                                                        onChange={() => toggleSelectCandidate(c.studentId)}
-                                                        className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 cursor-pointer disabled:cursor-not-allowed"
-                                                    />
-                                                    <div>
-                                                        <div className="text-sm font-semibold text-slate-900">
-                                                            {c.name}
-                                                        </div>
-                                                        <div className="text-xs text-slate-500">
-                                                            {c.className} • Adm: <span className="font-mono">{c.admissionNumber}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                         return (
+                                             <div
+                                                 key={c.studentId}
+                                                 className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
+                                                     isOtherDugsi
+                                                         ? 'bg-amber-50/50 border-amber-200 opacity-80'
+                                                         : isAlreadyInMine
+                                                         ? 'bg-emerald-50/60 border-emerald-200'
+                                                         : isChecked
+                                                         ? 'bg-[var(--primary-soft)] border-[var(--primary)] ring-1 ring-[var(--primary)]'
+                                                         : 'bg-white border-slate-200 hover:border-slate-300'
+                                                 }`}
+                                             >
+                                                 <div className="flex items-center gap-3">
+                                                     <input
+                                                         type="checkbox"
+                                                         disabled={isOtherDugsi || isAlreadyInMine}
+                                                         checked={isChecked || isAlreadyInMine}
+                                                         onChange={() => toggleSelectCandidate(c.studentId)}
+                                                         className="h-4 w-4 rounded border-slate-300 text-[var(--primary)] focus:ring-[var(--primary)] cursor-pointer disabled:cursor-not-allowed"
+                                                     />
+                                                     <div>
+                                                         <div className="text-sm font-semibold text-slate-900">
+                                                             {c.name}
+                                                         </div>
+                                                         <div className="text-xs text-slate-500">
+                                                             {c.className} • Adm: <span className="font-mono">{c.admissionNumber}</span>
+                                                         </div>
+                                                     </div>
+                                                 </div>
 
-                                                <div>
-                                                    {isOtherDugsi ? (
-                                                        <span className="inline-flex items-center gap-1 text-xs text-amber-700 font-medium bg-amber-100 px-2.5 py-0.5 rounded-full">
-                                                            <AlertCircle className="h-3 w-3" />
-                                                            In {c.enrolledTeacherName}&apos;s Dugsi
-                                                        </span>
-                                                    ) : isAlreadyInMine ? (
-                                                        <span className="inline-flex items-center gap-1 text-xs text-teal-700 font-medium bg-teal-100 px-2.5 py-0.5 rounded-full">
-                                                            <CheckCircle className="h-3 w-3" />
-                                                            Already in your Dugsi
-                                                        </span>
-                                                    ) : isChecked ? (
-                                                        <span className="text-xs font-semibold text-teal-700">Selected</span>
-                                                    ) : null}
-                                                </div>
-                                            </div>
-                                        );
+                                                 <div>
+                                                     {isOtherDugsi ? (
+                                                         <span className="inline-flex items-center gap-1 text-xs text-amber-700 font-medium bg-amber-100 px-2.5 py-0.5 rounded-full">
+                                                             <AlertCircle className="h-3 w-3" />
+                                                             In {c.enrolledTeacherName}&apos;s Dugsi
+                                                         </span>
+                                                     ) : isAlreadyInMine ? (
+                                                         <span className="inline-flex items-center gap-1 text-xs text-emerald-700 font-medium bg-emerald-100 px-2.5 py-0.5 rounded-full">
+                                                             <CheckCircle className="h-3 w-3" />
+                                                             Already in your Dugsi
+                                                         </span>
+                                                     ) : isChecked ? (
+                                                         <span className="text-xs font-semibold text-[var(--primary)]">Selected</span>
+                                                     ) : null}
+                                                 </div>
+                                             </div>
+                                         );
                                     })}
                                 </div>
                             )}
@@ -428,13 +428,13 @@ const DugsiStudents = () => {
                                 {selectedStudentIds.size} student(s) selected
                             </span>
                             <div className="flex gap-2">
-                                <Button variant="secondary" onClick={() => setModalOpen(false)}>
+                                <Button variant="outline" onClick={() => setModalOpen(false)}>
                                     Cancel
                                 </Button>
                                 <Button
+                                    variant="primary"
                                     onClick={handleEnroll}
                                     disabled={!selectedStudentIds.size || submitting}
-                                    className="bg-teal-600 hover:bg-teal-700 text-white"
                                 >
                                     {submitting ? (
                                         <Loader2 className="h-4 w-4 animate-spin" />

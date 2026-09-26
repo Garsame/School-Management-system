@@ -8138,3 +8138,55 @@ test('a fee set for "all grades" covers every grade the school teaches', () => {
     // A school with no classes yet gets a plain reason rather than an empty result.
     assert.match(finance, /no classes yet, so there are no grades/);
 });
+
+test('student discounts and 100% full scholarships calculate correctly on invoices', async () => {
+    const { calculateStudentInvoice } = require('../services/monthlyBillingService');
+    const baseCharge = {
+        amount: 100,
+        items: [{ name: 'Tuition Fee', amount: 80 }, { name: 'Facility Fee', amount: 20 }]
+    };
+
+    // 1. Full 100% Scholarship
+    const scholarshipStudent = {
+        discount: { enabled: true, type: 'PERCENTAGE', value: 100, reason: 'Academic Excellence' }
+    };
+    const fullBill = calculateStudentInvoice(scholarshipStudent, baseCharge);
+    assert.equal(fullBill.totalAmount, 0);
+    assert.equal(fullBill.balance, 0);
+    assert.equal(fullBill.status, 'PAID');
+    assert.equal(fullBill.items.length, 3);
+    assert.equal(fullBill.items[2].amount, -100);
+    assert.match(fullBill.items[2].name, /Full Scholarship \(100%\)/);
+
+    // 2. 30% Partial Discount
+    const partialStudent = {
+        discount: { enabled: true, type: 'PERCENTAGE', value: 30, reason: 'Staff Child' }
+    };
+    const partialBill = calculateStudentInvoice(partialStudent, baseCharge);
+    assert.equal(partialBill.totalAmount, 70);
+    assert.equal(partialBill.balance, 70);
+    assert.equal(partialBill.status, 'UNPAID');
+    assert.equal(partialBill.items.length, 3);
+    assert.equal(partialBill.items[2].amount, -30);
+    assert.match(partialBill.items[2].name, /Discount \(30%\)/);
+
+    // 3. Fixed Amount Discount ($25 off)
+    const fixedStudent = {
+        discount: { enabled: true, type: 'FIXED', value: 25, reason: 'Sibling Concession' }
+    };
+    const fixedBill = calculateStudentInvoice(fixedStudent, baseCharge);
+    assert.equal(fixedBill.totalAmount, 75);
+    assert.equal(fixedBill.balance, 75);
+    assert.equal(fixedBill.status, 'UNPAID');
+    assert.equal(fixedBill.items[2].amount, -25);
+
+    // 4. Inactive or 0% discount charges standard amount
+    const noDiscountStudent = {
+        discount: { enabled: false, type: 'PERCENTAGE', value: 50 }
+    };
+    const standardBill = calculateStudentInvoice(noDiscountStudent, baseCharge);
+    assert.equal(standardBill.totalAmount, 100);
+    assert.equal(standardBill.balance, 100);
+    assert.equal(standardBill.items.length, 2);
+});
+

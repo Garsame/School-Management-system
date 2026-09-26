@@ -24,6 +24,8 @@ export const ROUTE_PERMISSION_RULES = [
     rule(/^\/tenant\/attendance$/, 'attendance.oversight.view'),
     rule(/^\/tenant\/dugsi$/, 'dugsi.overview.view'),
 
+    rule(/^\/finance\/discounts$/, 'finance.discounts.view'),
+
     rule(/^\/branch\/dugsi$/, 'dugsi.overview.view'),
     rule(/^\/registrar\/attendance$/, 'attendance.oversight.view'),
 

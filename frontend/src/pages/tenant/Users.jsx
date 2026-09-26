@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import { 
   UserPlus, 
   Search, 
@@ -63,6 +63,7 @@ const UsersManagement = () => {
         defaults: [],
         effective: []
     });
+    const [permissionSearch, setPermissionSearch] = useState('');
     const [permissionSubmitting, setPermissionSubmitting] = useState(false);
 
     const toggleDropdown = (userId) => {
@@ -158,16 +159,17 @@ const UsersManagement = () => {
     const handleOpenPermissions = async (user) => {
         try {
             const res = await tenantService.getUserPermissions(user._id);
-            const { catalog, allow, deny, defaults, effective } = res.data;
+            const data = res?.data?.data ?? res?.data ?? {};
             setPermissionModal({
                 open: true,
                 user,
-                catalog: catalog || [],
-                allow: allow || [],
-                deny: deny || [],
-                defaults: defaults || [],
-                effective: effective || []
+                catalog: Array.isArray(data.catalog) ? data.catalog : [],
+                allow: Array.isArray(data.allow) ? data.allow : [],
+                deny: Array.isArray(data.deny) ? data.deny : [],
+                defaults: Array.isArray(data.defaults) ? data.defaults : [],
+                effective: Array.isArray(data.effective) ? data.effective : []
             });
+            setPermissionSearch('');
         } catch (error) {
             notify(error.response?.data?.message || 'Failed to load user permissions', 'error');
         }
@@ -175,8 +177,8 @@ const UsersManagement = () => {
 
     const handlePermissionChange = (key, state) => {
         setPermissionModal((current) => {
-            let nextAllow = [...current.allow];
-            let nextDeny = [...current.deny];
+            let nextAllow = [...(current.allow || [])];
+            let nextDeny = [...(current.deny || [])];
 
             nextAllow = nextAllow.filter((k) => k !== key);
             nextDeny = nextDeny.filter((k) => k !== key);
@@ -231,6 +233,22 @@ const UsersManagement = () => {
             })
             .catch(() => {});
     }, []);
+
+    const permissionGroups = useMemo(() => {
+        if (!permissionModal.open || !Array.isArray(permissionModal.catalog)) return [];
+        const search = permissionSearch.trim().toLowerCase();
+        const map = new Map();
+        permissionModal.catalog.forEach((perm) => {
+            if (!perm || !perm.key) return;
+            const matches = !search ||
+                `${perm.label || ''} ${perm.description || ''} ${perm.group || ''} ${perm.key || ''}`.toLowerCase().includes(search);
+            if (!matches) return;
+            const groupName = perm.group || 'Other';
+            if (!map.has(groupName)) map.set(groupName, []);
+            map.get(groupName).push(perm);
+        });
+        return [...map.entries()];
+    }, [permissionModal.open, permissionModal.catalog, permissionSearch]);
 
     return (
         <div className="phoenix-resource-page pb-10">
@@ -803,89 +821,112 @@ const UsersManagement = () => {
             {permissionModal.open && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
                     <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setPermissionModal(curr => ({ ...curr, open: false }))} />
-                    <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200">
-                        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 bg-slate-50/50">
+                    <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                             <div>
                                 <h3 className="text-lg font-black text-slate-900 tracking-tight">Manage User Permissions</h3>
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                                    Override access privileges for {permissionModal.user?.name} ({permissionModal.user?.role.replace('_', ' ')})
+                                    Override access privileges for {permissionModal.user?.name || 'User'} ({(permissionModal.user?.role || '').replace(/_/g, ' ')})
                                 </p>
                             </div>
-                            <button onClick={() => setPermissionModal(curr => ({ ...curr, open: false }))} className="p-2 hover:bg-slate-100 rounded-xl transition-all">
+                            <button onClick={() => setPermissionModal(curr => ({ ...curr, open: false }))} className="p-2 hover:bg-slate-100 rounded-xl transition-all" aria-label="Close dialog">
                                 <X size={18} />
                             </button>
                         </div>
-                        
-                        <form onSubmit={handleSavePermissions} className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
-                            <div className="space-y-3">
-                                {permissionModal.catalog.length === 0 ? (
-                                    <p className="text-sm font-semibold text-slate-400 text-center py-6">
-                                        No customizable permissions available for this user role.
-                                    </p>
-                                ) : (
-                                    permissionModal.catalog.map((perm) => {
-                                        const isDefault = !permissionModal.allow.includes(perm.key) && !permissionModal.deny.includes(perm.key);
-                                        const isAllowed = permissionModal.allow.includes(perm.key);
-                                        const isDenied = permissionModal.deny.includes(perm.key);
-                                        const defaultsToAllow = permissionModal.defaults.includes(perm.key);
 
-                                        return (
-                                            <div key={perm.key} className="p-4 bg-slate-55 rounded-xl border border-slate-200 hover:border-slate-350 transition-all">
-                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center gap-2 flex-wrap">
-                                                            <p className="text-xs font-black text-slate-900 uppercase tracking-wider">{perm.label}</p>
-                                                            <span className="px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded text-[8px] font-bold font-mono">
-                                                                {perm.key}
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">{perm.group} Group</p>
-                                                        <p className="text-[11px] text-slate-500 font-medium mt-1.5 leading-relaxed">{perm.description}</p>
-                                                    </div>
-                                                    <div className="flex items-center gap-2 shrink-0">
-                                                        {/* Default */}
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handlePermissionChange(perm.key, 'default')}
-                                                            className={`h-8 px-3.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border ${
-                                                                isDefault 
-                                                                    ? 'bg-slate-900 text-white border-slate-900 shadow-sm' 
-                                                                    : 'bg-white text-slate-600 border-slate-200 hover:border-slate-350 hover:bg-slate-50'
-                                                            }`}
-                                                        >
-                                                            Default ({defaultsToAllow ? 'Allow' : 'Deny'})
-                                                        </button>
-                                                        {/* Allow */}
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handlePermissionChange(perm.key, 'allow')}
-                                                            className={`h-8 px-3.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border ${
-                                                                isAllowed 
-                                                                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' 
-                                                                    : 'bg-white text-emerald-600 border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/30'
-                                                            }`}
-                                                        >
-                                                            Allow
-                                                        </button>
-                                                        {/* Deny */}
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handlePermissionChange(perm.key, 'deny')}
-                                                            className={`h-8 px-3.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border ${
-                                                                isDenied 
-                                                                    ? 'bg-rose-600 text-white border-rose-650 shadow-sm' 
-                                                                    : 'bg-white text-rose-650 border-slate-200 hover:border-rose-300 hover:bg-rose-50/30'
-                                                            }`}
-                                                        >
-                                                            Deny
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })
-                                )}
+                        <div className="px-6 pt-4">
+                            <div className="relative">
+                                <Search className="phoenix-input-icon" size={16} />
+                                <input
+                                    type="text"
+                                    className="phoenix-control phoenix-control-with-icon"
+                                    placeholder="Search features (e.g. discount, invoice, attendance)..."
+                                    value={permissionSearch}
+                                    onChange={(e) => setPermissionSearch(e.target.value)}
+                                />
                             </div>
+                        </div>
+                        
+                        <form onSubmit={handleSavePermissions} className="flex-1 overflow-y-auto p-6 space-y-5 custom-scrollbar">
+                            {permissionGroups.length === 0 ? (
+                                <p className="text-sm font-semibold text-slate-400 text-center py-6">
+                                    {permissionSearch ? `No features match "${permissionSearch}".` : 'No customizable permissions available for this user role.'}
+                                </p>
+                            ) : (
+                                permissionGroups.map(([groupName, permissions]) => (
+                                    <div key={groupName} className="space-y-2.5">
+                                        <h4 className="text-xs font-black uppercase tracking-wider text-slate-400 px-1">{groupName}</h4>
+                                        <div className="space-y-2">
+                                            {permissions.map((perm) => {
+                                                const allowList = permissionModal.allow || [];
+                                                const denyList = permissionModal.deny || [];
+                                                const defaultList = permissionModal.defaults || [];
+
+                                                const isDefault = !allowList.includes(perm.key) && !denyList.includes(perm.key);
+                                                const isAllowed = allowList.includes(perm.key);
+                                                const isDenied = denyList.includes(perm.key);
+                                                const defaultsToAllow = defaultList.includes(perm.key);
+
+                                                return (
+                                                    <div key={perm.key} className="p-3.5 bg-slate-50/70 rounded-xl border border-slate-200 hover:border-slate-300 transition-all">
+                                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="flex items-center gap-2 flex-wrap">
+                                                                    <p className="text-xs font-bold text-slate-900">{perm.label}</p>
+                                                                    <span className="px-1.5 py-0.5 bg-slate-200/70 text-slate-600 rounded text-[9px] font-mono">
+                                                                        {perm.key}
+                                                                    </span>
+                                                                </div>
+                                                                {perm.description && (
+                                                                    <p className="text-[11px] text-slate-500 font-normal mt-1 leading-relaxed">{perm.description}</p>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex items-center gap-1.5 shrink-0">
+                                                                {/* Default */}
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handlePermissionChange(perm.key, 'default')}
+                                                                    className={`h-7 px-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border ${
+                                                                        isDefault 
+                                                                            ? 'bg-slate-900 text-white border-slate-900 shadow-sm' 
+                                                                            : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                                                                    }`}
+                                                                >
+                                                                    Default ({defaultsToAllow ? 'Allow' : 'Deny'})
+                                                                </button>
+                                                                {/* Allow */}
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handlePermissionChange(perm.key, 'allow')}
+                                                                    className={`h-7 px-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border ${
+                                                                        isAllowed 
+                                                                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' 
+                                                                            : 'bg-white text-emerald-600 border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/30'
+                                                                    }`}
+                                                                >
+                                                                    Allow
+                                                                </button>
+                                                                {/* Deny */}
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handlePermissionChange(perm.key, 'deny')}
+                                                                    className={`h-7 px-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border ${
+                                                                        isDenied 
+                                                                            ? 'bg-rose-600 text-white border-rose-600 shadow-sm' 
+                                                                            : 'bg-white text-rose-600 border-slate-200 hover:border-rose-300 hover:bg-rose-50/30'
+                                                                    }`}
+                                                                >
+                                                                    Deny
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ))
+                            )}
                         </form>
 
                         <div className="p-4 bg-slate-50/50 border-t border-slate-100 flex justify-end gap-3 shrink-0">

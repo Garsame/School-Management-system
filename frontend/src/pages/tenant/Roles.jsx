@@ -75,7 +75,7 @@ const Roles = () => {
 
     const openEditor = async (role) => {
         setQuery('');
-        setEditor({ role, name: role.name, description: role.description || '', selected: new Set(role.permissions) });
+        setEditor({ role, name: role.name || '', description: role.description || '', selected: new Set(role.permissions || []) });
         if (catalogs[role.scope]) return;
         try {
             const catalog = unwrap(await tenantService.getRoleCatalog(role.scope));
@@ -89,35 +89,52 @@ const Roles = () => {
     const groups = useMemo(() => {
         if (!editor) return [];
         const catalog = catalogs[editor.role.scope];
-        if (!catalog) return [];
+        if (!catalog || !Array.isArray(catalog.groups)) return [];
         const search = query.trim().toLowerCase();
         return catalog.groups
-            .filter((group) => !PORTAL_GROUP_ROLE[group.name] || PORTAL_GROUP_ROLE[group.name] === editor.role.key)
-            .map((group) => ({
-                ...group,
-                label: GROUP_LABELS[group.name] || group.name,
-                all: group.permissions,
-                permissions: search
-                    ? group.permissions.filter((permission) => `${permission.label} ${permission.description} ${GROUP_LABELS[group.name] || group.name}`.toLowerCase().includes(search))
-                    : group.permissions
-            }))
+            .filter((group) => group && (!PORTAL_GROUP_ROLE[group.name] || PORTAL_GROUP_ROLE[group.name] === editor.role.key))
+            .map((group) => {
+                const groupPermissions = Array.isArray(group.permissions) ? group.permissions : [];
+                return {
+                    ...group,
+                    label: GROUP_LABELS[group.name] || group.name || 'Features',
+                    all: groupPermissions,
+                    permissions: search
+                        ? groupPermissions.filter((permission) => `${permission?.label || ''} ${permission?.description || ''} ${GROUP_LABELS[group.name] || group.name || ''}`.toLowerCase().includes(search))
+                        : groupPermissions
+                };
+            })
             .filter((group) => group.permissions.length > 0);
     }, [catalogs, editor, query]);
 
     const setSelected = (update) => setEditor((current) => {
-        const selected = new Set(current.selected);
+        if (!current) return current;
+        const selected = new Set(current.selected || []);
         update(selected);
         return { ...current, selected };
     });
 
-    const toggleFeature = (key) => setSelected((selected) => (selected.has(key) ? selected.delete(key) : selected.add(key)));
+    const toggleFeature = (key) => setSelected((selected) => {
+        if (selected.has(key)) {
+            selected.delete(key);
+        } else {
+            selected.add(key);
+        }
+    });
 
-    const toggleGroup = (group, on) => setSelected((selected) => group.permissions.forEach((permission) => (
-        on ? selected.add(permission.key) : selected.delete(permission.key)
-    )));
+    const toggleGroup = (group, on) => setSelected((selected) => {
+        (group.permissions || []).forEach((permission) => {
+            if (!permission || !permission.key) return;
+            if (on) {
+                selected.add(permission.key);
+            } else {
+                selected.delete(permission.key);
+            }
+        });
+    });
 
     const save = async () => {
-        if (!editor.name.trim()) {
+        if (!editor || !editor.name || !editor.name.trim()) {
             notify('The role needs a name', 'error');
             return;
         }
@@ -125,8 +142,8 @@ const Roles = () => {
         try {
             const updated = unwrap(await tenantService.updateRole(editor.role._id, {
                 name: editor.name.trim(),
-                description: editor.description.trim(),
-                permissions: [...editor.selected]
+                description: (editor.description || '').trim(),
+                permissions: [...(editor.selected || [])]
             }));
             replaceRole(updated);
             refreshIfMine(editor.role);
@@ -230,9 +247,9 @@ const Roles = () => {
                             <div className="flex items-center gap-3">
                                 <div className="rounded-lg bg-[var(--primary-soft)] p-2 text-[var(--primary)]"><ShieldCheck size={18} /></div>
                                 <div>
-                                    <h2 className="phoenix-section-title">{editor.role.name}</h2>
+                                    <h2 className="phoenix-section-title">{editor?.role?.name || editor?.name || 'Role'}</h2>
                                     <p className="phoenix-section-copy">
-                                        {editor.role.scope === 'branch' ? 'Works at one branch' : 'Works across the whole school'} · {editor.selected.size} features ticked
+                                        {editor?.role?.scope === 'branch' ? 'Works at one branch' : 'Works across the whole school'} · {editor?.selected ? editor.selected.size : 0} features ticked
                                     </p>
                                 </div>
                             </div>
@@ -243,11 +260,11 @@ const Roles = () => {
                             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                                 <label className="space-y-1.5">
                                     <span className="text-[13px] font-semibold text-slate-700">Role name</span>
-                                    <input className="phoenix-control" value={editor.name} disabled={!canEdit} onChange={(event) => setEditor((current) => ({ ...current, name: event.target.value }))} />
+                                    <input className="phoenix-control" value={editor?.name || ''} disabled={!canEdit} onChange={(event) => setEditor((current) => ({ ...current, name: event.target.value }))} />
                                 </label>
                                 <label className="space-y-1.5">
                                     <span className="text-[13px] font-semibold text-slate-700">What this role does</span>
-                                    <input className="phoenix-control" value={editor.description} disabled={!canEdit} onChange={(event) => setEditor((current) => ({ ...current, description: event.target.value }))} />
+                                    <input className="phoenix-control" value={editor?.description || ''} disabled={!canEdit} onChange={(event) => setEditor((current) => ({ ...current, description: event.target.value }))} />
                                 </label>
                             </div>
 
@@ -261,14 +278,16 @@ const Roles = () => {
                             ) : groups.length === 0 ? (
                                 <p className="py-8 text-center text-sm text-[#8a94ad]">No feature matches “{query}”.</p>
                             ) : groups.map((group) => {
-                                const ticked = group.all.filter((permission) => editor.selected.has(permission.key)).length;
-                                const allShownTicked = group.permissions.every((permission) => editor.selected.has(permission.key));
+                                const groupAll = group.all || [];
+                                const groupPerms = group.permissions || [];
+                                const ticked = groupAll.filter((permission) => editor?.selected?.has(permission.key)).length;
+                                const allShownTicked = groupPerms.length > 0 && groupPerms.every((permission) => editor?.selected?.has(permission.key));
                                 return (
                                     <section key={group.name} className="rounded-lg border border-[#e3e6ed]">
                                         <header className="flex items-center justify-between gap-3 border-b border-[#e3e6ed] bg-slate-50 px-4 py-2.5">
                                             <div>
                                                 <h3 className="text-sm font-bold text-[#141824]">{group.label}</h3>
-                                                <p className="text-xs text-[#8a94ad]">{ticked} of {group.all.length} ticked</p>
+                                                <p className="text-xs text-[#8a94ad]">{ticked} of {groupAll.length} ticked</p>
                                             </div>
                                             {canEdit && (
                                                 <button type="button" className="text-xs font-semibold text-[var(--primary)] hover:underline" onClick={() => toggleGroup(group, !allShownTicked)}>
@@ -277,8 +296,8 @@ const Roles = () => {
                                             )}
                                         </header>
                                         <div className="grid grid-cols-1 gap-x-4 md:grid-cols-2">
-                                            {group.permissions.map((permission) => {
-                                                const on = editor.selected.has(permission.key);
+                                            {groupPerms.map((permission) => {
+                                                const on = Boolean(editor?.selected?.has(permission.key));
                                                 return (
                                                     <label key={permission.key} className={`flex items-start gap-3 px-4 py-2.5 ${canEdit ? 'cursor-pointer hover:bg-slate-50' : ''}`}>
                                                         <input
