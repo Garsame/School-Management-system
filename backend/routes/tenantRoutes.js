@@ -59,7 +59,7 @@ router.use(tenantGuard);
 const upload = require('../middleware/uploadMiddleware');
 
 // A) Branding
-router.put('/settings/branding', requirePermission('tenant.branding.update'), upload.single('logo'), upload.validateUploadedImageSignature, updateBranding);
+router.put('/settings/branding', requirePermission('tenant.branding.update'), upload.uploadLogo, updateBranding);
 
 // B) Branch Management
 router.post('/branches', requirePermission('tenant.branches.create'), enforcePlanLimit('branches'), createBranch);

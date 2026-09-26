@@ -17,6 +17,10 @@ import { removeSolidImageBackground } from '../../utils/imageBackground';
 import { useAuth } from '../../context/AuthContext';
 import { hasPermission } from '../../utils/permissions';
 
+// Keep in step with MAX_LOGO_BYTES in backend/middleware/uploadMiddleware.js.
+const MAX_LOGO_MB = 5;
+const MAX_LOGO_BYTES = MAX_LOGO_MB * 1024 * 1024;
+
 const colorFields = [
     {
         key: 'primaryColor',
@@ -129,8 +133,8 @@ const Branding = () => {
             event.target.value = '';
             return;
         }
-        if (file.size > 2 * 1024 * 1024) {
-            notify('The logo must be 2 MB or smaller.', 'error');
+        if (file.size > MAX_LOGO_BYTES) {
+            notify(`The logo must be ${MAX_LOGO_MB} MB or smaller.`, 'error');
             event.target.value = '';
             return;
         }
@@ -145,6 +149,15 @@ const Branding = () => {
         setProcessingBackground(true);
         try {
             const transparentLogo = await removeSolidImageBackground(originalLogoFile);
+            if (transparentLogo.size > MAX_LOGO_BYTES) {
+                const megabytes = (transparentLogo.size / 1024 / 1024).toFixed(1);
+                notify(
+                    `Removing the background made the logo ${megabytes} MB, over the ${MAX_LOGO_MB} MB limit. `
+                    + 'Use a smaller image, or save the logo as it is.',
+                    'error'
+                );
+                return;
+            }
             setLogoFile(transparentLogo);
             setBackgroundRemoved(true);
             notify('Solid logo background removed. Review the preview before saving.', 'success');
@@ -243,7 +256,7 @@ const Branding = () => {
                                 {logoFile ? logoFile.name : (previewLogoUrl ? 'Replace school logo' : 'Upload school logo')}
                             </span>
                             <span className="text-center text-xs text-[#6e7891]">
-                                Click to choose a PNG, JPEG, or WebP file up to 2 MB
+                                Click to choose a PNG, JPEG, or WebP file up to {MAX_LOGO_MB} MB
                             </span>
                             <input
                                 type="file"

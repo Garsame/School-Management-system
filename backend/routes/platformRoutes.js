@@ -61,7 +61,7 @@ router.use(protect);
 router.use(authorize('platform_owner'));
 
 router.get('/dashboard', requirePermission('platform.dashboard.view'), getPlatformDashboard);
-router.post('/tenants', requirePermission('platform.tenants.create'), registrationRateLimiter, upload.single('logo'), upload.validateUploadedImageSignature, registerTenant);
+router.post('/tenants', requirePermission('platform.tenants.create'), registrationRateLimiter, upload.uploadLogo, registerTenant);
 router.get('/tenants', requirePermission('platform.tenants.view'), getTenants);
 router.get('/tenants/:id', requirePermission('platform.tenants.view'), getTenantDetails);
 router.patch('/tenants/:id/status', requireTenantStatusPermission, updateTenantStatus);
@@ -83,7 +83,7 @@ router.post('/billing/payments/:paymentId/reverse', requirePermission('platform.
 router.get('/health', requirePermission('platform.monitoring.view'), getPlatformHealth);
 router.get('/audit-logs', requirePermission('platform.audit.view'), getPlatformAuditLogs);
 router.get('/settings', requirePermission('platform.settings.view'), getPlatformSettings);
-router.put('/settings', requirePermission('platform.settings.update'), upload.single('logo'), upload.validateUploadedImageSignature, updatePlatformSettings);
+router.put('/settings', requirePermission('platform.settings.update'), upload.uploadLogo, updatePlatformSettings);
 router.post('/settings/test-email', requirePermission('platform.smtp.test'), testPlatformSmtp);
 
 module.exports = router;

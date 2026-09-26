@@ -94,6 +94,10 @@ const FeeStructures = () => {
     const [years, setYears] = useState([]);
     const [classes, setClasses] = useState([]);
     const [categories, setCategories] = useState([]);
+    // The grades this school actually teaches, worked out from its classes. This used to be
+    // a hardcoded list of Grade 1 to 12, which left out any class on another grade: a school
+    // with a Baby Class and a Top Class on grade 0 could never give them a fee by grade.
+    const [gradeOptions, setGradeOptions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isCreating, setIsCreating] = useState(false);
     const [formData, setFormData] = useState(EMPTY_FORM);
@@ -106,14 +110,33 @@ const FeeStructures = () => {
 
     const loadInitialData = async () => {
         try {
-            const [fs, b, y] = await Promise.all([
+            const [fs, b, y, allClasses] = await Promise.all([
                 fetchFeeStructures(),
                 getBranches(),
-                getAcademicYears()
+                getAcademicYears(),
+                // Every class in the school, so the grade list matches reality.
+                getClasses().catch(() => [])
             ]);
             setStructures(unwrapList(fs));
             setBranches(unwrapList(b).map(i => ({ label: i.name, value: i._id })));
             setYears(unwrapList(y).map(i => ({ label: i.name, value: i._id })));
+
+            // Several classes can share a grade, so name them in the label. "Grade 0" means
+            // nothing on its own; "Grade 0 — Baby Class, Top Class" is unmistakable.
+            const byGrade = new Map();
+            for (const item of unwrapList(allClasses)) {
+                const grade = String(item.gradeLevel ?? '').trim();
+                if (grade === '') continue;
+                if (!byGrade.has(grade)) byGrade.set(grade, []);
+                byGrade.get(grade).push(item.name);
+            }
+            const grades = [...byGrade.entries()]
+                .sort((a, b) => Number(a[0]) - Number(b[0]))
+                .map(([grade, names]) => ({
+                    value: grade,
+                    label: `Grade ${grade} — ${names.sort().join(', ')}`
+                }));
+            setGradeOptions(grades);
         } catch (e) {
             console.error(e);
         } finally {
@@ -217,7 +240,7 @@ const FeeStructures = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <Select label="Fee applies to" options={[{ label: 'All campuses by grade', value: 'SCHOOL_GRADE' }, { label: 'Campus level/category override', value: 'CATEGORY' }, { label: 'One class override', value: 'CLASS' }]} value={formData.targetType} onChange={e => setFormData({...formData, targetType: e.target.value, branchId: '', classId: '', categoryId: ''})} className="!h-10 text-xs" required />
                             {formData.targetType === 'SCHOOL_GRADE' ? (
-                                <Select label="Grade" options={[{ label: 'All grades 1–12 (same fees)', value: 'ALL' }, ...Array.from({ length: 12 }, (_, index) => ({ label: `Grade ${index + 1}`, value: String(index + 1) }))]} value={formData.gradeLevel} onChange={e => setFormData({...formData, gradeLevel: e.target.value})} className="!h-10 text-xs" required />
+                                <Select label="Grade" options={[{ label: `All ${gradeOptions.length} grades in this school (same fee)`, value: 'ALL' }, ...gradeOptions]} value={formData.gradeLevel} onChange={e => setFormData({...formData, gradeLevel: e.target.value})} className="!h-10 text-xs" required />
                             ) : (
                                 <Select label="Campus" options={branches} value={formData.branchId} onChange={e => setFormData({...formData, branchId: e.target.value, classId: '', categoryId: ''})} className="!h-10 text-xs" required />
                             )}

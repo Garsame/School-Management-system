@@ -8065,3 +8065,76 @@ test('transferStudentClass rejects destination class belonging to another branch
         Enrollment.find = originals.enrollmentFind;
     }
 });
+
+test('a refused logo says why, instead of reporting a server crash', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const root = path.join(__dirname, '..');
+    const middleware = fs.readFileSync(path.join(root, 'middleware', 'uploadMiddleware.js'), 'utf8');
+
+    // Multer reports its own problems through an error with a `code` and no `statusCode`, so
+    // the server's error handler treated "file too large" as a crash: the user saw HTTP 500
+    // and "Internal server error" while the real reason went only to the log. That is what
+    // made the logo upload look broken.
+    assert.match(middleware, /const uploadLogo = \(req, res, next\)/);
+    assert.match(middleware, /LIMIT_FILE_SIZE/);
+    assert.match(middleware, /LIMIT_UNEXPECTED_FILE/);
+    assert.match(middleware, /res\.status\(error\.statusCode \|\| 400\)/);
+
+    // Every route that takes a logo must use the wrapper, or it keeps the old 500.
+    for (const file of ['tenantRoutes.js', 'platformRoutes.js']) {
+        const routes = fs.readFileSync(path.join(root, 'routes', file), 'utf8');
+        assert.doesNotMatch(routes, /upload\.single\('logo'\)/,
+            `${file} must use upload.uploadLogo so multer errors are explained`);
+        assert.match(routes, /upload\.uploadLogo/);
+    }
+});
+
+test('the logo size limit is the same on the server and the screen', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const root = path.join(__dirname, '..');
+    const { MAX_LOGO_BYTES } = require('../middleware/uploadMiddleware');
+    const branding = fs.readFileSync(
+        path.join(root, '..', 'frontend', 'src', 'pages', 'tenant', 'Branding.jsx'),
+        'utf8'
+    );
+
+    const screenMb = Number(branding.match(/const MAX_LOGO_MB = (\d+);/)[1]);
+    assert.equal(MAX_LOGO_BYTES, screenMb * 1024 * 1024,
+        'the screen and the server must agree, or the user is refused after being told it was fine');
+
+    // Nginx allows 6 MB, so the app stays the limit the user actually meets.
+    assert.ok(MAX_LOGO_BYTES < 6 * 1024 * 1024, 'keep the app limit under the Nginx limit');
+
+    // Removing the background redraws the logo as a transparent PNG, often several times
+    // larger than the JPG that went in. Checking only the picked file let the user build an
+    // oversized logo and only find out on save.
+    assert.match(branding, /if \(transparentLogo\.size > MAX_LOGO_BYTES\)/);
+});
+
+test('a fee set for "all grades" covers every grade the school teaches', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const root = path.join(__dirname, '..');
+    const finance = fs.readFileSync(path.join(root, 'controllers', 'financeController.js'), 'utf8');
+    const screen = fs.readFileSync(
+        path.join(root, '..', 'frontend', 'src', 'pages', 'finance', 'FeeStructures.jsx'),
+        'utf8'
+    );
+
+    // Both sides used to assume grades 1 to 12. A school with a Baby Class and a Top Class on
+    // grade 0 could not give them a fee at all, so its two largest classes stayed unbilled
+    // and the invoice preview only said "No fee structure for this class".
+    assert.match(finance, /Class\.distinct\('gradeLevel', \{ tenantId: req\.tenantId \}\)/,
+        'the server must read the grades the school teaches');
+    assert.doesNotMatch(finance, /Array\.from\(\{ length: 12 \}/,
+        'the server must not assume twelve grades');
+    assert.doesNotMatch(screen, /Array\.from\(\{ length: 12 \}/,
+        'the grade list on screen must not assume twelve grades');
+    assert.match(screen, /setGradeOptions\(grades\)/,
+        'the grade list must be built from the school\'s own classes');
+
+    // A school with no classes yet gets a plain reason rather than an empty result.
+    assert.match(finance, /no classes yet, so there are no grades/);
+});

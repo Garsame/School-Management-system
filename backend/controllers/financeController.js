@@ -114,12 +114,25 @@ const createFeeStructure = asyncHandler(async (req, res) => {
 
     try {
         if (normalizedTarget === 'SCHOOL_GRADE' && String(gradeLevel).toUpperCase() === 'ALL') {
-            const created = await FeeStructure.insertMany(Array.from({ length: 12 }, (_, index) => ({
+            // The grades this school actually teaches, not a fixed 1 to 12. A school with a
+            // Baby Class and a Top Class on grade 0 used to get nothing for them here, so
+            // its two largest classes stayed unbilled with no explanation.
+            const taughtGrades = (await Class.distinct('gradeLevel', { tenantId: req.tenantId }))
+                .map((value) => String(value ?? '').trim())
+                .filter((value) => value !== '')
+                .sort((a, b) => Number(a) - Number(b));
+
+            if (!taughtGrades.length) {
+                res.status(400);
+                throw new Error('This school has no classes yet, so there are no grades to set a fee for');
+            }
+
+            const created = await FeeStructure.insertMany(taughtGrades.map((grade) => ({
                 tenantId: req.tenantId,
                 targetType: 'SCHOOL_GRADE',
-                gradeLevel: String(index + 1),
+                gradeLevel: grade,
                 academicYearId,
-                name: `${String(name || '').trim() || 'Standard School Fees'} - Grade ${index + 1}`,
+                name: `${String(name || '').trim() || 'Standard School Fees'} - Grade ${grade}`,
                 ...MONTHLY_SCHEDULE,
                 isOpen,
                 feeItems: monthlyItems,
