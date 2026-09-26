@@ -12,12 +12,31 @@ const {
     exportStudents,
     getAdmissionSummary,
     downloadStudentImportTemplate,
-    previewStudentImport
+    previewStudentImport,
+    previewStudentImportFile
 } = require('../controllers/registrarController');
 
 const { protect, requireScope, tenantGuard, branchGuard } = require('../middleware/auth');
 const { requireAnyPermission, requirePermission } = require('../middleware/permissions');
 const { enforcePlanLimit } = require('../services/planLimitService');
+const multer = require('multer');
+
+// The list is read in memory and turned into rows; nothing is written to disk. 8 MB covers a
+// large school's workbook with room to spare.
+const importUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 8 * 1024 * 1024, files: 1 }
+});
+
+const uploadStudentList = (req, res, next) => {
+    importUpload.single('file')(req, res, (error) => {
+        if (!error) return next();
+        const message = error.code === 'LIMIT_FILE_SIZE'
+            ? 'The student list must be 8 MB or smaller.'
+            : (error.message || 'The student list could not be uploaded.');
+        return res.status(400).json({ success: false, message });
+    });
+};
 
 // Global Middleware for Registrar Routes
 // 1. Authenticate (JWT)
@@ -41,6 +60,7 @@ router.get('/students', requirePermission('students.view'), getStudents);
 router.get('/students/export.csv', requirePermission('students.view'), exportStudents);
 router.get('/students/import-template.csv', requirePermission('students.create'), downloadStudentImportTemplate);
 router.post('/students/import-preview', requirePermission('students.create'), previewStudentImport);
+router.post('/students/import-preview-file', requirePermission('students.create'), uploadStudentList, previewStudentImportFile);
 router.get('/students/:id', requirePermission('students.detail'), getStudentById);
 router.get('/students/:id/admission-summary', requirePermission('students.detail'), getAdmissionSummary);
 router.put('/students/:id', requirePermission('students.update'), updateStudent);

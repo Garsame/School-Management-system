@@ -2,6 +2,7 @@ const Student = require('../models/Student');
 const Enrollment = require('../models/Enrollment');
 const Class = require('../models/Class');
 const Section = require('../models/Section');
+const ClassCategory = require('../models/ClassCategory');
 const AcademicYear = require('../models/AcademicYear');
 const Branch = require('../models/Branch');
 const { logAction } = require('../services/auditLogService');
@@ -31,6 +32,8 @@ const { getNextStudentCode } = require('../services/counterService');
 const User = require('../models/User');
 const { generateTemporaryPassword } = require('../utils/passwords');
 const { normalizeDate, normalizePhone } = require('../utils/userProfile');
+const { readTable } = require('../utils/spreadsheetReader');
+const { rowsFromTable, FIELD_ALIASES, gradeLevelFromClassName } = require('../utils/importColumns');
 const exportService = require('../services/exportService');
 const { provisionParentAccess, rollbackParentAccess } = require('../services/parentAccessService');
 
@@ -630,6 +633,11 @@ const normalizeImportPhone = (value) => {
         const numeric = Number(text);
         if (Number.isFinite(numeric)) text = numeric.toFixed(0);
     }
+    // A school often puts two numbers in one cell: "0615... / 0617...". The first is the
+    // one they answer, so use that. Numbers run together with no separator are left alone,
+    // because guessing where to cut a guardian's phone number is worse than asking.
+    const firstOfSeveral = text.split(/\s*(?:\/|,|;|&|\bor\b)\s*/i)[0].trim();
+    if (firstOfSeveral) text = firstOfSeveral;
     return normalizePhone(text, 'Phone');
 };
 
@@ -639,18 +647,99 @@ const normalizeImportDate = (value, fieldName) => {
     return normalizeDate(text, fieldName, { allowFuture: fieldName === 'Admission date' }).toISOString().slice(0, 10);
 };
 
-// Resolve human-friendly CSV values without writing any student records.
-exports.previewStudentImport = async (req, res) => {
-    try {
-        const rows = Array.isArray(req.body?.rows) ? req.body.rows.slice(0, 500) : [];
-        if (!rows.length) return res.status(400).json({ success: false, message: 'At least one import row is required.' });
+/**
+ * Create the classes and sections a school's list mentions but the app does not have yet.
+ *
+ * Only ever called when the user has seen the list and pressed the button. Creating school
+ * structure from a spreadsheet without asking would turn one typo in the class column into a
+ * class that lives forever.
+ */
+const createMissingClassesAndSections = async (req, rows) => {
+    const created = { classes: [], sections: [] };
+
+    let category = await ClassCategory.findOne({ tenantId: req.user.tenantId, branchId: req.user.branchId });
+    if (!category) {
+        category = await ClassCategory.create({
+            tenantId: req.user.tenantId,
+            branchId: req.user.branchId,
+            name: 'General',
+            description: 'Created when the student list was imported'
+        });
+    }
+
+    const existingClasses = await Class.find({ tenantId: req.user.tenantId, branchId: req.user.branchId });
+    const byName = new Map(existingClasses.map((item) => [String(item.name).trim().toLowerCase(), item]));
+
+    // Keep the school's own spelling and order, and ignore blanks.
+    const wantedClasses = [];
+    for (const row of rows) {
+        const name = String(row.classNumber || '').trim();
+        if (!name) continue;
+        const key = name.toLowerCase();
+        if (byName.has(key) || wantedClasses.some((item) => item.toLowerCase() === key)) continue;
+        // A name that matches an existing grade level is already covered by that class.
+        if (existingClasses.some((item) => String(item.gradeLevel).trim().toLowerCase() === key)) continue;
+        wantedClasses.push(name);
+    }
+
+    for (const name of wantedClasses) {
+        const made = await Class.create({
+            tenantId: req.user.tenantId,
+            branchId: req.user.branchId,
+            categoryId: category._id,
+            name,
+            gradeLevel: gradeLevelFromClassName(name)
+        });
+        byName.set(name.toLowerCase(), made);
+        created.classes.push({ name: made.name, gradeLevel: made.gradeLevel });
+    }
+
+    const allClasses = [...byName.values()];
+    const existingSections = await Section.find({ tenantId: req.user.tenantId, branchId: req.user.branchId });
+    const sectionKey = (classId, name) => `${classId}::${String(name).trim().toLowerCase()}`;
+    const haveSection = new Set(existingSections.map((item) => sectionKey(item.classId, item.name)));
+
+    for (const row of rows) {
+        const className = String(row.classNumber || '').trim().toLowerCase();
+        const sectionName = String(row.sectionName || '').trim();
+        if (!className || !sectionName) continue;
+        const target = allClasses.find((item) => String(item.name).trim().toLowerCase() === className
+            || String(item.gradeLevel).trim().toLowerCase() === className);
+        if (!target) continue;
+        const key = sectionKey(target._id, sectionName);
+        if (haveSection.has(key)) continue;
+        haveSection.add(key);
+        await Section.create({
+            tenantId: req.user.tenantId,
+            branchId: req.user.branchId,
+            classId: target._id,
+            name: sectionName
+        });
+        created.sections.push({ className: target.name, name: sectionName });
+    }
+
+    return created;
+};
+
+// Resolve human-friendly values without writing any student records. Shared by the two
+// ways a list arrives: rows already parsed in the browser, or a file the school uploaded.
+const buildImportPreview = async (req, rows, { createMissing = false } = {}) => {
+        const createdStructure = createMissing ? await createMissingClassesAndSections(req, rows) : null;
 
         const [currentYear, classes, sections] = await Promise.all([
             AcademicYear.findOne({ tenantId: req.user.tenantId, isCurrent: true }),
             Class.find({ tenantId: req.user.tenantId, branchId: req.user.branchId }),
             Section.find({ tenantId: req.user.tenantId, branchId: req.user.branchId, isActive: { $ne: false } })
         ]);
-        if (!currentYear) return res.status(400).json({ success: false, message: 'No active academic year is configured.' });
+        if (!currentYear) throw importError('No active academic year is configured.');
+
+        // Naming the classes that exist turns "not found" from a dead end into an answer.
+        // Without it a school comparing two screens cannot tell whether the class is missing,
+        // spelled differently, or sitting in another campus.
+        const classNames = classes.map((item) => item.name).sort();
+        const availableClasses = classNames.length
+            ? `This campus has: ${classNames.join(', ')}`
+            : 'This campus has no classes yet. Create the classes first, then import the students.';
 
         const emails = [...new Set(rows.map((row) => String(row.guardianEmail || '').trim().toLowerCase()).filter(Boolean))];
         const existingUsers = emails.length
@@ -661,53 +750,64 @@ exports.previewStudentImport = async (req, res) => {
         const newParentEmailsSeen = new Set();
         const previewRows = rows.map((row, index) => {
             const errors = [];
+            // Which cells the user has to correct. The screen turns these into boxes on the
+            // row itself, so a messy cell is fixed here instead of back in Excel.
+            const problemFields = new Set();
+            const fail = (field, message) => { errors.push(message); if (field) problemFields.add(field); };
             const value = (key) => String(row[key] || '').trim();
             const requestedClass = value('classNumber').toLowerCase();
             const classMatches = classes.filter((item) => (
                 String(item.gradeLevel || '').trim().toLowerCase() === requestedClass
                 || String(item.name || '').trim().toLowerCase() === requestedClass
             ));
-            if (!requestedClass) errors.push('Class number is required');
-            else if (!classMatches.length) errors.push(`Class number "${value('classNumber')}" was not found in this branch`);
-            else if (classMatches.length > 1) errors.push(`Class number "${value('classNumber')}" matches more than one class`);
+            if (!requestedClass) fail('classNumber', 'Class number is required');
+            else if (!classMatches.length) fail('classNumber', `Class "${value('classNumber')}" was not found. ${availableClasses}`);
+            else if (classMatches.length > 1) fail('classNumber', `Class number "${value('classNumber')}" matches more than one class`);
             const resolvedClass = classMatches.length === 1 ? classMatches[0] : null;
 
             const requestedSection = value('sectionName');
             const sectionMatches = resolvedClass && requestedSection
                 ? sections.filter((item) => String(item.classId) === String(resolvedClass._id) && String(item.name).trim().toLowerCase() === requestedSection.toLowerCase())
                 : [];
-            if (requestedSection && !sectionMatches.length) errors.push(`Section "${requestedSection}" was not found in the resolved class`);
-            if (sectionMatches.length > 1) errors.push(`Section "${requestedSection}" is ambiguous`);
+            if (requestedSection && !sectionMatches.length && resolvedClass) {
+                const sectionNames = sections
+                    .filter((item) => String(item.classId) === String(resolvedClass._id))
+                    .map((item) => item.name).sort();
+                fail('sectionName', sectionNames.length
+                    ? `Section "${requestedSection}" was not found in ${resolvedClass.name}, which has: ${sectionNames.join(', ')}`
+                    : `${resolvedClass.name} has no sections yet, so "${requestedSection}" cannot be matched`);
+            }
+            if (sectionMatches.length > 1) fail('sectionName', `Section "${requestedSection}" is ambiguous`);
             const resolvedSection = sectionMatches.length === 1 ? sectionMatches[0] : null;
 
             [
                 ['firstName', 'First name'], ['lastName', 'Last name'], ['dateOfBirth', 'Date of birth'],
                 ['gender', 'Gender'], ['guardianName', 'Guardian name'], ['guardianPhone', 'Guardian phone'],
                 ['guardianEmail', 'Guardian email'], ['guardianAddress', 'Guardian address']
-            ].forEach(([key, label]) => { if (!value(key)) errors.push(`${label} is required`); });
+            ].forEach(([key, label]) => { if (!value(key)) fail(key, `${label} is required`); });
 
             const gender = `${value('gender').charAt(0).toUpperCase()}${value('gender').slice(1).toLowerCase()}`;
-            if (value('gender') && !['Male', 'Female', 'Other'].includes(gender)) errors.push('Gender must be Male, Female, or Other');
+            if (value('gender') && !['Male', 'Female', 'Other'].includes(gender)) fail('gender', 'Gender must be Male, Female, or Other');
             const email = value('guardianEmail').toLowerCase();
-            if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.push('Guardian email is invalid');
+            if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) fail('guardianEmail', 'Guardian email is invalid');
 
             let guardianPhone;
             let emergencyPhone;
             let DOB;
             let admissionDate;
-            try { if (value('guardianPhone')) guardianPhone = normalizeImportPhone(value('guardianPhone')); } catch (error) { errors.push(error.message); }
-            try { if (value('emergencyContactPhone')) emergencyPhone = normalizeImportPhone(value('emergencyContactPhone')); } catch (error) { errors.push(`Emergency contact ${error.message.toLowerCase()}`); }
-            try { if (value('dateOfBirth')) DOB = normalizeImportDate(value('dateOfBirth'), 'Date of birth'); } catch (error) { errors.push(error.message); }
-            try { if (value('admissionDate')) admissionDate = normalizeImportDate(value('admissionDate'), 'Admission date'); } catch (error) { errors.push(error.message); }
+            try { if (value('guardianPhone')) guardianPhone = normalizeImportPhone(value('guardianPhone')); } catch (error) { fail('guardianPhone', error.message); }
+            try { if (value('emergencyContactPhone')) emergencyPhone = normalizeImportPhone(value('emergencyContactPhone')); } catch (error) { fail('emergencyContactPhone', `Emergency contact ${error.message.toLowerCase()}`); }
+            try { if (value('dateOfBirth')) DOB = normalizeImportDate(value('dateOfBirth'), 'Date of birth'); } catch (error) { fail('dateOfBirth', error.message); }
+            try { if (value('admissionDate')) admissionDate = normalizeImportDate(value('admissionDate'), 'Admission date'); } catch (error) { fail('admissionDate', error.message); }
 
             const existingUser = userByEmail.get(email);
             let parentAction = 'New parent account';
             if (existingUser && existingUser.role !== 'parent') {
                 parentAction = 'Email conflict';
-                errors.push('Guardian email belongs to a non-parent account');
+                fail('guardianEmail', 'Guardian email belongs to a non-parent account');
             } else if (existingUser && !existingUser.isActive) {
                 parentAction = 'Inactive parent review required';
-                errors.push('Matching parent account is inactive');
+                fail('guardianEmail', 'Matching parent account is inactive');
             } else if (existingUser) {
                 parentAction = 'Existing parent will be linked';
             } else if (email && newParentEmailsSeen.has(email)) {
@@ -746,13 +846,153 @@ exports.previewStudentImport = async (req, res) => {
                 guardianEmail: email,
                 parentAction,
                 payload,
-                errors
+                errors,
+                problemFields: [...problemFields],
+                // Only a failing row needs its raw cells back; sending all 254 would be waste.
+                source: errors.length ? { ...row } : undefined
             };
         });
 
-        res.json({ success: true, data: { academicYear: currentYear.name, rows: previewRows } });
+        // Classes and sections the list mentions that the app does not have. The screen
+        // offers to create these rather than sending the user off to build them by hand.
+        const classKeys = new Set(classes.flatMap((item) => [
+            String(item.name).trim().toLowerCase(),
+            String(item.gradeLevel).trim().toLowerCase()
+        ]));
+        const missingClasses = [];
+        const missingSections = [];
+        for (const row of rows) {
+            const className = String(row.classNumber || '').trim();
+            const sectionName = String(row.sectionName || '').trim();
+            if (className && !classKeys.has(className.toLowerCase())
+                && !missingClasses.includes(className)) missingClasses.push(className);
+            if (!className || !sectionName) continue;
+            const known = classes.find((item) => String(item.name).trim().toLowerCase() === className.toLowerCase()
+                || String(item.gradeLevel).trim().toLowerCase() === className.toLowerCase());
+            const hasSection = known && sections.some((item) => String(item.classId) === String(known._id)
+                && String(item.name).trim().toLowerCase() === sectionName.toLowerCase());
+            const label = `${className} / ${sectionName}`;
+            if (!hasSection && !missingSections.includes(label)) missingSections.push(label);
+        }
+
+        return {
+            academicYear: currentYear.name,
+            rows: previewRows,
+            missing: { classes: missingClasses, sections: missingSections },
+            created: createdStructure
+        };
+};
+
+/**
+ * Corrections typed on the preview screen, as { "86": { "guardianPhone": "+252615648340" } },
+ * keyed by the row number shown to the user. Only fields the importer knows are accepted, so
+ * a crafted request cannot reach anything else.
+ */
+const parseImportFixes = (value) => {
+    const fixes = new Map();
+    if (!value) return fixes;
+    let parsed;
+    try { parsed = typeof value === 'string' ? JSON.parse(value) : value; } catch (error) { return fixes; }
+    if (!parsed || typeof parsed !== 'object') return fixes;
+
+    const known = new Set(Object.keys(FIELD_ALIASES));
+    for (const [key, patch] of Object.entries(parsed)) {
+        const rowNumber = Number(key);
+        if (!Number.isInteger(rowNumber) || rowNumber < 2) continue;
+        if (!patch || typeof patch !== 'object') continue;
+        const clean = {};
+        for (const [field, cell] of Object.entries(patch)) {
+            if (!known.has(field)) continue;
+            if (typeof cell !== 'string' && typeof cell !== 'number') continue;
+            clean[field] = String(cell).trim();
+        }
+        if (Object.keys(clean).length) fixes.set(rowNumber, clean);
+    }
+    return fixes;
+};
+
+const importError = (message) => {
+    const error = new Error(message);
+    error.statusCode = 400;
+    return error;
+};
+
+const sendPreviewFailure = (res, error) => res
+    .status(error.statusCode || 500)
+    .json({
+        success: false,
+        message: error.statusCode ? error.message : 'Import preview could not be generated.'
+    });
+
+// Rows already parsed by the browser. Kept so the existing screen and the template keep working.
+exports.previewStudentImport = async (req, res) => {
+    try {
+        const rows = Array.isArray(req.body?.rows) ? req.body.rows.slice(0, 500) : [];
+        if (!rows.length) throw importError('At least one import row is required.');
+        const data = await buildImportPreview(req, rows);
+        res.json({ success: true, data });
     } catch (error) {
-        res.status(error.statusCode || 500).json({ success: false, message: error.statusCode ? error.message : 'Import preview could not be generated.' });
+        sendPreviewFailure(res, error);
+    }
+};
+
+/**
+ * The school's own file: .xlsx straight from Excel, or .csv. Headings are matched loosely,
+ * so "First Name" works as well as "firstName".
+ */
+exports.previewStudentImportFile = async (req, res) => {
+    try {
+        if (!req.file?.buffer) throw importError('Choose an Excel or CSV file to import.');
+
+        let table;
+        try {
+            table = readTable(req.file.buffer);
+        } catch (error) {
+            throw importError(error.message || 'That file could not be read.');
+        }
+        if (table.length < 2) throw importError('That file has a heading row but no students under it.');
+
+        const { rows, headings, missingRequired } = rowsFromTable(table);
+
+        // A school's file always has a few messy cells. Applying the user's typed
+        // corrections here means the whole list can be finished on this one screen,
+        // instead of sending them back to Excel for two phone numbers in one box.
+        const fixes = parseImportFixes(req.body && req.body.fixes);
+        for (const [rowNumber, patch] of fixes) {
+            const row = rows[rowNumber - 2];
+            if (!row) continue;
+            Object.assign(row, patch);
+        }
+
+        // When nothing required was found, the file is almost certainly the wrong one or has
+        // different headings. Saying so once beats repeating "is required" on every row.
+        if (missingRequired.length) {
+            const found = headings.recognised.map((item) => item.heading);
+            throw importError(
+                `These columns are needed and were not found: ${missingRequired.join(', ')}. `
+                + (found.length
+                    ? `The file's columns were read as: ${found.join(', ')}.`
+                    : 'No column in the file was recognised, so check the heading row.')
+            );
+        }
+
+        const data = await buildImportPreview(req, rows.slice(0, 500), {
+            createMissing: String(req.body?.createMissing || '') === 'true'
+        });
+        res.json({
+            success: true,
+            data: {
+                ...data,
+                fileName: req.file.originalname,
+                columns: {
+                    understood: headings.recognised,
+                    ignored: headings.ignored,
+                    notRecognised: headings.unknown
+                }
+            }
+        });
+    } catch (error) {
+        sendPreviewFailure(res, error);
     }
 };
 

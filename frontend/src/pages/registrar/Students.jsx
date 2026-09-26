@@ -1,12 +1,29 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { createStudentAdmission, downloadStudentImportTemplate, exportStudentsCsv, getStudents, previewStudentImport } from '../../services/api/registrar.api';
+import { createStudentAdmission, downloadStudentImportTemplate, exportStudentsCsv, getStudents, previewStudentImportFile } from '../../services/api/registrar.api';
 import { getClasses } from '../../services/api/branch.api';
 import { Table, Button, Spinner, Badge, Toast, Modal } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, CheckCircle2, Download, FileUp, Search, XCircle } from 'lucide-react';
-import { dateStamp, downloadBlob, parseCsvText } from '../../utils/download';
+import { dateStamp, downloadBlob } from '../../utils/download';
 import { useAuth } from '../../context/AuthContext';
 import { hasPermission } from '../../utils/permissions';
+
+// What to call each cell on the fix boxes. A school should never see a field name.
+const IMPORT_FIELD_LABELS = {
+    firstName: 'First name',
+    middleName: 'Middle name',
+    lastName: 'Last name',
+    dateOfBirth: 'Date of birth (YYYY-MM-DD)',
+    gender: 'Gender (Male, Female or Other)',
+    classNumber: 'Class',
+    sectionName: 'Section',
+    admissionDate: 'Admission date (YYYY-MM-DD)',
+    guardianName: 'Guardian name',
+    guardianPhone: 'Guardian phone',
+    guardianEmail: 'Guardian email',
+    guardianAddress: 'Guardian address',
+    emergencyContactPhone: 'Emergency contact phone'
+};
 
 const Students = () => {
     const { user } = useAuth();
@@ -20,6 +37,10 @@ const Students = () => {
     const [exporting, setExporting] = useState(false);
     const [importing, setImporting] = useState(false);
     const [importPreview, setImportPreview] = useState(null);
+    // Corrections typed on the preview screen, kept by row number so they survive a
+    // re-check and are all sent together.
+    const [importFixes, setImportFixes] = useState({});
+    const [rechecking, setRechecking] = useState(false);
     const [toast, setToast] = useState(null);
     const fileInputRef = useRef(null);
     const navigate = useNavigate();
@@ -90,33 +111,78 @@ const Students = () => {
         downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `student_import_results_${dateStamp()}.csv`);
     };
 
+    // The file is kept so "Create them" can send it again without asking for it twice.
+    const runImportPreview = async (file, { createMissing = false, fixes = null } = {}) => {
+        try {
+            const response = await previewStudentImportFile(file, { createMissing, fixes });
+            const preview = response.data?.data || response.data;
+            setImportPreview({
+                file,
+                fileName: preview.fileName || file.name,
+                academicYear: preview.academicYear,
+                rows: preview.rows || [],
+                missing: preview.missing || { classes: [], sections: [] },
+                created: preview.created || null,
+                columns: preview.columns || null
+            });
+            if (preview.created?.classes?.length || preview.created?.sections?.length) {
+                const parts = [];
+                if (preview.created.classes.length) parts.push(`${preview.created.classes.length} classes`);
+                if (preview.created.sections.length) parts.push(`${preview.created.sections.length} sections`);
+                setToast({ type: 'success', message: `Created ${parts.join(' and ')} from the file.` });
+            }
+        } catch (err) {
+            console.error(err);
+            // The server explains what it could not read, which is far more use than a
+            // generic message: a wrong file or wrong headings both land here.
+            setToast({
+                type: 'error',
+                message: err?.response?.data?.message || 'That file could not be read.'
+            });
+        }
+    };
+
     const handleImportFile = async (event) => {
         const file = event.target.files?.[0];
         event.target.value = '';
         if (!file) return;
+        setImportPreview(null);
+        setImportFixes({});
+        await runImportPreview(file);
+    };
 
+    const handleCreateMissing = async () => {
+        if (!importPreview?.file) return;
+        setImporting(true);
         try {
-            const text = await file.text();
-            const rows = parseCsvText(text);
+            await runImportPreview(importPreview.file, { createMissing: true, fixes: importFixes });
+        } finally {
+            setImporting(false);
+        }
+    };
 
-            if (rows.length === 0) {
-                setToast({ type: 'error', message: 'No valid student rows found in the CSV file.' });
-                return;
-            }
+    const setImportFix = (rowNumber, field, value) => {
+        setImportFixes((prev) => ({
+            ...prev,
+            [rowNumber]: { ...(prev[rowNumber] || {}), [field]: value }
+        }));
+    };
 
-            const response = await previewStudentImport(rows);
-            const preview = response.data?.data || response.data;
-            setImportPreview({ fileName: file.name, academicYear: preview.academicYear, rows: preview.rows || [] });
-        } catch (err) {
-            console.error(err);
-            setToast({ type: 'error', message: 'Could not read the CSV import file.' });
+    // The file is still in memory, so it goes back up with the corrections applied.
+    const handleRecheck = async () => {
+        if (!importPreview?.file) return;
+        setRechecking(true);
+        try {
+            await runImportPreview(importPreview.file, { fixes: importFixes });
+        } finally {
+            setRechecking(false);
         }
     };
 
     const handleConfirmImport = async () => {
         const validRows = (importPreview?.rows || []).filter((row) => row.errors.length === 0);
         if (validRows.length === 0) {
-            setToast({ type: 'error', message: 'Fix the CSV file first. There are no valid rows to import.' });
+            setToast({ type: 'error', message: 'Every row still needs a correction, so there is nothing to import yet.' });
             return;
         }
 
@@ -188,7 +254,7 @@ const Students = () => {
                     <p className="phoenix-page-subtitle">Browse, search and filter all registered student profiles in this branch.</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                    <input ref={fileInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleImportFile} />
+                    <input ref={fileInputRef} type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="hidden" onChange={handleImportFile} />
                     <Button
                         type="button"
                         variant="outline"
@@ -253,12 +319,67 @@ const Students = () => {
                             </div>
                         </div>
 
+                        {(importPreview.missing?.classes?.length > 0 || importPreview.missing?.sections?.length > 0) && (
+                            <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-blue-900">
+                                <div className="flex items-start gap-3">
+                                    <AlertCircle size={18} className="mt-0.5 shrink-0" />
+                                    <div className="flex-1 space-y-2">
+                                        <p className="text-sm font-bold">
+                                            This file uses classes the school has not set up yet.
+                                        </p>
+                                        {importPreview.missing.classes.length > 0 && (
+                                            <p className="text-xs">
+                                                <span className="font-semibold">Classes to create:</span>{' '}
+                                                {importPreview.missing.classes.join(', ')}
+                                            </p>
+                                        )}
+                                        {importPreview.missing.sections.length > 0 && (
+                                            <p className="text-xs">
+                                                <span className="font-semibold">Sections to create:</span>{' '}
+                                                {importPreview.missing.sections.join(', ')}
+                                            </p>
+                                        )}
+                                        <p className="text-xs text-blue-800">
+                                            Check the spelling before creating these. A typo here becomes a class
+                                            that stays in the school.
+                                        </p>
+                                        <Button size="sm" onClick={handleCreateMissing} loading={importing} className="!h-9 text-xs">
+                                            Create them and check again
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {importPreview.columns?.notRecognised?.length > 0 && (
+                            <p className="text-xs text-[#6e7891]">
+                                Columns not used: {importPreview.columns.notRecognised.join(', ')}
+                            </p>
+                        )}
+
                         {importPreview.rows.some(row => row.errors.length > 0) && (
-                            <div className="flex items-start gap-3 rounded-xl border border-amber-100 bg-amber-50 p-4 text-amber-900">
+                            <div className="flex flex-wrap items-start gap-3 rounded-xl border border-amber-100 bg-amber-50 p-4 text-amber-900">
                                 <AlertCircle size={18} className="mt-0.5 shrink-0" />
-                                <p className="text-sm font-semibold">
-                                    Rows with errors will be skipped. Update the CSV and upload again if you need those records included.
-                                </p>
+                                <div className="flex-1 min-w-[240px]">
+                                    <p className="text-sm font-semibold">
+                                        Some rows need a correction before they can be imported.
+                                    </p>
+                                    <p className="mt-1 text-xs font-semibold text-amber-800">
+                                        Type the right value in the box on the row, then press Check again. You do not
+                                        need to open the file. Any row still marked Fix needed is simply left out.
+                                    </p>
+                                </div>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={handleRecheck}
+                                    loading={rechecking}
+                                    disabled={importing || Object.keys(importFixes).length === 0}
+                                    className="!h-9 text-xs"
+                                >
+                                    Check again
+                                </Button>
                             </div>
                         )}
 
@@ -294,6 +415,24 @@ const Students = () => {
                                                             <XCircle size={13} /> Fix needed
                                                         </span>
                                                         <p className="max-w-md text-xs font-semibold text-rose-700">{row.errors.join('; ')}</p>
+                                                        {(row.problemFields || []).length > 0 && (
+                                                            <div className="mt-2 flex max-w-md flex-col gap-2">
+                                                                {row.problemFields.map((field) => (
+                                                                    <label key={field} className="block">
+                                                                        <span className="text-[11px] font-bold uppercase tracking-wide text-[#6e7891]">
+                                                                            {IMPORT_FIELD_LABELS[field] || field}
+                                                                        </span>
+                                                                        <input
+                                                                            type="text"
+                                                                            className="mt-1 h-9 w-full rounded-lg border border-[var(--border)] bg-white px-3 text-xs text-slate-800 outline-none transition-all placeholder:text-slate-400 focus:border-[var(--primary)] focus:ring-4 focus:ring-blue-100/60"
+                                                                            placeholder="Type the right value"
+                                                                            value={importFixes[row.rowNumber]?.[field] ?? row.source?.[field] ?? ''}
+                                                                            onChange={(event) => setImportFix(row.rowNumber, field, event.target.value)}
+                                                                        />
+                                                                    </label>
+                                                                ))}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 )}
                                             </td>
