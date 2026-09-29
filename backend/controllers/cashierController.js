@@ -5,7 +5,7 @@ const Branch = require('../models/Branch');
 const { logAction } = require('../services/auditLogService');
 const mongoose = require('mongoose');
 const { recordInvoicePayment, recordStudentPayment, reverseInvoicePayment } = require('../services/paymentService');
-const { getStudentPaymentRecord } = require('../services/studentAccountService');
+const { activeDiscount, getStudentPaymentRecord } = require('../services/studentAccountService');
 const { buildStudentSearchCriteria } = require('../utils/studentSearch');
 const exportService = require('../services/exportService');
 
@@ -271,7 +271,7 @@ exports.searchStudentAccounts = async (req, res) => {
         };
 
         const students = await Student.find(studentFilter)
-            .select('firstName middleName lastName admissionNumber studentCode status')
+            .select('firstName middleName lastName admissionNumber studentCode status discount')
             .limit(20)
             .lean();
 
@@ -296,6 +296,8 @@ exports.searchStudentAccounts = async (req, res) => {
                 admissionNumber: student.admissionNumber,
                 studentCode: student.studentCode,
                 status: student.status,
+                // So the desk can see a scholarship or discount before opening the student.
+                discount: activeDiscount(student.discount),
                 owed: Math.round((owedByStudent.get(String(student._id))?.owed || 0) * 100) / 100,
                 unpaidMonths: owedByStudent.get(String(student._id))?.months || 0
             }))
@@ -321,16 +323,18 @@ exports.getStudentAccount = async (req, res) => {
     }
 };
 
-// @desc    Take one amount from a student; it fills the oldest unpaid month first
+// @desc    Take one amount from a student. It fills the oldest unpaid month first, or only the
+//          months named in invoiceIds when the finance officer chose them.
 // @route   POST /api/cashier/payments/student
 // @access  cashier.payments.create
 exports.createStudentPayment = async (req, res) => {
     try {
-        const { studentId, amount, method, reference } = req.body || {};
+        const { studentId, invoiceIds, amount, method, reference } = req.body || {};
         const result = await recordStudentPayment({
             tenantId: req.user.tenantId,
             branchId: scopedBranchId(req),
             studentId,
+            invoiceIds,
             amount,
             method,
             reference,

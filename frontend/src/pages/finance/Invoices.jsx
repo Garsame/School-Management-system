@@ -5,6 +5,7 @@ import { Select, Badge, Button, Input } from '../../components/ui';
 import { Search, Eye, Plus, Loader2, Download } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import FinanceFilterBar from '../../components/finance/FinanceFilterBar';
+import DiscountNote from '../../components/finance/DiscountNote';
 
 const EMPTY_FILTERS = { branchId: '', academicYearId: '', status: '', q: '' };
 
@@ -160,7 +161,7 @@ const Invoices = () => {
                                             </td>
                                             <td className="px-4 py-3 text-slate-500">{inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : 'N/A'}</td>
                                             <td className="px-4 py-3 text-slate-600">{inv.billingPeriodLabel || 'Annual'}</td>
-                                            <td className="px-4 py-3 text-right text-slate-900 font-bold">${inv.totalAmount?.toLocaleString()}</td>
+                                            <td className="px-4 py-3 text-right text-slate-900 font-bold">${inv.totalAmount?.toLocaleString()}<DiscountNote items={inv.items} /></td>
                                             <td className="px-4 py-3 text-right text-emerald-600 font-bold">${inv.paidAmount?.toLocaleString()}</td>
                                             <td className="px-4 py-3 text-right text-rose-500 font-bold">${balance?.toLocaleString()}</td>
                                             <td className="px-4 py-3 text-center">

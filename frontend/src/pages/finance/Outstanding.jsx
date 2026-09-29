@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { getFinanceClasses, getFinanceSections, getOutstanding } from '../../services/api/finance.api';
 import { getBranches, getAcademicYears } from '../../services/api/tenant.api';
 import { Select } from '../../components/ui';
+import DiscountBadge from '../../components/finance/DiscountBadge';
 import { AlertCircle, TrendingDown, Loader2 } from 'lucide-react';
 import FinanceFilterBar from '../../components/finance/FinanceFilterBar';
 
@@ -136,7 +137,7 @@ const Outstanding = () => {
                                     <th className="px-4 py-3 text-left">Class</th>
                                     <th className="px-4 py-3 text-left">Section</th>
                                     <th className="px-4 py-3 text-left">Oldest Due Date</th>
-                                    <th className="px-4 py-3 text-right">Balance Due</th>
+                                    <th className="px-4 py-3 text-right">Total owed</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y">
@@ -150,13 +151,19 @@ const Outstanding = () => {
                                     </tr>
                                 ) : data.debtors?.slice(0, 10).map((d, i) => (
                                     <tr key={i} className="hover:bg-slate-50 transition-colors">
-                                        <td className="px-4 py-3 font-bold text-slate-800">{d.studentId ? <Link to={`/finance/students/${d.studentId}`} className="hover:text-[var(--primary)] hover:underline">{d.studentName}</Link> : d.studentName}</td>
+                                        <td className="px-4 py-3 font-bold text-slate-800">
+                                            {d.studentId ? <Link to={`/finance/students/${d.studentId}`} className="hover:text-[var(--primary)] hover:underline">{d.studentName}</Link> : d.studentName}
+                                            <span className="ml-2 align-middle"><DiscountBadge discount={d.scholarship} /></span>
+                                        </td>
                                         <td className="px-4 py-3 text-slate-600 font-mono text-xs">{d.admissionNumber || '-'}</td>
                                         <td className="px-4 py-3 text-slate-500">{d.branchName || '-'}</td>
                                         <td className="px-4 py-3 text-slate-500">{d.className || '-'}</td>
                                         <td className="px-4 py-3 text-slate-500">{d.sectionName || '-'}</td>
                                         <td className="px-4 py-3 text-slate-500 text-xs">{d.oldestDueDate ? new Date(d.oldestDueDate).toLocaleDateString() : '-'}</td>
-                                        <td className="px-4 py-3 text-right font-mono font-bold text-rose-600">${(d.balance || 0).toLocaleString()}</td>
+                                        <td className="px-4 py-3 text-right font-mono font-bold text-rose-600">
+                                            ${(d.balance || 0).toLocaleString()}
+                                            {d.count > 0 && <span className="block font-sans text-[11px] font-medium text-slate-400">{d.count} unpaid month{d.count === 1 ? '' : 's'}</span>}
+                                        </td>
                                     </tr>
                                 ))}
                                 {!loading && (!data.debtors || data.debtors.length === 0) && (

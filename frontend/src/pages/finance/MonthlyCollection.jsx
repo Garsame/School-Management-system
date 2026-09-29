@@ -7,6 +7,7 @@ import { Badge, Button } from '../../components/ui';
 import { notify } from '../../components/feedback/notificationService';
 import { downloadBlob } from '../../utils/download';
 import { money } from '../../utils/feeStructures';
+import DiscountBadge from '../../components/finance/DiscountBadge';
 
 const asList = (value) => (Array.isArray(value) ? value : []);
 const thisMonthKey = () => new Date().toISOString().slice(0, 7);
@@ -181,7 +182,11 @@ const MonthlyCollection = () => {
 
             {totals && (
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-                    <Stat label={`Billed · ${monthLabel}`} value={money(totals.billed)} sub={`${totals.students} students`} />
+                    <Stat
+                        label={`Billed · ${monthLabel}`}
+                        value={money(totals.billed)}
+                        sub={`${totals.students} students${totals.discounts > 0 ? ` · ${money(totals.discounts)} taken off by discounts` : ''}`}
+                    />
                     <Stat label="Collected" value={money(totals.collected)} sub={`${totals.collectionRate}% of billed`} tone="text-emerald-700" />
                     <Stat label="Still owed this month" value={money(totals.outstanding)} tone={totals.outstanding > 0 ? 'text-rose-700' : 'text-slate-900'} />
                     <Stat label="Owed from earlier months" value={money(totals.earlierDebt)} tone={totals.earlierDebt > 0 ? 'text-rose-700' : 'text-slate-900'} />
@@ -233,10 +238,14 @@ const MonthlyCollection = () => {
                                         <tr key={row.invoiceId} className="hover:bg-slate-50">
                                             <td className="px-4 py-2.5">
                                                 <Link to={`/finance/students/${row.studentId}`} className="font-semibold text-slate-800 hover:text-[var(--primary)] hover:underline">{row.studentName}</Link>
+                                                <span className="ml-2 align-middle"><DiscountBadge discount={row.scholarship} /></span>
                                                 <span className="block text-xs text-slate-500">{row.admissionNumber}{row.studentStatus && row.studentStatus !== 'Active' ? ` · ${row.studentStatus}` : ''}</span>
                                             </td>
                                             <td className="px-4 py-2.5 text-slate-600">{row.className || '—'}</td>
-                                            <td className="px-4 py-2.5 text-right tabular-nums">{money(row.billed)}</td>
+                                            <td className="px-4 py-2.5 text-right tabular-nums">
+                                                {money(row.billed)}
+                                                {row.discount > 0 && <span className="block text-[11px] font-semibold text-emerald-700">{money(row.discount)} discount</span>}
+                                            </td>
                                             <td className="px-4 py-2.5 text-right tabular-nums text-emerald-700">{money(row.paid)}</td>
                                             <td className={`px-4 py-2.5 text-right font-semibold tabular-nums ${row.balance > 0 ? 'text-rose-700' : 'text-slate-400'}`}>{money(row.balance)}</td>
                                             <td className="px-4 py-2.5">

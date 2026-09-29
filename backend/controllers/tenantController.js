@@ -33,7 +33,7 @@ const {
     sanitizeAssignablePermissionsForRole
 } = require('../utils/permissions');
 const { generateTemporaryPassword } = require('../utils/passwords');
-const { buildProfileFields } = require('../utils/userProfile');
+const { buildProfileFields, generateUnusablePassword } = require('../utils/userProfile');
 const { evaluatePromotionEligibility, buildPromotionDecisionSnapshot, isNextGradeLevel } = require('../services/promotionEligibilityService');
 const {
     assertMatchingTransferGrade,
@@ -43,7 +43,9 @@ const {
 } = require('../services/transferGradeService');
 
 const ACTIVE_ENROLLMENT_STATUSES = ['Current', 'Active', 'active'];
-const TENANT_MANAGED_ACCOUNT_ROLES = ['super_admin', 'finance_director', 'hr_payroll_manager', 'branch_admin', 'registrar', 'cashier', 'teacher', 'dugsi_teacher'];
+const TENANT_MANAGED_ACCOUNT_ROLES = ['super_admin', 'finance_director', 'hr_payroll_manager', 'branch_admin', 'registrar', 'cashier', 'teacher', 'dugsi_teacher', 'general_staff'];
+// Who can be given a per-user permission override (Staff Permissions). general_staff holds no
+// permissions and never signs in, so there is nothing to override — left out on purpose.
 const PERMISSION_MANAGED_STAFF_ROLES = ['finance_director', 'hr_payroll_manager', 'branch_admin', 'teacher', 'dugsi_teacher', 'registrar', 'cashier'];
 
 /**
@@ -403,25 +405,37 @@ const createUser = asyncHandler(async (req, res) => {
         res.status(400);
         throw new Error(`The ${normalized.role} role is ${assignableRole.scope}-scoped in this school`);
     }
-    if (!name || !email || !password) {
+    if (!name) {
         res.status(400);
-        throw new Error('name, email, and password are required');
-    }
-    if (String(password).length < 8) {
-        res.status(400);
-        throw new Error('Password must be at least 8 characters');
+        throw new Error('name is required');
     }
 
-    // Check if email unique in tenant
-    const normalizedEmail = String(email).trim().toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+    // general_staff never signs in, so it needs no email or password — only a name and a
+    // position (checked below). Every other role still needs both, as before.
+    const needsLogin = normalized.role !== 'general_staff';
+    let normalizedEmail;
+    if (needsLogin) {
+        if (!email || !password) {
+            res.status(400);
+            throw new Error('name, email, and password are required');
+        }
+        if (String(password).length < 8) {
+            res.status(400);
+            throw new Error('Password must be at least 8 characters');
+        }
+        normalizedEmail = String(email).trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+            res.status(400);
+            throw new Error('A valid email address is required');
+        }
+        const userExists = await User.findOne({ tenantId: req.tenantId, email: normalizedEmail });
+        if (userExists) {
+            res.status(409);
+            throw new Error('Email already exists for this school.');
+        }
+    } else if (!String(req.body.employmentInfo?.jobTitle || '').trim()) {
         res.status(400);
-        throw new Error('A valid email address is required');
-    }
-    const userExists = await User.findOne({ tenantId: req.tenantId, email: normalizedEmail });
-    if (userExists) {
-        res.status(409);
-        throw new Error('Email already exists for this school.');
+        throw new Error('Position is required for general staff, for example Watchman, Bus driver, or Cook');
     }
 
     // Validation for scope/branchId
@@ -443,11 +457,10 @@ const createUser = asyncHandler(async (req, res) => {
             tenantId: req.tenantId,
             branchId: normalized.scope === 'tenant' ? null : branchId,
             name: String(name).trim(),
-            email: normalizedEmail,
-            passwordHash: password,
+            ...(needsLogin ? { email: normalizedEmail, passwordHash: password } : { passwordHash: generateUnusablePassword() }),
             role: normalized.role,
             scope: normalized.scope,
-            mustChangePassword: true,
+            mustChangePassword: needsLogin,
             isActive: true,
             roleId: assignableRole._id,
             createdBy: req.user._id,
@@ -460,7 +473,7 @@ const createUser = asyncHandler(async (req, res) => {
             action: 'USER_CREATED',
             entityType: 'User',
             entityId: user._id.toString(),
-            after: { name, email: normalizedEmail, role: normalized.role, scope: normalized.scope, branchId, employeeId: user.employeeId }
+            after: { name, email: normalizedEmail || null, role: normalized.role, scope: normalized.scope, branchId, employeeId: user.employeeId }
         });
 
         res.status(201).json({

@@ -13,7 +13,7 @@ const { logActivity } = require('../utils/logger');
 const { getRevenueReport } = require('../services/financeService');
 const { generateMonthlyInvoices, pickFeeStructure, monthlyCharge, calculateStudentInvoice } = require('../services/monthlyBillingService');
 const { listAcademicYearMonths } = require('../utils/billingMonths');
-const { getMonthlyCollection, getStudentPaymentRecord } = require('../services/studentAccountService');
+const { activeDiscount, getMonthlyCollection, getStudentPaymentRecord } = require('../services/studentAccountService');
 const { XLSX_CONTENT_TYPE, buildWorkbook } = require('../utils/xlsxWriter');
 const Tenant = require('../models/Tenant');
 const exportService = require('../services/exportService');
@@ -649,12 +649,28 @@ const buildOutstandingReport = async ({ req, limit = 10 }) => {
     if (academicYearId) findQuery.academicYearId = academicYearId;
     if (scopedStudentIds) findQuery.studentId = { $in: scopedStudentIds };
 
-    const debtors = await Invoice.find(findQuery)
+    // Every unpaid bill (capped for safety), then one row per student. A student who owes three
+    // months is one debtor owing the sum, the same "total owed" the payments desk shows. The
+    // oldest unpaid month gives the campus, class and due date.
+    const unpaidInvoices = await Invoice.find(findQuery)
         .sort({ balance: -1 })
-        .limit(limit)
-        .populate('studentId', 'firstName lastName admissionNumber')
+        .limit(5000)
+        .populate('studentId', 'firstName lastName admissionNumber discount')
         .populate('branchId', 'name')
         .populate('academicYearId', 'name');
+
+    const dueTime = (invoice) => new Date(invoice.dueDate || invoice.createdAt).getTime() || Infinity;
+    const owedByStudent = new Map();
+    for (const invoice of unpaidInvoices) {
+        const key = String(invoice.studentId?._id || invoice.studentId || invoice._id);
+        const entry = owedByStudent.get(key) || { oldest: invoice, cents: 0, months: 0 };
+        entry.cents += Math.round(Number(invoice.balance || 0) * 100);
+        entry.months += 1;
+        if (dueTime(invoice) < dueTime(entry.oldest)) entry.oldest = invoice;
+        owedByStudent.set(key, entry);
+    }
+    const owing = [...owedByStudent.values()].sort((a, b) => b.cents - a.cents).slice(0, limit);
+    const debtors = owing.map((entry) => entry.oldest);
 
     const enrollmentPairs = debtors.filter(d => d.studentId && d.academicYearId).map(d => ({ studentId: d.studentId._id, academicYearId: d.academicYearId?._id || d.academicYearId }));
     let debtorEnrollments = [];
@@ -669,18 +685,23 @@ const buildOutstandingReport = async ({ req, limit = 10 }) => {
     } else {
         debtorEnrollments.forEach(item => enrollmentMap.set(`${item.studentId}:${item.academicYearId?._id || item.academicYearId}`, item));
     }
-    const formattedDebtors = debtors.map((d) => {
+    const formattedDebtors = owing.map((entry) => {
+        const d = entry.oldest;
         const enrollment = enrollmentMap.get(`${d.studentId?._id}:${d.academicYearId?._id || d.academicYearId}`);
         return {
             studentId: d.studentId?._id || null,
             studentName: d.studentId ? `${d.studentId.firstName} ${d.studentId.lastName}` : 'Unknown Student',
             admissionNumber: d.studentId ? d.studentId.admissionNumber : '-',
+            // A scholarship or discount the student holds, so the watchlist does not read as if
+            // they were charged the full fee.
+            scholarship: activeDiscount(d.studentId?.discount),
             branchName: d.branchId ? d.branchId.name : '-',
             className: enrollment?.classId?.name || '-',
             sectionName: enrollment?.sectionId?.name || '-',
-            balance: d.balance,
+            balance: entry.cents / 100,
             oldestDueDate: d.dueDate || d.createdAt,
-            count: 1
+            // How many unpaid months that balance is made of.
+            count: entry.months
         };
     });
 
@@ -807,12 +828,13 @@ const exportMonthlyCollection = asyncHandler(async (req, res) => {
     const tenant = await Tenant.findById(req.tenantId).select('name').lean();
     const { totals, rows, month } = report;
 
-    const header = ['Student', 'Admission no.', 'Class', 'Billed', 'Paid', 'Still owed (month)', 'Status', 'Due date', 'Late', 'Earlier months owed', 'Total owed']
+    const header = ['Student', 'Admission no.', 'Class', 'Discount taken off', 'Billed', 'Paid', 'Still owed (month)', 'Status', 'Due date', 'Late', 'Earlier months owed', 'Total owed']
         .map((label) => ({ v: label, style: 'header' }));
     const studentRows = rows.map((row) => [
         row.studentName,
         row.admissionNumber,
         row.className,
+        { v: row.discount, style: 'money' },
         { v: row.billed, style: 'money' },
         { v: row.paid, style: 'money' },
         { v: row.balance, style: 'money' },
@@ -825,6 +847,7 @@ const exportMonthlyCollection = asyncHandler(async (req, res) => {
     const shown = (pick) => rows.reduce((total, row) => total + Math.round(pick(row) * 100), 0) / 100;
     const totalRow = [
         { v: `Total (${rows.length} students)`, style: 'bold' }, '', '',
+        { v: shown((row) => row.discount), style: 'moneyBold' },
         { v: shown((row) => row.billed), style: 'moneyBold' },
         { v: shown((row) => row.paid), style: 'moneyBold' },
         { v: shown((row) => row.balance), style: 'moneyBold' },
@@ -840,6 +863,7 @@ const exportMonthlyCollection = asyncHandler(async (req, res) => {
         [],
         [{ v: 'Students billed', style: 'bold' }, { v: totals.students, style: 'integer' }],
         [{ v: 'Billed this month', style: 'bold' }, { v: totals.billed, style: 'money' }],
+        [{ v: 'Discounts and scholarships taken off', style: 'bold' }, { v: totals.discounts, style: 'money' }],
         [{ v: 'Collected', style: 'bold' }, { v: totals.collected, style: 'money' }],
         [{ v: 'Collected (percent)', style: 'bold' }, { v: totals.collectionRate, style: 'percent' }],
         [{ v: 'Still owed this month', style: 'bold' }, { v: totals.outstanding, style: 'money' }],
@@ -857,7 +881,7 @@ const exportMonthlyCollection = asyncHandler(async (req, res) => {
         {
             name: 'Students',
             freezeRows: 1,
-            columns: [{ width: 28 }, { width: 14 }, { width: 14 }, { width: 12 }, { width: 12 }, { width: 18 }, { width: 11 }, { width: 13 }, { width: 7 }, { width: 20 }, { width: 13 }],
+            columns: [{ width: 28 }, { width: 14 }, { width: 14 }, { width: 18 }, { width: 12 }, { width: 12 }, { width: 18 }, { width: 11 }, { width: 13 }, { width: 7 }, { width: 20 }, { width: 13 }],
             rows: [header, ...studentRows, [], totalRow]
         }
     ]);

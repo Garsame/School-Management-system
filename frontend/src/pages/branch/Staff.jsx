@@ -13,7 +13,8 @@ const Staff = ({ mode = 'staff' }) => {
         ? [{ value: 'teacher', label: 'Teacher' }]
         : [
             { value: 'registrar', label: 'Registrar' },
-            { value: 'cashier', label: 'Cashier' }
+            { value: 'cashier', label: 'Cashier' },
+            { value: 'general_staff', label: 'General Staff' }
         ];
     const navigate = useNavigate();
     const { user } = useAuth();
@@ -23,18 +24,19 @@ const Staff = ({ mode = 'staff' }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentItem, setCurrentItem] = useState({
         name: '', email: '', password: '', role: defaultRole, phone: '', address: '',
-        employmentInfo: { employmentType: '', hireDate: '', basicSalary: '', currency: 'USD', specialization: '', qualifiedSubjects: '', qualifications: '', yearsExperience: '' }
+        employmentInfo: { jobTitle: '', employmentType: '', hireDate: '', basicSalary: '', currency: 'USD', specialization: '', qualifiedSubjects: '', qualifications: '', yearsExperience: '' }
     });
     const [saving, setSaving] = useState(false);
     const [toast, setToast] = useState(null);
     const [filterRole, setFilterRole] = useState('');
+    const isEditingGeneralStaff = currentItem.role === 'general_staff';
 
     const fetchStaff = useCallback(async () => {
         setLoading(true);
         try {
             const res = await getBranchUsers(isTeacherMode ? 'teacher' : filterRole);
             const records = res?.data || res || [];
-            setStaff(records.filter((user) => isTeacherMode ? user.role === 'teacher' : ['registrar', 'cashier'].includes(user.role)));
+            setStaff(records.filter((user) => isTeacherMode ? user.role === 'teacher' : ['registrar', 'cashier', 'general_staff'].includes(user.role)));
         } catch {
             setToast({ type: 'error', message: 'Failed to load staff' });
         } finally {
@@ -53,6 +55,7 @@ const Staff = ({ mode = 'staff' }) => {
             phone: user.phone || '',
             address: user.address || '',
             employmentInfo: {
+                jobTitle: user.employmentInfo?.jobTitle || '',
                 employmentType: user.employmentInfo?.employmentType || '',
                 hireDate: user.employmentInfo?.hireDate?.slice?.(0, 10) || '',
                 basicSalary: user.employmentInfo?.basicSalary ?? '',
@@ -129,9 +132,18 @@ const Staff = ({ mode = 'staff' }) => {
                             {staff.map(user => (
                                 <tr key={user._id}>
                                     <td className="px-4 py-3 font-bold text-[#141824]">{user.name}</td>
-                                    <td className="px-4 py-3 text-[#525b75] font-mono text-xs">{user.email}</td>
+                                    <td className="px-4 py-3 text-[#525b75] font-mono text-xs">
+                                        {user.email || <span className="italic text-[#8a94ad]">No login</span>}
+                                    </td>
                                     <td className="px-4 py-3">
-                                        {isTeacherMode ? (user.employmentInfo?.specialization || '—') : <Badge variant="indigo">{user.role}</Badge>}
+                                        {isTeacherMode ? (user.employmentInfo?.specialization || '—') : (
+                                            <span className="flex flex-col gap-0.5">
+                                                <Badge variant="indigo">{user.role === 'general_staff' ? 'General Staff' : user.role}</Badge>
+                                                {user.role === 'general_staff' && user.employmentInfo?.jobTitle && (
+                                                    <span className="text-[11px] text-[#8a94ad]">{user.employmentInfo.jobTitle}</span>
+                                                )}
+                                            </span>
+                                        )}
                                     </td>
                                     <td className="px-4 py-3">
                                         <Badge variant={user.isActive ? 'success' : 'danger'}>
@@ -186,24 +198,36 @@ const Staff = ({ mode = 'staff' }) => {
                             onChange={e => setCurrentItem({...currentItem, name: e.target.value})}
                             required
                         />
-                        <Input
-                            label="Email"
-                            type="email"
-                            value={currentItem.email}
-                            onChange={e => setCurrentItem({...currentItem, email: e.target.value})}
-                            required
-                            disabled
-                        />
+                        {isEditingGeneralStaff ? (
+                            <Input
+                                label="Position"
+                                value={currentItem.employmentInfo?.jobTitle || ''}
+                                onChange={e => setCurrentItem({...currentItem, employmentInfo: {...currentItem.employmentInfo, jobTitle: e.target.value}})}
+                                placeholder="e.g. Watchman, Bus driver, Meal cook"
+                                required
+                            />
+                        ) : (
+                            <Input
+                                label="Email"
+                                type="email"
+                                value={currentItem.email}
+                                onChange={e => setCurrentItem({...currentItem, email: e.target.value})}
+                                required
+                                disabled
+                            />
+                        )}
                         <Input label="Phone" type="tel" value={currentItem.phone} onChange={e => setCurrentItem({...currentItem, phone: e.target.value})} />
 
                         <Input label="Address" value={currentItem.address} onChange={e => setCurrentItem({...currentItem, address: e.target.value})} />
 
-                        <Input
-                            label="New Password (leave blank to keep)"
-                            type="password"
-                            value={currentItem.password}
-                            onChange={e => setCurrentItem({...currentItem, password: e.target.value})}
-                        />
+                        {!isEditingGeneralStaff && (
+                            <Input
+                                label="New Password (leave blank to keep)"
+                                type="password"
+                                value={currentItem.password}
+                                onChange={e => setCurrentItem({...currentItem, password: e.target.value})}
+                            />
+                        )}
 
                     </div>
 

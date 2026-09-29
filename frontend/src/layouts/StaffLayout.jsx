@@ -1,38 +1,30 @@
 import React, { useMemo, useState } from 'react';
-import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { ChevronDown, LogOut, Menu, Search, X } from 'lucide-react';
+import { Link, Navigate, Outlet, useNavigate } from 'react-router-dom';
+import { LogOut, Menu, Search, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
-import { buildStaffMenu, roleDisplayName } from '../config/staffMenu';
+import { roleDisplayName } from '../config/staffMenu';
 import SchoolLogo from '../components/branding/SchoolLogo';
+import SectionTabs from '../components/layout/SectionTabs';
+import useStaffNav from '../components/layout/useStaffNav';
 import UserAvatar from '../components/account/UserAvatar';
-
-const flatten = (groups) => groups.flatMap((group) => group.items.flatMap((item) => item.children || [item]));
-
-// The menu entry for the current page: the longest path the address falls under. An area's
-// home ("/finance") only matches itself, or it would light up for every page in the area.
-const activePathFor = (pathname, items) => items
-    .map((item) => item.path)
-    .filter((path) => pathname === path || (path.split('/').length > 2 && pathname.startsWith(`${path}/`)))
-    .sort((a, b) => b.length - a.length)[0] || null;
 
 /**
  * The frame every staff page renders in: school logo, page search, who is signed in, and a
  * menu built from what this person's role can do. One frame for every role, so a page opened
  * from another area looks and navigates exactly like the person's own pages.
+ *
+ * The sidebar stays short: a section with several pages (Payments) is one link. Its pages
+ * show as tabs above the page instead.
  */
 const StaffLayout = ({ children }) => {
     const { user, loading, logout } = useAuth();
     const { branding } = useBranding();
-    const location = useLocation();
     const navigate = useNavigate();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [openGroups, setOpenGroups] = useState({});
 
-    const { groups, homePath, profilePath } = useMemo(() => buildStaffMenu(user), [user]);
-    const allItems = useMemo(() => flatten(groups), [groups]);
-    const activePath = activePathFor(location.pathname, allItems);
+    const { groups, homePath, profilePath, allItems, activePath, activeSection } = useStaffNav(user);
 
     const searchResults = useMemo(() => {
         const query = searchQuery.trim().toLowerCase();
@@ -55,45 +47,25 @@ const StaffLayout = ({ children }) => {
         navigate('/login');
     };
 
-    const renderLink = (item, nested = false) => (
-        <Link
-            key={item.path}
-            to={item.path}
-            onClick={() => setSidebarOpen(false)}
-            className={nested
-                ? `flex items-center gap-2 rounded-md px-3 py-2 text-xs font-semibold transition-colors ${activePath === item.path ? 'school-sidebar-link-active' : 'school-sidebar-link'}`
-                : `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-semibold transition-colors ${activePath === item.path ? 'school-sidebar-link-active' : 'school-sidebar-link'}`}
-        >
-            <item.icon size={nested ? 14 : 16} />
-            <span>{item.label}</span>
-        </Link>
-    );
-
-    const renderGroupItem = (groupKey, item) => {
-        if (!item.children) return renderLink(item);
-        const openKey = `${groupKey}.${item.key}`;
-        const isGroupActive = item.children.some((child) => child.path === activePath);
-        const isOpen = openGroups[openKey] ?? isGroupActive;
+    // A section links to its first page. Clicking it while already inside it leaves the person
+    // on the tab they are on, instead of jumping back to the first one.
+    const renderItem = (groupKey, item) => {
+        const key = `${groupKey}.${item.key}`;
+        const isActive = item.children ? activeSection?.key === key : activePath === item.path;
         return (
-            <div key={openKey} className="space-y-0.5">
-                <button
-                    type="button"
-                    onClick={() => setOpenGroups((current) => ({ ...current, [openKey]: !(current[openKey] ?? isGroupActive) }))}
-                    className="school-sidebar-link flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-semibold transition-colors"
-                    aria-expanded={isOpen}
-                >
-                    <item.icon size={16} />
-                    <span className="flex-1 text-left">{item.label}</span>
-                    <ChevronDown size={14} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
-                </button>
-                <div className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`} aria-hidden={!isOpen}>
-                    <div className="min-h-0 overflow-hidden">
-                        <div className="ml-4 space-y-0.5 pl-2 pt-0.5">
-                            {item.children.map((child) => renderLink(child, true))}
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <Link
+                key={item.children ? key : item.path}
+                to={item.children ? item.children[0].path : item.path}
+                onClick={(event) => {
+                    if (item.children && isActive) event.preventDefault();
+                    setSidebarOpen(false);
+                }}
+                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-semibold transition-colors ${isActive ? 'school-sidebar-link-active' : 'school-sidebar-link'}`}
+                aria-current={isActive ? 'page' : undefined}
+            >
+                <item.icon size={16} />
+                <span>{item.label}</span>
+            </Link>
         );
     };
 
@@ -160,7 +132,7 @@ const StaffLayout = ({ children }) => {
                             <div key={group.key} className={index > 0 ? 'pt-4' : ''}>
                                 <p className="school-sidebar-label px-3 pb-2 pt-1 uppercase">{group.label}</p>
                                 <div className="space-y-0.5">
-                                    {group.items.map((item) => renderGroupItem(group.key, item))}
+                                    {group.items.map((item) => renderItem(group.key, item))}
                                 </div>
                             </div>
                         ))}
@@ -177,6 +149,7 @@ const StaffLayout = ({ children }) => {
 
             <main className="phoenix-app-main">
                 <div className="phoenix-app-page animate-fade-in">
+                    <SectionTabs section={activeSection} activePath={activePath} />
                     {children || <Outlet />}
                 </div>
             </main>

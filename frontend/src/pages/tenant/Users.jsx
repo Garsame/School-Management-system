@@ -27,7 +27,8 @@ const FALLBACK_ROLES = [
     { value: 'registrar', label: 'Admissions Officer / Registrar', scope: 'branch' },
     { value: 'cashier', label: 'Cashier', scope: 'branch' },
     { value: 'teacher', label: 'Academic Teacher', scope: 'branch' },
-    { value: 'dugsi_teacher', label: 'Dugsi Teacher (Macallin Dugsi)', scope: 'branch' }
+    { value: 'dugsi_teacher', label: 'Dugsi Teacher (Macallin Dugsi)', scope: 'branch' },
+    { value: 'general_staff', label: 'General Staff', scope: 'branch' }
 ];
 
 const UsersManagement = () => {
@@ -119,7 +120,9 @@ const UsersManagement = () => {
         try {
             await tenantService.updateUser(editModal.user._id, {
                 name: editModal.name,
-                email: editModal.email,
+                // General staff have no email; leaving the key out (rather than sending an
+                // empty string) keeps the server's "email is required" check from firing.
+                ...(editModal.role === 'general_staff' ? {} : { email: editModal.email }),
                 role: editModal.role,
                 scope: editModal.scope,
                 branchId: editModal.branchId,
@@ -359,14 +362,16 @@ const UsersManagement = () => {
                                                 </div>
                                                 <div>
                                                     <p className="font-semibold text-slate-900 text-sm">{user.name}</p>
-                                                    <p className="text-xs text-slate-500">{user.email}</p>
+                                                    <p className="text-xs text-slate-500">
+                                                        {user.email || <span className="italic">No login — {user.employmentInfo?.jobTitle || 'general staff'}</span>}
+                                                    </p>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="space-y-1">
                                                 <span className="phoenix-role-badge">
-                                                    {user.role.replace('_', ' ')}
+                                                    {user.role === 'general_staff' ? 'general staff' : user.role.replace('_', ' ')}
                                                 </span>
                                                 <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-1">
                                                     <Activity size={10} className="text-[var(--primary)]" />
@@ -475,7 +480,11 @@ const UsersManagement = () => {
                         <div className="phoenix-modal-header">
                             <div>
                                 <h3 className="phoenix-section-title">Add staff account</h3>
-                                <p className="phoenix-section-copy">Create a Branch Admin, Finance Director, or HR Manager account.</p>
+                                <p className="phoenix-section-copy">
+                                    {formData.role === 'general_staff'
+                                        ? "For staff who don't use the app — a watchman, driver, cook, and similar. No email or password; recorded here only so payroll can pay them."
+                                        : 'Create a Branch Admin, Finance Director, or HR Manager account.'}
+                                </p>
                             </div>
                             <button onClick={() => setIsModalOpen(false)} className="phoenix-icon-button" aria-label="Close dialog">
                                 <X size={18} />
@@ -494,34 +503,51 @@ const UsersManagement = () => {
                                     onChange={(e) => setFormData({...formData, name: e.target.value})}
                                 />
                             </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 ml-1">Institutional Email</label>
-                                <div className="relative group">
-                                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                                    <input 
+                            {formData.role === 'general_staff' ? (
+                                <div className="space-y-1.5 sm:col-span-2">
+                                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 ml-1">Position</label>
+                                    <input
                                         required
-                                        type="email" 
-                                        placeholder="j.edwards@institution.com"
-                                        className="w-full h-10 bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-3 text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-[var(--primary)]/10 transition-all text-sm placeholder:font-normal placeholder:text-slate-400"
-                                        value={formData.email}
-                                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                                        type="text"
+                                        placeholder="e.g. Watchman, Bus driver, Meal cook"
+                                        className="w-full h-10 bg-slate-50 border border-slate-200 rounded-lg px-3 text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-[var(--primary)]/10 transition-all text-sm placeholder:font-normal placeholder:text-slate-400"
+                                        value={formData.employmentInfo.jobTitle}
+                                        onChange={(e) => setFormData({...formData, employmentInfo: { ...formData.employmentInfo, jobTitle: e.target.value }})}
                                     />
+                                    <p className="text-[10px] font-semibold text-slate-400 ml-1">What this person does. Shown wherever staff and payroll list them.</p>
                                 </div>
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 ml-1">Access Credentials</label>
-                                <div className="relative group">
-                                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                                    <input 
-                                        required
-                                        type="password" 
-                                        placeholder="At least 8 characters"
-                                        className="w-full h-10 bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-3 text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-[var(--primary)]/10 transition-all text-sm placeholder:font-normal placeholder:text-slate-400"
-                                        value={formData.password}
-                                        onChange={(e) => setFormData({...formData, password: e.target.value})}
-                                    />
-                                </div>
-                            </div>
+                            ) : (
+                                <>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 ml-1">Institutional Email</label>
+                                        <div className="relative group">
+                                            <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                                            <input
+                                                required
+                                                type="email"
+                                                placeholder="j.edwards@institution.com"
+                                                className="w-full h-10 bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-3 text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-[var(--primary)]/10 transition-all text-sm placeholder:font-normal placeholder:text-slate-400"
+                                                value={formData.email}
+                                                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 ml-1">Access Credentials</label>
+                                        <div className="relative group">
+                                            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                                            <input
+                                                required
+                                                type="password"
+                                                placeholder="At least 8 characters"
+                                                className="w-full h-10 bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-3 text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-[var(--primary)]/10 transition-all text-sm placeholder:font-normal placeholder:text-slate-400"
+                                                value={formData.password}
+                                                onChange={(e) => setFormData({...formData, password: e.target.value})}
+                                            />
+                                        </div>
+                                    </div>
+                                </>
+                            )}
 
                             <div className="space-y-1.5">
                                 <label className="phoenix-field-label">Role</label>
@@ -710,20 +736,35 @@ const UsersManagement = () => {
                                     onChange={(e) => setEditModal({...editModal, name: e.target.value})}
                                 />
                             </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 ml-1">Institutional Email</label>
-                                <div className="relative group">
-                                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                                    <input 
+                            {editModal.role === 'general_staff' ? (
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 ml-1">Position</label>
+                                    <input
                                         required
-                                        type="email" 
-                                        placeholder="e.g. admin@institution.com"
-                                        className="w-full h-10 bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-3 text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-[var(--primary)]/10 transition-all text-sm placeholder:font-normal placeholder:text-slate-400"
-                                        value={editModal.email}
-                                        onChange={(e) => setEditModal({...editModal, email: e.target.value})}
+                                        type="text"
+                                        placeholder="e.g. Watchman, Bus driver, Meal cook"
+                                        className="w-full h-10 bg-slate-50 border border-slate-200 rounded-lg px-3 text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-[var(--primary)]/10 transition-all text-sm placeholder:font-normal placeholder:text-slate-400"
+                                        value={editModal.employmentInfo?.jobTitle || ''}
+                                        onChange={(e) => setEditModal({...editModal, employmentInfo: { ...editModal.employmentInfo, jobTitle: e.target.value }})}
                                     />
+                                    <p className="text-[10px] font-semibold text-slate-400 ml-1">No email or login — this account can never sign in.</p>
                                 </div>
-                            </div>
+                            ) : (
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 ml-1">Institutional Email</label>
+                                    <div className="relative group">
+                                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                                        <input
+                                            required
+                                            type="email"
+                                            placeholder="e.g. admin@institution.com"
+                                            className="w-full h-10 bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-3 text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-[var(--primary)]/10 transition-all text-sm placeholder:font-normal placeholder:text-slate-400"
+                                            value={editModal.email || ''}
+                                            onChange={(e) => setEditModal({...editModal, email: e.target.value})}
+                                        />
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="space-y-1.5">
                                 <label className="phoenix-field-label">Role</label>

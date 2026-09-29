@@ -31,7 +31,7 @@ leave, and payroll, plus portals for parents and students.
 | Admissions, classes, attendance, results, promotion | Working |
 | Fees: monthly fee per class, open/closed switch, due day | Working |
 | Billing: one click bills the whole school for a month | Working |
-| Payments: one amount fills the oldest unpaid month first | Working |
+| Payments: tick the months to pay, or one amount fills the oldest unpaid month first | Working |
 | Monthly collection view with Excel download | Working |
 | Student payment record (finance, payments desk, parent) | Working |
 | Late warnings for parents | Working |
@@ -139,13 +139,21 @@ This is the full path from "how much do we charge" to "who still owes".
 
 ### 5.4 Take a payment (Payments desk → Record Payment)
 
-- Find the student by name or admission number. The page lists their unpaid months, **oldest first**.
+- Find the student by name or admission number. If the student has a scholarship or a discount,
+  it shows next to their name, in the search results and on their page.
+- The page lists **every month billed** for the student, oldest first: what was billed (and any
+  discount taken off), what was paid, and what is still owed. **Total owed** at the top adds up
+  every month billed, and it keeps growing as new months are billed.
+- **Tick the months** the payment is for. The amount fills in with what those months owe.
+  If you tick nothing, the money fills the **oldest** unpaid month first.
 - Type the amount the parent brings. The page shows how it will be split, **before** you confirm:
   *"September $45 (paid), October $10 of $45 ($35 left)"*.
 - Part payments are always accepted.
-- The amount cannot be more than the student owes.
-- Cash needs no reference. EVC Plus, Zaad, bank and card need the transaction number.
+- The amount cannot be more than the ticked months owe (or more than the student owes, if none is ticked).
+- Choose the payment method. No reference number is asked for any method.
 - One receipt lists every month the payment covered.
+- A discount or scholarship only changes months billed **after** it was granted. Months already
+  billed keep their amount.
 - A wrong payment is **reversed**, never deleted. The month's balance comes back and the
   reversal stays in the history.
 
@@ -197,12 +205,40 @@ Nothing valid is ever deleted: old attendance, results, bills, payments and rece
 
 ## 7. Staff, leave and payroll
 
+**Salary and payroll are two different things.**
+
+- **Salary** is the money terms saved on one person: basic pay, allowance, deductions, and how
+  they're paid. It sits on their account until someone changes it.
+- **Payroll** is the monthly job of turning everyone's salary into an actual list of who gets
+  paid what this month, and carrying that list through checking, approval and paid.
+
+**Changing a salary** (a raise, a new allowance) is its own small step: HR proposes it with a
+reason, and Finance must approve it before it becomes real. Nobody can request a raise for
+themselves.
+
+**Running payroll** has four steps, each its own switch on **Roles & Features** — not fixed to
+a job title:
+
 - Staff request **leave**; a manager with the "review leave" feature approves or rejects it.
 - **Payroll by default:** HR generates → HR reviews → Finance approves → the Super Admin (or a Cashier) pays.
 - **Payroll in the demo school:** HR generates → HR reviews → head of school approves → Finance pays.
   The school swapped two features between roles on **Roles & Features**. Either way, three
   different people touch the money.
 - HR can propose salary changes; Finance approves them (**Salary Approvals**).
+- The system doesn't move any money itself. "Mark paid" is the school saying it has already
+  paid someone by whatever means it uses — there's no bank transfer inside the app.
+
+### 7.1 Staff who don't use the app (added 29 Sep 2026)
+
+Some staff — a watchman, a driver, a cook — never need to open the app at all, but they still
+need to be paid. On **Staff Accounts** (or **Add Staff** for a branch admin), choose **General
+Staff** as the role. It only asks for a **name** and a **position** ("Watchman", "Bus driver",
+"Meal cook") — no email, no password. They can never sign in.
+
+They still show up on **Employees** and in **Payroll** exactly like any other staff member: HR
+sets their salary, Finance approves it, and payroll picks it up the same way. They don't appear
+on **Roles & Features** or **Staff Permissions**, because they hold no features to turn on or
+off — there's nothing for them to do inside the app.
 
 ---
 
@@ -225,13 +261,17 @@ Nothing valid is ever deleted: old attendance, results, bills, payments and rece
 | 21 Sep | **E** — Monthly Collection view with Excel download |
 | 21 Sep | **F** — one student payment record shared by finance, the payments desk and parents |
 | 21 Sep | Fixes found on the way: payment methods on the payment screen now match what the server accepts; the per-person permissions page shows the role's real features; the Staff Accounts page can create every role the school uses; the old "auto-invoice" and "module status" switches, which did nothing, were removed |
+| 29 Sep | **General Staff** — a fixed, no-login account kind for a watchman, driver, cook and similar, for payroll only. No email or password; only a name and a position. Feeds Employees, salary approval and payroll exactly like any other staff role, but stays off Roles & Features and Staff Permissions |
 
 **Decisions the school owner made (21 Sep):**
 
 - Roles stay a fixed list. A school renames them, changes their features, and turns them on or off.
 - Every fee is a monthly fee. Billing is one click per month, never automatic.
 - Payments fill the oldest unpaid month first.
-- Late fees, discounts and one-time fees are **not** part of this version.
+- Late fees and one-time fees are **not** part of this version. Discounts and scholarships are
+  set per student on Finance → Discounts, and only change future bills.
+- On 28 Sep: the finance officer can tick which months a payment is for (with none ticked, the
+  oldest month is still filled first), and the reference number was removed from Record Payment.
 
 ---
 

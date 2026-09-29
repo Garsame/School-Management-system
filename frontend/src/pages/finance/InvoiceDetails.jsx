@@ -91,8 +91,10 @@ const InvoiceDetails = () => {
                                     <tbody className="divide-y divide-slate-200">
                                         {invoice.items?.map((item, idx) => (
                                             <tr key={idx}>
-                                                <td className="px-4 py-3 text-slate-700 font-semibold">{item.name}</td>
-                                                <td className="px-4 py-3 text-right text-slate-900 font-bold">${item.amount.toLocaleString()}</td>
+                                                <td className={`px-4 py-3 font-semibold ${item.amount < 0 ? 'text-emerald-700' : 'text-slate-700'}`}>{item.name}</td>
+                                                <td className={`px-4 py-3 text-right font-bold ${item.amount < 0 ? 'text-emerald-700' : 'text-slate-900'}`}>
+                                                    {item.amount < 0 ? `−$${Math.abs(item.amount).toLocaleString()}` : `$${item.amount.toLocaleString()}`}
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>

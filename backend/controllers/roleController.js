@@ -4,13 +4,13 @@ const User = require('../models/User');
 const Tenant = require('../models/Tenant');
 const { logActivity } = require('../utils/logger');
 const {
-    DEFAULT_ROLE_PERMISSIONS,
     findUnassignablePermissions,
     getAssignablePermissions,
     sanitizeAssignablePermissionsForScope
 } = require('../utils/permissions');
 const { findNewDutyConflicts } = require('../utils/segregationOfDuties');
 const { normalizeRole } = require('../utils/rolePolicy');
+const { seedRolesForTenant } = require('../scripts/seedSystemRoles');
 
 const fail = (message, statusCode) => {
     const error = new Error(message);
@@ -66,19 +66,12 @@ const resolveTenantPlanTier = async (tenantId) => {
 };
 
 const getRoles = asyncHandler(async (req, res) => {
-    // If any built-in system roles are missing newly introduced default permissions, merge them in.
-    const existingRoles = await Role.find({ tenantId: req.tenantId });
-    for (const role of existingRoles) {
-        if (role.isSystem && DEFAULT_ROLE_PERMISSIONS[role.key]) {
-            const defaults = DEFAULT_ROLE_PERMISSIONS[role.key];
-            const currentSet = new Set(role.permissions || []);
-            const missing = defaults.filter((perm) => !currentSet.has(perm));
-            if (missing.length > 0) {
-                role.permissions = [...(role.permissions || []), ...missing];
-                await role.save();
-            }
-        }
-    }
+    // A release can add a whole new built-in role (as general_staff was, 29 Sep), or a new
+    // default feature on an existing one; both arrive here once, the next time the school
+    // opens this page. seedRolesForTenant creates any role this tenant is missing and syncs
+    // permissions on the rest — syncSystemRoleDefaults never re-adds a feature the school
+    // switched off, since it only offers a default the role was never offered before.
+    await seedRolesForTenant(req.tenantId);
 
     const roles = await Role.find({ tenantId: req.tenantId }).sort({ isSystem: -1, name: 1 });
     const counts = await User.aggregate([

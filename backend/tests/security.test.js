@@ -58,7 +58,7 @@ test('administrators cannot provision platform owners', () => {
     assert.equal(TENANT_ADMIN_CREATABLE_ROLES.has('super_admin'), false);
     assert.equal(BRANCH_ADMIN_CREATABLE_ROLES.has('platform_owner'), false);
     assert.equal(BRANCH_ADMIN_CREATABLE_ROLES.has('super_admin'), false);
-    assert.deepEqual([...BRANCH_ADMIN_CREATABLE_ROLES].sort(), ['cashier', 'dugsi_teacher', 'registrar', 'teacher']);
+    assert.deepEqual([...BRANCH_ADMIN_CREATABLE_ROLES].sort(), ['cashier', 'dugsi_teacher', 'general_staff', 'registrar', 'teacher']);
 });
 
 test('temporary passwords are simple eight-digit one-time credentials and non-deterministic', () => {
@@ -2046,7 +2046,7 @@ test('cashier dashboard stats returns correct aggregated data', async () => {
     }
 });
 
-test('cashier payment recording validates method and reference rules', async () => {
+test('cashier payment recording validates the method and needs no reference', async () => {
     const Invoice = require('../models/Invoice');
     const Payment = require('../models/Payment');
     const { recordInvoicePayment } = require('../services/paymentService');
@@ -2095,18 +2095,17 @@ test('cashier payment recording validates method and reference rules', async () 
             /Invalid payment method/
         );
 
-        // 2. Non-cash method requires reference
-        await assert.rejects(
-            recordInvoicePayment({
-                tenantId: MOCK_TENANT,
-                branchId: MOCK_BRANCH,
-                invoiceId: MOCK_INVOICE_ID,
-                amount: 500,
-                method: 'CARD',
-                reference: '   ' // empty reference
-            }),
-            /Payment reference is required for non-cash payments/
-        );
+        // 2. A reference is optional for every method: the desk no longer asks for one
+        const card = await recordInvoicePayment({
+            tenantId: MOCK_TENANT,
+            branchId: MOCK_BRANCH,
+            invoiceId: MOCK_INVOICE_ID,
+            amount: 500,
+            method: 'CARD',
+            reference: '   '
+        });
+        assert.equal(card.payment.method, 'CARD');
+        assert.equal(card.payment.reference, undefined, 'a blank reference is not stored');
 
         // 3. Cash payment can omit reference
         const result = await recordInvoicePayment({
@@ -8190,3 +8189,482 @@ test('student discounts and 100% full scholarships calculate correctly on invoic
     assert.equal(standardBill.items.length, 2);
 });
 
+
+test('built-in role defaults are added once and never bring back a feature the school switched off', () => {
+    const { DEFAULT_ROLE_PERMISSIONS, syncSystemRoleDefaults } = require('../utils/permissions');
+    const defaults = DEFAULT_ROLE_PERMISSIONS.finance_director;
+    const switchedOff = defaults[0];
+    const releasedLater = defaults[defaults.length - 1];
+
+    // A role that was offered every default, where the school then switched one off.
+    const edited = {
+        key: 'finance_director',
+        isSystem: true,
+        seededPermissions: [...defaults],
+        permissions: defaults.filter((permission) => permission !== switchedOff)
+    };
+    assert.equal(syncSystemRoleDefaults(edited), false, 'nothing new to offer, so nothing changes');
+    assert.ok(!edited.permissions.includes(switchedOff), 'a switched-off feature must stay off');
+
+    // A release adds a default: it arrives once, and the switched-off feature still stays off.
+    const beforeRelease = {
+        key: 'finance_director',
+        isSystem: true,
+        seededPermissions: defaults.filter((permission) => permission !== releasedLater),
+        permissions: defaults.filter((permission) => permission !== switchedOff && permission !== releasedLater)
+    };
+    assert.equal(syncSystemRoleDefaults(beforeRelease), true);
+    assert.ok(beforeRelease.permissions.includes(releasedLater), 'the new default is handed over');
+    assert.ok(!beforeRelease.permissions.includes(switchedOff), 'and the switched-off feature is not');
+    assert.equal(syncSystemRoleDefaults(beforeRelease), false, 'running it again changes nothing');
+
+    // The school switches that new default off too: it must not come back either.
+    beforeRelease.permissions = beforeRelease.permissions.filter((permission) => permission !== releasedLater);
+    assert.equal(syncSystemRoleDefaults(beforeRelease), false);
+    assert.ok(!beforeRelease.permissions.includes(releasedLater));
+});
+
+test('a role from before defaults were tracked gets the current defaults once, then its choices stick', () => {
+    const { DEFAULT_ROLE_PERMISSIONS, syncSystemRoleDefaults } = require('../utils/permissions');
+    const defaults = DEFAULT_ROLE_PERMISSIONS.cashier;
+    const legacy = { key: 'cashier', isSystem: true, permissions: defaults.slice(1) };
+
+    assert.equal(syncSystemRoleDefaults(legacy), true);
+    assert.deepEqual([...legacy.seededPermissions].sort(), [...defaults].sort());
+    assert.ok(legacy.permissions.includes(defaults[0]), 'the one-time catch-up adds what is missing');
+
+    legacy.permissions = legacy.permissions.filter((permission) => permission !== defaults[0]);
+    assert.equal(syncSystemRoleDefaults(legacy), false);
+    assert.ok(!legacy.permissions.includes(defaults[0]), 'after that, switching it off sticks');
+});
+
+test('default syncing leaves custom roles and unknown roles alone', () => {
+    const { syncSystemRoleDefaults } = require('../utils/permissions');
+    const custom = { key: 'finance_director', isSystem: false, permissions: ['finance.dashboard.view'] };
+    const unknown = { key: 'not_a_built_in_role', isSystem: true, permissions: [] };
+
+    assert.equal(syncSystemRoleDefaults(custom), false);
+    assert.deepEqual(custom.permissions, ['finance.dashboard.view']);
+    assert.equal(syncSystemRoleDefaults(unknown), false);
+    assert.equal(syncSystemRoleDefaults(null), false);
+});
+
+test('the roles list and the role seed both use the tracked sync, not a blanket re-merge', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const controller = fs.readFileSync(path.join(__dirname, '../controllers/roleController.js'), 'utf8');
+    const seed = fs.readFileSync(path.join(__dirname, '../scripts/seedSystemRoles.js'), 'utf8');
+
+    // roleController reaches the shared rule through seedRolesForTenant (which also creates
+    // any role the tenant is missing entirely); seedSystemRoles calls it directly.
+    assert.match(controller, /seedRolesForTenant\(/, 'roleController must seed missing roles and sync the rest');
+    assert.match(seed, /syncSystemRoleDefaults\(/, 'seedSystemRoles must sync defaults through the shared rule');
+    for (const [name, source] of [['roleController', controller], ['seedSystemRoles', seed]]) {
+        assert.doesNotMatch(source, /defaultPerms\.filter\(|defaults\.filter\(\(perm\)/, `${name} must not re-add every missing default`);
+    }
+});
+
+test('the role editor keeps its hidden tick boxes inside their rows and its frame unscrollable', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const page = fs.readFileSync(path.join(__dirname, '../../frontend/src/pages/tenant/Roles.jsx'), 'utf8');
+    const css = fs.readFileSync(path.join(__dirname, '../../frontend/src/phoenix.css'), 'utf8');
+
+    // Ticking a feature far down the list used to scroll the modal frame and blank the modal.
+    assert.match(page, /<label key=\{permission\.key\} className=\{`relative /, 'each feature row must be positioned');
+    const panel = css.match(/\.phoenix-modal-panel \{[^}]*\}/)[0];
+    assert.match(panel, /overflow: clip;/, 'the modal frame must not be scrollable');
+});
+
+test('a payment for chosen months can never be more than those months owe', () => {
+    const { planStudentPayment } = require('../services/paymentService');
+    const chosen = [
+        { _id: 'oct', billingPeriodLabel: 'October 2026', balance: 50 },
+        { _id: 'nov', billingPeriodLabel: 'November 2026', balance: 50 }
+    ];
+
+    assert.deepEqual(planStudentPayment(chosen, 70, { chosen: true }), [
+        { invoiceId: 'oct', label: 'October 2026', amount: 50, balanceAfter: 0 },
+        { invoiceId: 'nov', label: 'November 2026', amount: 20, balanceAfter: 30 }
+    ]);
+    assert.throws(() => planStudentPayment(chosen, 100.01, { chosen: true }), /more than the chosen months owe \(100\.00\)/);
+    assert.throws(() => planStudentPayment(chosen, 100.01), /more than this student owes \(100\.00\)/, 'the default wording is unchanged');
+});
+
+test('the payments desk can pay the months it chooses, and only those', async () => {
+    const Invoice = require('../models/Invoice');
+    const Payment = require('../models/Payment');
+    const { recordStudentPayment } = require('../services/paymentService');
+    const originals = {
+        find: Invoice.find, findOne: Invoice.findOne, findOneAndUpdate: Invoice.findOneAndUpdate,
+        paymentFindOne: Payment.findOne, paymentCreate: Payment.create
+    };
+
+    const id = () => new mongoose.Types.ObjectId();
+    const [tenantId, branchId, studentId, recordedBy] = [id(), id(), id(), id()];
+    const bill = (key, label) => ({
+        _id: id(), tenantId, branchId, studentId, billingPeriodKey: key, billingPeriodLabel: label,
+        totalAmount: 100, paidAmount: 0, balance: 100, status: 'UNPAID'
+    });
+    const [sep, oct, nov] = [bill('2026-09', 'September 2026'), bill('2026-10', 'October 2026'), bill('2026-11', 'November 2026')];
+    const stored = new Map([sep, oct, nov].map((invoice) => [String(invoice._id), invoice]));
+    const created = [];
+    const pay = (fields) => recordStudentPayment({ tenantId, branchId, studentId, method: 'ZAAD', recordedBy, ...fields });
+
+    try {
+        // The list comes back in any order, as copies (like .lean()); the service sorts it.
+        Invoice.find = () => ({ lean: async () => [nov, sep, oct].filter((invoice) => invoice.balance > 0).map((invoice) => ({ ...invoice })) });
+        Invoice.findOne = async ({ _id }) => stored.get(String(_id));
+        Invoice.findOneAndUpdate = async (filter, update) => Object.assign(stored.get(String(filter._id)), update.$set);
+        Payment.findOne = async () => null;
+        Payment.create = async (data) => {
+            const payment = { _id: id(), ...data, save: async () => {} };
+            created.push(payment);
+            return payment;
+        };
+
+        // 1. November alone, with no reference, by Zaad: September and October stay untouched.
+        const first = await pay({ invoiceIds: [String(nov._id)], amount: 60 });
+        assert.deepEqual(first.allocations.map((line) => [line.label, line.amount]), [['November 2026', 60]]);
+        assert.equal(created.length, 1);
+        assert.equal(String(created[0].invoiceId), String(nov._id));
+        assert.equal(created[0].reference, undefined);
+        assert.equal([sep, oct].every((invoice) => invoice.balance === 100 && invoice.status === 'UNPAID'), true);
+        assert.equal(first.remainingOwed, 240, 'still owed counts every month, not only the chosen one');
+
+        // 2. October and November together: the amount fills the older of the two first.
+        const second = await pay({ invoiceIds: [String(nov._id), String(oct._id)], amount: 140 });
+        assert.deepEqual(second.allocations.map((line) => [line.label, line.amount]), [['October 2026', 100], ['November 2026', 40]]);
+        assert.equal(second.remainingOwed, 100);
+        assert.equal(sep.balance, 100, 'September was never chosen, so it is untouched');
+
+        // 3. Guards: a month that is already paid, someone else's, or too much for the chosen month.
+        await assert.rejects(() => pay({ invoiceIds: [String(oct._id)], amount: 10 }), (error) => error.status === 409 && /already paid or is not this student/.test(error.message));
+        await assert.rejects(() => pay({ invoiceIds: [String(id())], amount: 10 }), (error) => error.status === 409);
+        await assert.rejects(() => pay({ invoiceIds: [String(sep._id)], amount: 150 }), /more than the chosen months owe \(100\.00\)/);
+        await assert.rejects(() => pay({ invoiceIds: ['not-an-id'], amount: 10 }), /Invalid month chosen/);
+
+        // 4. No months chosen: the default is unchanged and the oldest month is filled first.
+        const oldest = await pay({ amount: 30 });
+        assert.deepEqual(oldest.allocations.map((line) => line.label), ['September 2026']);
+    } finally {
+        Invoice.find = originals.find;
+        Invoice.findOne = originals.findOne;
+        Invoice.findOneAndUpdate = originals.findOneAndUpdate;
+        Payment.findOne = originals.paymentFindOne;
+        Payment.create = originals.paymentCreate;
+    }
+});
+
+test('discounts: a student shows only the discount they hold, and each bill shows what it took off', () => {
+    const { activeDiscount, discountFromItems } = require('../services/studentAccountService');
+
+    assert.equal(activeDiscount(null), null);
+    assert.equal(activeDiscount({ enabled: false, type: 'PERCENTAGE', value: 50 }), null, 'switched off');
+    assert.equal(activeDiscount({ enabled: true, type: 'PERCENTAGE', value: 0 }), null, 'no value');
+    assert.deepEqual(activeDiscount({ enabled: true, type: 'PERCENTAGE', value: 100, reason: 'Academic Excellence', updatedBy: 'x' }), {
+        enabled: true, type: 'PERCENTAGE', value: 100, reason: 'Academic Excellence'
+    });
+
+    assert.deepEqual(discountFromItems([{ name: 'Tuition', amount: 100 }, { name: 'Bus', amount: 50 }, { name: 'Discount (20%) — Staff Child', amount: -30 }]), {
+        fee: 150, discount: 30, label: 'Discount (20%) — Staff Child'
+    });
+    assert.deepEqual(discountFromItems([{ name: 'Tuition', amount: 150 }]), { fee: 150, discount: 0, label: '' });
+    assert.deepEqual(discountFromItems(undefined), { fee: 0, discount: 0, label: '' });
+});
+
+test('the student record and the monthly view carry each months discount and the scholarship held today', async () => {
+    const AcademicYear = require('../models/AcademicYear');
+    const Branch = require('../models/Branch');
+    const Enrollment = require('../models/Enrollment');
+    const Invoice = require('../models/Invoice');
+    const Payment = require('../models/Payment');
+    const Student = require('../models/Student');
+    const Model = { AcademicYear, Branch, Enrollment, Invoice, Payment, Student };
+    const originals = Object.fromEntries(Object.entries(Model).map(([name, model]) => [name, { findOne: model.findOne, find: model.find }]));
+    const { getMonthlyCollection, getStudentPaymentRecord } = require('../services/studentAccountService');
+
+    const id = () => new mongoose.Types.ObjectId();
+    const [tenantId, yearId, branchId, studentId, otherId, classId] = [id(), id(), id(), id(), id(), id()];
+    const query = (value) => ({ select() { return this; }, populate() { return this; }, sort() { return this; }, lean: async () => value });
+    const bill = (owner, key, label, items, paid = 0) => {
+        const total = items.reduce((sum, item) => sum + item.amount, 0);
+        return {
+            _id: id(), tenantId, branchId, studentId: owner, academicYearId: yearId, billingPeriodKey: key, billingPeriodLabel: label,
+            items, totalAmount: total, paidAmount: paid, balance: total - paid,
+            status: total - paid <= 0 ? 'PAID' : paid > 0 ? 'PARTIALLY_PAID' : 'UNPAID', dueDate: new Date('2026-10-10')
+        };
+    };
+    // September was billed BEFORE the discount was granted; October after it.
+    const september = bill(studentId, '2026-09', 'September 2026', [{ name: 'Tuition', amount: 150 }]);
+    const october = bill(studentId, '2026-10', 'October 2026', [{ name: 'Tuition', amount: 150 }, { name: 'Discount (20%) — Staff Child', amount: -30 }]);
+    const octoberOther = bill(otherId, '2026-10', 'October 2026', [{ name: 'Tuition', amount: 150 }, { name: 'Full Scholarship (100%) — Academic Excellence', amount: -150 }]);
+
+    try {
+        Student.findOne = () => query({ _id: studentId, firstName: 'Akram', lastName: 'Haji', admissionNumber: 'KS-1', status: 'Active', branchId, discount: { enabled: true, type: 'PERCENTAGE', value: 20, reason: 'Staff Child' } });
+        Invoice.find = () => query([october, september]);
+        Enrollment.findOne = () => query({ classId: { name: 'Class 1' }, academicYearId: { name: '2026-2027' } });
+        Branch.findOne = () => query({ name: 'Main' });
+        Payment.find = () => query([]);
+
+        const record = await getStudentPaymentRecord({ tenantId, studentId, now: new Date('2026-10-20') });
+        assert.deepEqual(record.student.discount, { enabled: true, type: 'PERCENTAGE', value: 20, reason: 'Staff Child' });
+        assert.deepEqual(record.months.map((line) => [line.label, line.fee, line.discount, line.billed]), [
+            ['September 2026', 150, 0, 150],
+            ['October 2026', 150, 30, 120]
+        ], 'the month billed before the discount keeps its full amount');
+        assert.equal(record.totals.discounts, 30);
+        assert.equal(record.totals.owed, 270, 'total owed is every billed month added up');
+
+        // A discount that is switched off is not shown at all.
+        Student.findOne = () => query({ _id: studentId, firstName: 'Akram', lastName: 'Haji', admissionNumber: 'KS-1', status: 'Active', branchId, discount: { enabled: false, type: 'PERCENTAGE', value: 20 } });
+        assert.equal((await getStudentPaymentRecord({ tenantId, studentId })).student.discount, null);
+
+        // The monthly view: one row per bill with what it took off, and the scholarship held today.
+        AcademicYear.findOne = () => query({ _id: yearId, name: '2026-2027', startDate: new Date('2026-09-01'), endDate: new Date('2027-06-30') });
+        Student.find = () => query([
+            { _id: studentId, firstName: 'Akram', lastName: 'Haji', admissionNumber: 'KS-1', status: 'Active', discount: { enabled: true, type: 'PERCENTAGE', value: 20, reason: 'Staff Child' } },
+            { _id: otherId, firstName: 'Hodan', lastName: 'Nur', admissionNumber: 'KS-2', status: 'Active', discount: { enabled: true, type: 'PERCENTAGE', value: 100, reason: 'Academic Excellence' } }
+        ]);
+        Enrollment.find = () => query([studentId, otherId].map((owner) => ({ studentId: owner, classId: { _id: classId, name: 'Class 1', gradeLevel: '1' } })));
+        Branch.find = () => query([]);
+        let call = 0;
+        Invoice.find = () => query((call += 1) % 2 === 1 ? [october, octoberOther] : []);
+
+        const month = await getMonthlyCollection({ tenantId, academicYearId: yearId, month: '2026-10', now: new Date('2026-10-20') });
+        const akram = month.rows.find((row) => row.admissionNumber === 'KS-1');
+        const hodan = month.rows.find((row) => row.admissionNumber === 'KS-2');
+        assert.equal(akram.discount, 30);
+        assert.equal(akram.scholarship.value, 20);
+        assert.equal(hodan.discount, 150);
+        assert.equal(hodan.billed, 0);
+        assert.equal(hodan.status, 'PAID', 'a full scholarship is billed at zero and is never owed');
+        assert.equal(month.totals.discounts, 180);
+        assert.equal(month.totals.billed, 120);
+    } finally {
+        Object.entries(originals).forEach(([name, methods]) => Object.assign(Model[name], methods));
+    }
+});
+
+test('the record-payment screen picks months and never asks for a reference', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const page = fs.readFileSync(path.join(__dirname, '../../frontend/src/pages/cashier/NewPayment.jsx'), 'utf8');
+    const controller = fs.readFileSync(path.join(__dirname, '../controllers/cashierController.js'), 'utf8');
+
+    assert.doesNotMatch(page, /reference/i, 'the desk no longer collects a reference number');
+    assert.match(page, /invoiceIds/, 'the chosen months are sent to the server');
+    assert.match(page, /account\?\.months/, 'every billed month is listed, not only the unpaid ones');
+    assert.match(page, /describeDiscount/, 'a scholarship or discount is shown for the student');
+    assert.match(controller, /invoiceIds,\s*\r?\n\s*amount/, 'the controller passes the chosen months on');
+    assert.match(controller, /discount: activeDiscount\(student\.discount\)/, 'search results carry the scholarship');
+});
+
+test('the debtors watchlist is one row per student, owing the sum of their unpaid months', async () => {
+    const Invoice = require('../models/Invoice');
+    const Enrollment = require('../models/Enrollment');
+    const { getOutstandingBalances } = require('../controllers/financeController');
+    const originals = { aggregate: Invoice.aggregate, find: Invoice.find, findOne: Enrollment.findOne };
+
+    const tenantId = '507f1f77bcf86cd799439011';
+    const year = { _id: '507f1f77bcf86cd799439014' };
+    const branch = { _id: '507f1f77bcf86cd799439012', name: 'Main Branch' };
+    const akram = { _id: '507f1f77bcf86cd799439021', firstName: 'Akram', lastName: 'Haji', admissionNumber: 'KS-1', discount: { enabled: true, type: 'PERCENTAGE', value: 20, reason: 'Staff Child' } };
+    const hodan = { _id: '507f1f77bcf86cd799439022', firstName: 'Hodan', lastName: 'Nur', admissionNumber: 'KS-2' };
+    const bill = (student, balance, dueDate) => ({ _id: `${student._id}-${dueDate}`, studentId: student, branchId: branch, academicYearId: year, balance, dueDate: new Date(dueDate) });
+
+    try {
+        Invoice.aggregate = async () => [{ totalOutstanding: 265, count: 4 }];
+        // Hodan's single bill is the largest one, but Akram owes more across three months.
+        const bills = [bill(hodan, 100, '2026-10-10'), bill(akram, 55, '2026-11-10'), bill(akram, 55, '2026-09-10'), bill(akram, 55, '2026-10-10')];
+        Invoice.find = () => {
+            const chain = { sort: () => chain, limit: () => chain, populate: () => chain, then: (resolve) => resolve(bills) };
+            return chain;
+        };
+        Enrollment.findOne = () => {
+            const chain = { populate: () => chain, then: (resolve) => resolve({ classId: { name: 'Grade 4' } }) };
+            return chain;
+        };
+
+        const res = createResponse();
+        await getOutstandingBalances({ tenantId, query: {} }, res);
+
+        const { debtors } = res.body.data;
+        assert.equal(debtors.length, 2, 'two students, not four bills');
+        assert.deepEqual(debtors.map((debtor) => [debtor.studentName, debtor.balance, debtor.count]), [['Akram Haji', 165, 3], ['Hodan Nur', 100, 1]]);
+        assert.equal(new Date(debtors[0].oldestDueDate).toISOString().slice(0, 10), '2026-09-10', 'the oldest unpaid month sets the due date');
+        assert.equal(debtors[0].scholarship.value, 20, 'a discount the student holds is carried');
+        assert.equal(debtors[1].scholarship, null);
+    } finally {
+        Invoice.aggregate = originals.aggregate;
+        Invoice.find = originals.find;
+        Enrollment.findOne = originals.findOne;
+    }
+});
+
+test('general staff is a fixed, branch-scoped, permission-free account kind', () => {
+    const { ROLE_SCOPE, BRANCH_ADMIN_CREATABLE_ROLES, TENANT_ADMIN_CREATABLE_ROLES, assertValidRoleScope } = require('../utils/rolePolicy');
+    const { DEFAULT_ROLE_PERMISSIONS } = require('../utils/permissions');
+    const { STAFF_ROLES, buildProfileFields, generateUnusablePassword } = require('../utils/userProfile');
+
+    assert.equal(ROLE_SCOPE.general_staff, 'branch');
+    assert.deepEqual(assertValidRoleScope('general_staff', 'branch'), { role: 'general_staff', scope: 'branch' });
+    assert.throws(() => assertValidRoleScope('general_staff', 'tenant'), /requires branch scope/);
+    assert.ok(BRANCH_ADMIN_CREATABLE_ROLES.has('general_staff'), 'a branch admin can register one');
+    assert.ok(TENANT_ADMIN_CREATABLE_ROLES.has('general_staff'), 'so can the super admin');
+
+    assert.deepEqual(DEFAULT_ROLE_PERMISSIONS.general_staff, [], 'it never signs in, so it holds nothing to sign in with');
+
+    assert.ok(STAFF_ROLES.has('general_staff'), 'it gets an employee id and an employment profile like any other staff role');
+    const fields = buildProfileFields({ employmentInfo: { jobTitle: 'Watchman' } }, 'general_staff');
+    assert.match(fields.employeeId, /^GS-\d{4}-[0-9A-F]{6}$/);
+    assert.equal(fields.employmentInfo.jobTitle, 'Watchman');
+
+    // A password nobody is given: long, random, different every time.
+    const a = generateUnusablePassword();
+    const b = generateUnusablePassword();
+    assert.notEqual(a, b);
+    assert.ok(a.length >= 32);
+});
+
+test('the super admin can create a general staff record with no email or password, but needs a position', async () => {
+    const Role = require('../models/Role');
+    const User = require('../models/User');
+    const Branch = require('../models/Branch');
+    const { createUser } = require('../controllers/tenantController');
+    const originals = { roleFindOne: Role.findOne, userFindOne: User.findOne, userCreate: User.create, branchFindOne: Branch.findOne };
+
+    const roleDoc = { _id: 'role-gs', key: 'general_staff', scope: 'branch', isActive: true };
+    const req = (body) => ({
+        tenantId: 'tenant-1',
+        user: { _id: 'admin-1' },
+        body: { role: 'general_staff', scope: 'branch', branchId: 'branch-1', name: 'Idris Warsame', ...body }
+    });
+
+    try {
+        Role.findOne = () => ({ select: async () => roleDoc });
+        Branch.findOne = async () => ({ _id: 'branch-1' });
+        User.findOne = async () => null; // no duplicate — should not even be called without an email
+
+        let created = null;
+        User.create = async (doc) => { created = doc; return { ...doc, _id: 'user-gs-1' }; };
+
+        // 1. No position given: rejected before a user is ever created.
+        let nextError = null;
+        let res = createResponse();
+        await createUser(req({ employmentInfo: {} }), res, (err) => { nextError = err; });
+        assert.match(nextError?.message || '', /Position is required/);
+        assert.equal(created, null);
+
+        // 2. With a position: created with no email, a real (random) password hash, and no
+        // forced password change, since there is no login to change it at.
+        nextError = null;
+        res = createResponse();
+        await createUser(req({ employmentInfo: { jobTitle: 'Watchman' } }), res, (err) => { nextError = err; });
+
+        assert.equal(nextError, null);
+        assert.equal(res.statusCode, 201);
+        assert.equal(created.email, undefined);
+        assert.equal(created.mustChangePassword, false);
+        assert.ok(created.passwordHash && created.passwordHash.length >= 32);
+        assert.equal(created.role, 'general_staff');
+        assert.equal(created.employmentInfo.jobTitle, 'Watchman');
+    } finally {
+        Role.findOne = originals.roleFindOne;
+        User.findOne = originals.userFindOne;
+        User.create = originals.userCreate;
+        Branch.findOne = originals.branchFindOne;
+    }
+});
+
+test('a branch admin can register general staff without email or password, and everyone else is unchanged', async () => {
+    const User = require('../models/User');
+    const { createBranchUser } = require('../controllers/branchAdminController');
+    const originalFindOne = User.findOne;
+    const originalSave = User.prototype.save;
+
+    const req = (body) => ({
+        user: { tenantId: 'tenant-1', branchId: 'branch-1', _id: 'ba-1', role: 'branch_admin' },
+        body,
+        ip: '127.0.0.1',
+        get: () => 'test-agent'
+    });
+
+    try {
+        User.findOne = async () => null;
+        let saved = null;
+        User.prototype.save = async function () { saved = this; return this; };
+
+        // 1. general_staff: no email or password needed, but a position is required.
+        let res = createResponse();
+        await createBranchUser(req({ name: 'Amina Yusuf', role: 'general_staff' }), res);
+        assert.equal(res.statusCode, 400);
+        assert.match(res.body.message, /Position is required/);
+        assert.equal(saved, null);
+
+        res = createResponse();
+        await createBranchUser(req({ name: 'Amina Yusuf', role: 'general_staff', employmentInfo: { jobTitle: 'Meal cook' } }), res);
+        assert.equal(res.body.success, true, res.body.message);
+        assert.equal(saved.email, undefined);
+        assert.equal(saved.mustChangePassword, false);
+        assert.ok(saved.passwordHash && saved.passwordHash.length >= 32);
+        assert.equal(saved.employmentInfo.jobTitle, 'Meal cook');
+        assert.equal(res.body.data.passwordHash, undefined, 'the random hash is never returned to the browser');
+
+        // 2. A normal branch role still needs a real email and password (unchanged behaviour).
+        saved = null;
+        res = createResponse();
+        await createBranchUser(req({ name: 'A Cashier', role: 'cashier' }), res);
+        assert.equal(res.statusCode, 400);
+        assert.match(res.body.message, /email.*password|password.*email/i);
+        assert.equal(saved, null);
+    } finally {
+        User.findOne = originalFindOne;
+        User.prototype.save = originalSave;
+    }
+});
+
+test('a school opening the Roles page for the first time after an upgrade gets its new roles seeded, not just synced', async () => {
+    const Role = require('../models/Role');
+    const User = require('../models/User');
+    const { getRoles } = require('../controllers/roleController');
+    const originals = { roleFind: Role.find, roleFindOne: Role.findOne, roleCreate: Role.create, userAggregate: User.aggregate };
+
+    try {
+        // This tenant predates general_staff: none of its Role records mention it.
+        const byKey = new Map([['teacher', { key: 'teacher', tenantId: 'tenant-1', isSystem: true, isActive: true, permissions: [], save: async () => {} }]]);
+        const createdKeys = [];
+
+        Role.findOne = async ({ tenantId, key }) => (tenantId === 'tenant-1' ? byKey.get(key) || null : null);
+        Role.create = async (doc) => {
+            const created = { ...doc, _id: `role-${doc.key}`, save: async () => {} };
+            byKey.set(doc.key, created);
+            createdKeys.push(doc.key);
+            return created;
+        };
+        Role.find = ({ tenantId }) => ({ sort: async () => (tenantId === 'tenant-1' ? [...byKey.values()] : []) });
+        User.aggregate = async () => [];
+
+        const res = createResponse();
+        await getRoles({ tenantId: 'tenant-1' }, res);
+
+        assert.ok(createdKeys.includes('general_staff'), 'the missing role is created, not just skipped');
+        assert.ok(res.body.some((role) => role.key === 'general_staff'), 'and it comes back in the same response');
+    } finally {
+        Role.find = originals.roleFind;
+        Role.findOne = originals.roleFindOne;
+        Role.create = originals.roleCreate;
+        User.aggregate = originals.userAggregate;
+    }
+});
+
+test('general staff are excluded from the Roles & Features page and from per-user permission overrides', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const rolesPage = fs.readFileSync(path.join(__dirname, '../../frontend/src/pages/tenant/Roles.jsx'), 'utf8');
+    const tenantController = fs.readFileSync(path.join(__dirname, '../controllers/tenantController.js'), 'utf8');
+
+    assert.match(rolesPage, /HIDDEN_FROM_ROLES_PAGE.*general_staff/, 'the roles page must filter it out — nothing to tick for an account with no permissions');
+    assert.doesNotMatch(tenantController, /PERMISSION_MANAGED_STAFF_ROLES = \[[^\]]*general_staff/, 'it must not be offered a permission override screen');
+    assert.match(tenantController, /TENANT_MANAGED_ACCOUNT_ROLES = \[[^\]]*general_staff/, 'but it must still show up in the plain Staff Accounts list');
+});

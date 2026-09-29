@@ -9,6 +9,10 @@ import { confirmAction, notify } from '../../components/feedback/notificationSer
 
 const ROLE_ORDER = ['super_admin', 'hr_payroll_manager', 'finance_director', 'registrar', 'branch_admin', 'cashier', 'teacher', 'dugsi_teacher', 'parent', 'student'];
 
+// General staff hold zero permissions and never sign in — there is nothing on this page to
+// tick for them, so they are managed from Staff Accounts only, not shown here.
+const HIDDEN_FROM_ROLES_PAGE = new Set(['general_staff']);
+
 // Catalog groups in the words the school uses.
 const GROUP_LABELS = {
     'School Admin': 'School management',
@@ -52,7 +56,9 @@ const Roles = () => {
     const loadRoles = useCallback(async () => {
         try {
             const list = unwrap(await tenantService.getRoles());
-            setRoles((Array.isArray(list) ? list : []).sort((a, b) => ROLE_ORDER.indexOf(a.key) - ROLE_ORDER.indexOf(b.key)));
+            setRoles((Array.isArray(list) ? list : [])
+                .filter((role) => !HIDDEN_FROM_ROLES_PAGE.has(role.key))
+                .sort((a, b) => ROLE_ORDER.indexOf(a.key) - ROLE_ORDER.indexOf(b.key)));
         } catch (error) {
             notify(error.response?.data?.message || 'Could not load roles', 'error');
         } finally {
@@ -299,10 +305,13 @@ const Roles = () => {
                                             {groupPerms.map((permission) => {
                                                 const on = Boolean(editor?.selected?.has(permission.key));
                                                 return (
-                                                    <label key={permission.key} className={`flex items-start gap-3 px-4 py-2.5 ${canEdit ? 'cursor-pointer hover:bg-slate-50' : ''}`}>
+                                                    // `relative` keeps the hidden checkbox inside its own row. Without it the box is
+                                                    // positioned against the modal frame, so ticking a feature far down the list makes
+                                                    // the browser scroll the frame to reach it and the whole modal goes blank.
+                                                    <label key={permission.key} className={`relative flex items-start gap-3 px-4 py-2.5 ${canEdit ? 'cursor-pointer hover:bg-slate-50' : ''}`}>
                                                         <input
                                                             type="checkbox"
-                                                            className="sr-only"
+                                                            className="peer sr-only"
                                                             checked={on}
                                                             disabled={!canEdit}
                                                             onChange={() => toggleFeature(permission.key)}

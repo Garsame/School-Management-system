@@ -291,8 +291,38 @@ const DEFAULT_ROLE_PERMISSIONS = Object.freeze({
     teacher: keysForRoles('teacher').filter((key) => key !== 'teacher.results.export'),
     dugsi_teacher: keysForRoles('dugsi_teacher'),
     student: keysForRoles('student'),
-    parent: keysForRoles('parent')
+    parent: keysForRoles('parent'),
+    // A payroll-only record. It never signs in, so it holds nothing to sign in with.
+    general_staff: []
 });
+
+/**
+ * Hand a built-in role the defaults it has never been offered, and only those.
+ *
+ * When a release adds a default feature to a role (say, discounts for the finance role),
+ * schools that already exist should get it. But a school can also switch a default off, and
+ * that choice must stay. Merging "every default the role lacks" cannot tell the two apart, so
+ * it brings back a feature the school just turned off on every load.
+ *
+ * `seededPermissions` is the list of defaults already offered. Only defaults outside it are
+ * added, then recorded. A role from before this list existed has none: it gets the current
+ * defaults once, as it did before, and from then on its choices stick.
+ *
+ * Changes the role in memory and returns true when it did; the caller saves.
+ */
+const syncSystemRoleDefaults = (role) => {
+    const defaults = DEFAULT_ROLE_PERMISSIONS[role?.key];
+    if (!role?.isSystem || !defaults) return false;
+
+    const offered = new Set(Array.isArray(role.seededPermissions) ? role.seededPermissions : []);
+    const fresh = defaults.filter((permission) => !offered.has(permission));
+    if (!fresh.length && Array.isArray(role.seededPermissions)) return false;
+
+    const held = new Set(role.permissions || []);
+    role.permissions = [...(role.permissions || []), ...fresh.filter((permission) => !held.has(permission))];
+    role.seededPermissions = [...offered, ...fresh];
+    return true;
+};
 
 const getDefaultPermissionsForRole = (role = '') => {
     const normalizedRole = String(role || '').trim().toLowerCase();
@@ -443,5 +473,6 @@ module.exports = {
     resolveRoleDefaults,
     sanitizeAssignablePermissionsForRole,
     sanitizeAssignablePermissionsForScope,
-    sanitizePermissions
+    sanitizePermissions,
+    syncSystemRoleDefaults
 };

@@ -2,6 +2,8 @@ import React from 'react';
 import { AlertTriangle, CheckCircle2, Receipt } from 'lucide-react';
 import { Badge } from '../ui';
 import { money } from '../../utils/feeStructures';
+import { invoiceDiscount } from '../../utils/discounts';
+import DiscountBadge from './DiscountBadge';
 
 const STATUS = {
     PAID: { label: 'Paid', variant: 'success' },
@@ -63,16 +65,7 @@ const PaymentRecordView = ({ record, audience = 'staff', actions = null }) => {
                         )}
                     </div>
                     <div className="flex items-center gap-2">
-                        {student.discount?.enabled && (
-                            <Badge
-                                variant={student.discount.type === 'PERCENTAGE' && student.discount.value >= 100 ? 'success' : 'warning'}
-                                className="font-bold"
-                            >
-                                {student.discount.type === 'PERCENTAGE'
-                                    ? (student.discount.value >= 100 ? '100% Scholarship' : `${student.discount.value}% Discount`)
-                                    : `-$${student.discount.value} Discount`}
-                            </Badge>
-                        )}
+                        <DiscountBadge discount={student.discount} className="!py-1 text-xs" />
                         {student.status !== 'Active' && <Badge variant="outline">{student.status}</Badge>}
                         {actions}
                     </div>
@@ -107,7 +100,12 @@ const PaymentRecordView = ({ record, audience = 'staff', actions = null }) => {
                     tone={thisMonth?.balance > 0 ? 'bad' : 'good'}
                 />
                 <Card label="Owed from earlier months" value={money(earlierDebt)} tone={earlierDebt > 0 ? 'bad' : 'default'} />
-                <Card label="Total owed" value={money(totals.owed)} sub={`Billed ${money(totals.billed)} · paid ${money(totals.paid)} in total`} tone={totals.owed > 0 ? 'bad' : 'good'} />
+                <Card
+                    label="Total owed"
+                    value={money(totals.owed)}
+                    sub={`Billed ${money(totals.billed)} · paid ${money(totals.paid)} in total${totals.discounts > 0 ? ` · ${money(totals.discounts)} taken off by discounts` : ''}`}
+                    tone={totals.owed > 0 ? 'bad' : 'good'}
+                />
             </div>
 
             <article className="phoenix-card">
@@ -128,16 +126,26 @@ const PaymentRecordView = ({ record, audience = 'staff', actions = null }) => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[#e3e6ed]">
-                                {months.map((line) => (
+                                {months.map((line) => {
+                                    const taken = invoiceDiscount(line.items);
+                                    return (
                                     <tr key={line.invoiceId} className={line.late ? 'bg-rose-50/50' : ''}>
                                         <td className="px-4 py-2.5 font-semibold text-slate-800">{line.label}</td>
-                                        <td className="px-4 py-2.5 text-right tabular-nums">{money(line.billed)}</td>
+                                        <td className="px-4 py-2.5 text-right tabular-nums">
+                                            {money(line.billed)}
+                                            {taken && (
+                                                <span className="block text-[11px] font-semibold text-emerald-700" title={taken.name}>
+                                                    {taken.scholarship ? 'Full scholarship' : `${money(line.fee)} less ${money(taken.amount)} discount`}
+                                                </span>
+                                            )}
+                                        </td>
                                         <td className="px-4 py-2.5 text-right tabular-nums text-emerald-700">{money(line.paid)}</td>
                                         <td className={`px-4 py-2.5 text-right font-semibold tabular-nums ${line.balance > 0 ? 'text-rose-700' : 'text-slate-400'}`}>{money(line.balance)}</td>
                                         <td className="px-4 py-2.5 text-slate-600">{shortDate(line.dueDate, true)}</td>
                                         <td className="px-4 py-2.5"><StatusBadge line={line} /></td>
                                     </tr>
-                                ))}
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>

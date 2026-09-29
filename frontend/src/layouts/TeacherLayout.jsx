@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import SectionTabs from '../components/layout/SectionTabs';
 import TeacherSidebar from '../components/layout/TeacherSidebar';
 import TeacherTopbar from '../components/layout/TeacherTopbar';
+import useStaffNav from '../components/layout/useStaffNav';
 
 const TeacherLayout = () => {
     const { user, loading } = useAuth();
     const location = useLocation();
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const { activePath, activeSection } = useStaffNav(user);
 
     if (loading) {
         return (
@@ -44,6 +47,7 @@ const TeacherLayout = () => {
 
             <main className="phoenix-app-main">
                 <div className="phoenix-app-page animate-fade-in">
+                    <SectionTabs section={activeSection} activePath={activePath} />
                     <Outlet />
                 </div>
             </main>

@@ -37,12 +37,9 @@ const recordInvoicePayment = async ({
         throw paymentError(`Invalid payment method. Allowed: ${ALLOWED_METHODS.join(', ')}`);
     }
 
+    // A reference is optional for every method. It was once required for non-cash payments;
+    // the desk no longer asks for one. Older payments keep the reference they were saved with.
     const trimmedRef = String(reference || '').trim();
-    if (normMethod !== 'CASH') {
-        if (!trimmedRef) {
-            throw paymentError('Payment reference is required for non-cash payments.');
-        }
-    }
 
     const invoiceFilter = { _id: invoiceId, tenantId };
     if (branchId) invoiceFilter.branchId = branchId;
@@ -285,16 +282,19 @@ const reverseInvoicePayment = async ({
 };
 
 /**
- * How one amount spreads over a student's unpaid bills: the oldest month is filled first,
- * then the next, until the money runs out. Pure, so the payments desk can show the split
- * before anything is recorded and the server applies exactly the same one.
+ * How one amount spreads over the bills it is paying: the oldest month is filled first, then
+ * the next, until the money runs out. Pure, so the payments desk can show the split before
+ * anything is recorded and the server applies exactly the same one.
+ *
+ * Pass every unpaid bill for the default, or only the months the finance officer chose
+ * (`chosen`), and the amount can then never be more than those months owe.
  */
-const planStudentPayment = (unpaidOldestFirst, rawAmount) => {
+const planStudentPayment = (unpaidOldestFirst, rawAmount, { chosen = false } = {}) => {
     const amount = asPositiveAmount(rawAmount);
     const owedCents = unpaidOldestFirst.reduce((total, invoice) => total + Math.round(Number(invoice.balance || 0) * 100), 0);
     let remaining = Math.round(amount * 100);
     if (remaining > owedCents) {
-        throw paymentError(`Amount is more than this student owes (${(owedCents / 100).toFixed(2)})`);
+        throw paymentError(`Amount is more than ${chosen ? 'the chosen months owe' : 'this student owes'} (${(owedCents / 100).toFixed(2)})`);
     }
     const plan = [];
     for (const invoice of unpaidOldestFirst) {
@@ -314,15 +314,20 @@ const planStudentPayment = (unpaidOldestFirst, rawAmount) => {
 };
 
 /**
- * Take one amount from a student and apply it oldest month first. Each month gets its own
- * payment (so reversing one month stays possible), and they share a batchId so the receipt
- * shows the whole amount. If any month cannot be applied, the months already applied are
- * reversed, so the student is never left with half a payment.
+ * Take one amount from a student and apply it to their unpaid months, oldest first. Each
+ * month gets its own payment (so reversing one month stays possible), and they share a
+ * batchId so the receipt shows the whole amount. If any month cannot be applied, the months
+ * already applied are reversed, so the student is never left with half a payment.
+ *
+ * With no `invoiceIds` the amount fills the oldest unpaid month first, then the next. When the
+ * finance officer chooses months, `invoiceIds` names them and the amount fills only those
+ * (still oldest first among them), so a later month can be paid ahead of an earlier one.
  */
 const recordStudentPayment = async ({
     tenantId,
     branchId,
     studentId,
+    invoiceIds = [],
     amount: rawAmount,
     method,
     reference,
@@ -330,13 +335,26 @@ const recordStudentPayment = async ({
 }) => {
     const amount = asPositiveAmount(rawAmount);
     if (!mongoose.isValidObjectId(studentId)) throw paymentError('Invalid student');
+    const chosenIds = [...new Set((Array.isArray(invoiceIds) ? invoiceIds : []).map(String))];
+    if (chosenIds.some((id) => !mongoose.isValidObjectId(id))) throw paymentError('Invalid month chosen');
 
     const filter = { tenantId, studentId, status: { $in: ['UNPAID', 'PARTIALLY_PAID'] }, balance: { $gt: 0 } };
     if (branchId) filter.branchId = branchId;
-    const unpaid = (await Invoice.find(filter).lean()).sort(byPeriodOldestFirst);
-    if (!unpaid.length) throw paymentError('This student has nothing to pay');
+    const allUnpaid = (await Invoice.find(filter).lean()).sort(byPeriodOldestFirst);
+    if (!allUnpaid.length) throw paymentError('This student has nothing to pay');
 
-    const plan = planStudentPayment(unpaid, amount);
+    // A chosen month must be one of this student's open bills. If someone else paid it while
+    // this screen was open, say so instead of quietly paying different months.
+    let unpaid = allUnpaid;
+    if (chosenIds.length) {
+        const open = new Set(allUnpaid.map((invoice) => String(invoice._id)));
+        if (chosenIds.some((id) => !open.has(id))) {
+            throw paymentError('One of the chosen months is already paid or is not this student\'s. Refresh and choose again.', 409);
+        }
+        unpaid = allUnpaid.filter((invoice) => chosenIds.includes(String(invoice._id)));
+    }
+
+    const plan = planStudentPayment(unpaid, amount, { chosen: chosenIds.length > 0 });
     const batchId = new mongoose.Types.ObjectId();
     const applied = [];
     try {
@@ -359,7 +377,8 @@ const recordStudentPayment = async ({
         throw error;
     }
 
-    const owedBefore = unpaid.reduce((total, invoice) => total + Math.round(Number(invoice.balance || 0) * 100), 0);
+    // What the student still owes overall, not only on the months just paid.
+    const owedBefore = allUnpaid.reduce((total, invoice) => total + Math.round(Number(invoice.balance || 0) * 100), 0);
     return {
         batchId,
         amount,

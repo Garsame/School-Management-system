@@ -7,7 +7,8 @@ const STAFF_ROLES = new Set([
     'teacher',
     'dugsi_teacher',
     'cashier',
-    'registrar'
+    'registrar',
+    'general_staff'
 ]);
 const COMPENSATION_FIELDS = new Set(['basicSalary', 'allowance', 'deductions', 'currency', 'paymentMethod', 'bankName', 'accountName', 'accountNumber', 'mobileMoneyNumber']);
 
@@ -52,6 +53,10 @@ const generateEmployeeId = (role = 'staff') => {
     const prefix = String(role).split('_').map((part) => part[0]).join('').toUpperCase().slice(0, 3) || 'EMP';
     return `${prefix}-${new Date().getFullYear()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
 };
+
+// A password for an account that must never sign in (general_staff): long, random, and never
+// shown to anyone — not a real credential, just something that satisfies the schema.
+const generateUnusablePassword = () => crypto.randomBytes(24).toString('hex');
 
 const withoutCompensationFields = (payload = {}) => {
     const sanitized = { ...payload };
@@ -143,6 +148,7 @@ module.exports = {
     buildProfileFields,
     cleanString,
     generateEmployeeId,
+    generateUnusablePassword,
     normalizeDate,
     normalizePhone,
     withoutCompensationFields,

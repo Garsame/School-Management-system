@@ -37,7 +37,7 @@ Do not change any code during this task.
    4. **One payment covers several months.** From `frontend/src/pages/cashier/NewPayment.jsx`
       to `POST /api/cashier/payments/student` and `recordStudentPayment` in
       `backend/services/paymentService.js`.
-6. Run `npm test` (expect **204 passing**) and `npm run build` (expect a clean build).
+6. Run `npm test` (expect **256 passing**) and `npm run build` (expect a clean build).
    Neither needs a database.
    - Do **not** start the backend against the user's database.
    - Do **not** run `npm run demo:wipe-and-bootstrap` (section 12).
@@ -132,6 +132,11 @@ frontend/src/
   - `backend/controllers/roleController.js` handles editing, on/off, and the lock-out guard.
   - `backend/scripts/seedSystemRoles.js` (`npm run migrate:roles`) seeds roles for old schools.
   - New schools are seeded automatically.
+  - **A feature a school switches off must stay off.** `syncSystemRoleDefaults` in
+    `backend/utils/permissions.js` adds a default only if the role was never offered it
+    (`Role.seededPermissions` records what was offered). `getRoles` and the seed script both
+    use it. Never re-merge "every default the role lacks": that put switched-off features
+    back on every page load.
 - **The ceiling.** `getAssignablePermissions` in `backend/utils/permissions.js`:
   - scope must fit
   - never platform permissions
@@ -165,6 +170,12 @@ frontend/src/
     `branch.classes.view`).
   - The teacher portal's sidebar (`frontend/src/components/layout/TeacherSidebar.jsx`) uses
     the same builder.
+- **Sidebar and tabs.** A menu entry with `children` (for example Payments) is **one link** in
+  the sidebar, to its first page. Its child pages show as **tabs above the page**
+  (`frontend/src/components/layout/SectionTabs.jsx`), in both `StaffLayout` and `TeacherLayout`.
+  `useStaffNav` (same folder) works out the current page and section, so the lit sidebar link
+  and the lit tab always agree. Use `alsoActive` on an item for extra addresses that belong to
+  it (a receipt belongs to Payment History). Sections with one page show no tabs.
 - **Adding a staff page:** four places.
   1. The `Route` in `App.jsx`.
   2. A rule in `routePermissions.js`.
@@ -198,15 +209,30 @@ Read README.md section 5 for the user-facing version. In code:
   - Notices go to students and parents **after** the response is sent.
 - **Payments** (`backend/services/paymentService.js`):
   - `recordInvoicePayment` pays one invoice. It checks the balance, blocks duplicates within a minute, locks on the balance it read, and assigns the receipt number.
-  - `planStudentPayment` is pure: it splits an amount oldest month first.
+  - `planStudentPayment` is pure: it splits an amount oldest month first. `{ chosen: true }` only changes the error wording.
   - `recordStudentPayment` applies the plan, one `Payment` per month with a shared `batchId`. If any month fails, it reverses the months already applied.
+    - With no `invoiceIds` the amount fills the **oldest** unpaid month first (the default).
+    - With `invoiceIds` (the months the finance officer ticked) it fills only those, oldest first among them, and can never be more than they owe. A ticked month that is already paid or not the student's is a 409.
+    - `remainingOwed` is always the student's whole balance, not only the ticked months.
   - `reverseInvoicePayment` never deletes; it writes a `REVERSAL` entry.
-  - Allowed methods: `CASH`, `ZAAD`, `EVC_PLUS`, `BANK_TRANSFER`, `CARD`, `OTHER`. Every method except cash needs a reference.
+  - Allowed methods: `CASH`, `ZAAD`, `EVC_PLUS`, `BANK_TRANSFER`, `CARD`, `OTHER`.
+  - **No reference number.** The desk no longer asks for one and no method requires it (28 Sep). The `reference` field stays on `Payment`; old payments keep theirs, and receipts and the desk dashboard show it only when present. The owner will share a replacement for this later: do not add or invent one.
 - **Student accounts** (`backend/services/studentAccountService.js`) is the **single source**
   for every per-student money view:
   - `getStudentPaymentRecord`: months oldest first, payments, `thisMonth`, `earlierDebt`, totals, late months.
+    Each month also carries `fee`, `discount` and `discountLabel`, read from the bill's own lines.
+    `totals.owed` is every billed month added up ("Total owed"); `totals.discounts` is what discounts took off.
   - `getMonthlyCollection`: one month for the school, with each student's earlier debt.
-    Totals ignore the status and search filters.
+    Totals ignore the status and search filters. Rows carry `discount` (taken off that bill) and `scholarship`.
+  - **Discounts and scholarships.** A student's discount (`Student.discount`, set on Finance → Discounts)
+    only changes bills made **after** it is granted. Months already billed keep their amount. So the
+    bill's own negative line is the truth for a month; the student's discount is what they hold today.
+    `activeDiscount` and `discountFromItems` (in this service) are the two helpers; the frontend
+    words them through `frontend/src/utils/discounts.js`, `DiscountBadge.jsx` and `DiscountNote.jsx`.
+    They show on: the desk's search results and account, the payment record, Monthly Collection
+    (and its Excel file), Outstanding, both invoice lists, invoice details and receipts.
+  - The Outstanding watchlist (`buildOutstandingReport` in `financeController.js`) is **one row per
+    student**, owing the sum of their unpaid months, with `count` = unpaid months.
   - "This month" is the current calendar month's bill, or else the latest bill.
     "Earlier debt" is what is owed on bills before it.
 - **Where they are served:**
@@ -242,14 +268,54 @@ Read README.md section 5 for the user-facing version. In code:
 
 ## 8. HR and payroll
 
+- **Salary vs payroll.** Salary is the money terms saved on one person (`User.employmentInfo`:
+  basic pay, allowance, deductions, currency, payment method). Payroll is the monthly job that
+  turns every staff member's salary into one row per month and carries it through review,
+  approval and paid. Changing a salary never touches payroll directly; a new payroll run reads
+  whatever salary is saved at generation time.
 - `backend/controllers/hrController.js`; statuses in `backend/models/Payroll.js`: Draft → Reviewed → Approved → Paid.
-- The four steps are separate permissions:
+- The four steps are separate permissions, each its own switch on Roles & Features — not fixed
+  to a job title:
   - `payroll.generate` and `payroll.review` — HR by default
   - `payroll.approve` — Finance by default
   - `payroll.pay` — Super Admin and Cashier by default
 - The demo school gives approve to the Super Admin and pay to Finance.
 - `frontend/src/pages/hr/PayrollDashboard.jsx` shows buttons from permissions, not role names.
 - Salary changes: HR proposes, Finance approves (`backend/controllers/compensationController.js`).
+- **The app moves no money for payroll.** "Mark paid" only records that the school already
+  paid someone by whatever real means; there is no bank transfer or mobile-money step here,
+  unlike student payments.
+- **General Staff (added 29 Sep 2026).** A fixed, branch-scoped account kind
+  (`role: 'general_staff'`) for staff who never open the app — a watchman, driver, cook. It
+  holds **zero permissions** and is excluded from `HOME_AREA_BY_ROLE`/`staffMenu.js`, so it can
+  never sign in even by mistake.
+  - **No email or password required.** `User.email` is optional for it (alongside `student`);
+    its `passwordHash` is filled with a long random value nobody is given
+    (`generateUnusablePassword` in `backend/utils/userProfile.js`), so the schema's normal
+    "every user has a password hash" rule still holds. Login can never find it: the login
+    query always needs an email or a username, and it has neither.
+  - **A position instead of a job title picker.** The super admin or a branch admin types what
+    the person does — "Watchman", "Bus driver", "Meal cook" — into `employmentInfo.jobTitle`,
+    required at creation. Shown next to the role everywhere staff and payroll list people.
+  - **Created from:** Staff Accounts (`frontend/src/pages/tenant/Users.jsx`,
+    `tenantController.createUser`) by the super admin, or Add Staff
+    (`frontend/src/pages/branch/StaffCreate.jsx`, `branchAdminController.createBranchUser`) by
+    a branch admin. Both check `role !== 'general_staff'` before requiring email/password, and
+    require the position when it is one.
+  - **Feeds payroll exactly like any other staff role**: HR sets a salary via Employees
+    (`hr/employees` → `compensationController.submitCompensationChange`), Finance approves it,
+    and `generatePayroll` picks it up the same way it does for a teacher or cashier. It is in
+    every `STAFF_ROLES` list that matters for this (`hrController.js`,
+    `compensationController.js`, `userProfile.js`) and in `tenantController.js`'s
+    `TENANT_MANAGED_ACCOUNT_ROLES`.
+  - **Hidden from anything permission-related, on purpose**: left out of
+    `PERMISSION_MANAGED_STAFF_ROLES` (no per-user permission override — nothing to override)
+    and filtered off the Roles & Features page (`Roles.jsx`'s `HIDDEN_FROM_ROLES_PAGE`) —
+    nothing there to tick for an account with no permissions.
+  - **Existing schools get it automatically.** `roleController.getRoles` now calls
+    `seedRolesForTenant` (not just `syncSystemRoleDefaults`) every time the Roles page loads,
+    so a school that predates a new built-in role gets that Role record created the next time
+    it opens the page — not only new schools.
 
 ---
 
@@ -274,7 +340,8 @@ Data:
 Money:
 
 8. Never bill a student twice for a month. Never accept more than a student owes.
-9. A payment fills the **oldest** unpaid month first.
+9. By default a payment fills the **oldest** unpaid month first. The finance officer may tick the
+   months a payment is for (28 Sep); then it fills only those and never more than they owe.
 10. Editing or closing a fee structure never changes bills already made.
 11. Money is rounded through cents: `Math.round(x * 100)`.
 
@@ -302,6 +369,10 @@ Money:
   - Restore the originals in `finally`.
   - Some tests read source files to guard architecture decisions.
 - **No new dependencies** without asking. Excel files already have `backend/utils/xlsxWriter.js`.
+- **Modals with hidden checkboxes.** A tick box built from an `sr-only` input must sit inside a
+  `relative` row (as in `frontend/src/pages/tenant/Roles.jsx`). Otherwise the input is placed
+  against the modal frame; clicking it makes the browser scroll the frame and the modal goes
+  blank white. `.phoenix-modal-panel` now uses `overflow: clip` so the frame can never scroll.
 - **Frontend lint** has a few old errors: `FinanceDashboard.jsx`, and `'Icon' is defined but
   never used` false positives in hr pages. They are not yours to fix unless asked. Lint the
   files you change.
@@ -315,7 +386,7 @@ Money:
 | --- | --- |
 | `npm run install:all` | Install backend and frontend packages |
 | `npm run dev:backend` / `npm run dev:frontend` | Run the API (port 5112) and the web app (port 5173) |
-| `npm test` | Backend tests (204), no database needed |
+| `npm test` | Backend tests (256), no database needed |
 | `npm run build` | Frontend production build |
 | `npm run lint` | Frontend lint |
 | `npm run map` | Regenerate [APP_MAP.md](APP_MAP.md) and check this file's paths |
@@ -357,8 +428,10 @@ The full list, with the exact scripts, is in APP_MAP.md → Commands.
   - Roles are a **fixed list**. Schools rename them, change their permissions, and turn
     them on or off. They do not create new roles.
   - Every fee is **monthly**. Billing is **one click per month**, never automatic.
-  - Payments fill the **oldest** month first.
-  - No late fees, discounts or one-time fees in this version.
+  - Payments fill the **oldest** month first by default. On 28 Sep the owner asked that the
+    finance officer can also tick the months a payment is for.
+  - The reference number is gone from Record Payment; the owner will share a replacement.
+  - No late fees or one-time fees in this version. Per-student discounts and scholarships exist (Finance → Discounts) and only change bills made after they are granted.
 - **Known gaps:**
   1. A browser walk-through of the new screens is still needed.
   2. `backend/scripts/browserE2EAudit.js` updated to match unified staff layout and routes.
@@ -380,6 +453,8 @@ The full list, with the exact scripts, is in APP_MAP.md → Commands.
 | Change the staff frame | `frontend/src/layouts/StaffLayout.jsx` |
 | Change the Roles screen | `frontend/src/pages/tenant/Roles.jsx`, `backend/controllers/roleController.js` |
 | Create staff accounts | `frontend/src/pages/tenant/Users.jsx`, `createUser` in `backend/controllers/tenantController.js` |
+| Change General Staff (no-login payroll records) | `tenantController.createUser`/`branchAdminController.createBranchUser` (the `general_staff` branches), `frontend/src/pages/tenant/Users.jsx` and `frontend/src/pages/branch/StaffCreate.jsx` |
+| Change payroll or salary rules | `backend/controllers/hrController.js` (payroll), `backend/controllers/compensationController.js` (salary changes) |
 | Change billing rules | `backend/services/monthlyBillingService.js`, `backend/utils/billingMonths.js` |
 | Change payment rules | `backend/services/paymentService.js`, `backend/controllers/cashierController.js` |
 | Change what a student owes / monthly view | `backend/services/studentAccountService.js` |

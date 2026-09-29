@@ -2,7 +2,7 @@ const CompensationChangeRequest = require('../models/CompensationChangeRequest')
 const User = require('../models/User');
 const { logActivity } = require('../utils/logger');
 
-const STAFF_ROLES = ['finance_director', 'hr_payroll_manager', 'branch_admin', 'teacher', 'cashier', 'registrar'];
+const STAFF_ROLES = ['finance_director', 'hr_payroll_manager', 'branch_admin', 'teacher', 'dugsi_teacher', 'cashier', 'registrar', 'general_staff'];
 const COMPENSATION_FIELDS = ['employmentType', 'hireDate', 'basicSalary', 'allowance', 'deductions', 'currency', 'paymentMethod', 'bankName', 'accountName', 'accountNumber', 'mobileMoneyNumber'];
 const ENUM_VALUES = {
     employmentType: new Set(['Permanent', 'Contract', 'Part-time', 'Temporary', 'Volunteer']),

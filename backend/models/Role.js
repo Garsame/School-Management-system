@@ -23,6 +23,10 @@ const roleSchema = new mongoose.Schema({
     description: { type: String, trim: true, default: '' },
     scope: { type: String, enum: ['tenant', 'branch', 'platform'], required: true },
     permissions: [{ type: String, trim: true }],
+    // Built-in defaults this role has already been offered. Lets a release add a new default
+    // once without bringing back a feature the school switched off. Left undefined (not
+    // empty) on roles from before it existed; see syncSystemRoleDefaults.
+    seededPermissions: { type: [String], default: undefined },
     dataScope: {
         // Which branches a holder may act in. `assigned` reads User.authorizedBranchIds.
         branches: { type: String, enum: ['all', 'assigned', 'own'], default: 'own' },

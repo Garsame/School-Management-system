@@ -128,7 +128,12 @@ const Employees = () => {
                                 return (
                                     <tr key={employee._id} className="hover:bg-[#fafbfc]">
                                         <td className="px-5 py-4"><div className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-md bg-[var(--primary-soft)] text-[var(--primary)]"><UserRound size={16} /></span><div><p className="text-sm font-semibold text-[#141824]">{employee.name}</p><p className="mt-0.5 text-xs text-[#8a94ad]">{employee.employeeId || employee.email}</p></div></div></td>
-                                        <td className="px-4 py-4 text-sm font-medium capitalize text-[#3e465b]">{employee.role.replaceAll('_', ' ')}</td>
+                                        <td className="px-4 py-4 text-sm font-medium text-[#3e465b]">
+                                            <span className="capitalize">{employee.role.replaceAll('_', ' ')}</span>
+                                            {employee.role === 'general_staff' && employee.employmentInfo?.jobTitle && (
+                                                <span className="block text-xs font-normal text-[#8a94ad]">{employee.employmentInfo.jobTitle}</span>
+                                            )}
+                                        </td>
                                         <td className="px-4 py-4 text-sm text-[#52617a]">{employee.branchId?.name || 'Head office'}</td>
                                         <td className="px-4 py-4 text-sm text-[#3e465b]">{currency} {Number(info.basicSalary || 0).toLocaleString()}</td>
                                         <td className="px-4 py-4 text-sm font-bold text-[#141824]">{currency} {net.toLocaleString()}</td>
@@ -173,7 +178,9 @@ const Employees = () => {
                                     </div>
                                 </div>
                                 <div className="sm:text-right">
-                                    <p className="text-xs font-medium capitalize text-[#3e465b]">{editing.role.replaceAll('_', ' ')}</p>
+                                    <p className="text-xs font-medium capitalize text-[#3e465b]">
+                                        {editing.role === 'general_staff' && editing.jobTitle ? editing.jobTitle : editing.role.replaceAll('_', ' ')}
+                                    </p>
                                     <p className="mt-0.5 text-xs text-[#8a94ad]">{editing.branchName}</p>
                                 </div>
                             </section>

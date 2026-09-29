@@ -5,10 +5,11 @@ const CompensationChangeRequest = require('../models/CompensationChangeRequest')
 const { logActivity } = require('../utils/logger'); // Fallback or logger
 const mongoose = require('mongoose');
 
-const STAFF_ROLES = ['finance_director', 'hr_payroll_manager', 'branch_admin', 'teacher', 'cashier', 'registrar'];
+const STAFF_ROLES = ['finance_director', 'hr_payroll_manager', 'branch_admin', 'teacher', 'dugsi_teacher', 'cashier', 'registrar', 'general_staff'];
 const EMPLOYEE_DIRECTORY_FIELDS = [
     'name', 'email', 'role', 'branchId', 'employeeId', 'isActive',
-    'employmentInfo.employmentType', 'employmentInfo.hireDate',
+    // jobTitle carries the "watchman / driver / cook" description for general staff.
+    'employmentInfo.jobTitle', 'employmentInfo.employmentType', 'employmentInfo.hireDate',
     'employmentInfo.basicSalary', 'employmentInfo.allowance', 'employmentInfo.deductions',
     'employmentInfo.currency', 'employmentInfo.paymentMethod',
     'employmentInfo.bankName', 'employmentInfo.accountName',

@@ -20,7 +20,7 @@ const GradingPolicy = require('../models/GradingPolicy');
 const { logAction } = require('../services/auditLogService');
 const { evaluatePromotionEligibility, buildPromotionDecisionSnapshot, isNextGradeLevel } = require('../services/promotionEligibilityService');
 const { resolvePassMarkPercent } = require('../utils/grading');
-const { buildProfileFields, withoutCompensationFields } = require('../utils/userProfile');
+const { buildProfileFields, generateUnusablePassword, withoutCompensationFields } = require('../utils/userProfile');
 const { buildStudentSearchCriteria } = require('../utils/studentSearch');
 const exportService = require('../services/exportService');
 
@@ -229,15 +229,28 @@ exports.getAcademicYears = async (req, res) => {
 exports.createBranchUser = async (req, res) => {
     try {
         const { name, email, password, role } = req.body;
-        if (!name || !email || !password || !role || String(password).length < 8) {
-            return sendError(res, 400, 'Name, email, role, and a password of at least 8 characters are required');
+        if (!name || !role) {
+            return sendError(res, 400, 'Name and role are required');
         }
-        const normalizedEmail = String(email).trim().toLowerCase();
 
         // Validation
-        const validRoles = ['teacher', 'dugsi_teacher', 'cashier', 'registrar'];
+        const validRoles = ['teacher', 'dugsi_teacher', 'cashier', 'registrar', 'general_staff'];
         if (!validRoles.includes(role.toLowerCase())) {
-            return sendError(res, 400, 'Invalid role. Allowed: TEACHER, DUGSI_TEACHER, CASHIER, REGISTRAR');
+            return sendError(res, 400, 'Invalid role. Allowed: TEACHER, DUGSI_TEACHER, CASHIER, REGISTRAR, GENERAL_STAFF');
+        }
+
+        // general_staff never signs in, so it needs no email or password — only a name and a
+        // position (checked below, e.g. Watchman, Bus driver, Cook). Every other role still
+        // needs both, as before.
+        const needsLogin = role.toLowerCase() !== 'general_staff';
+        let normalizedEmail;
+        if (needsLogin) {
+            if (!email || !password || String(password).length < 8) {
+                return sendError(res, 400, 'Name, email, role, and a password of at least 8 characters are required');
+            }
+            normalizedEmail = String(email).trim().toLowerCase();
+        } else if (!String(req.body.employmentInfo?.jobTitle || '').trim()) {
+            return sendError(res, 400, 'Position is required for general staff, for example Watchman, Bus driver, or Cook');
         }
 
         if (role.toLowerCase() === 'teacher') {
@@ -260,12 +273,14 @@ exports.createBranchUser = async (req, res) => {
         }
 
         // Check Existence
-        const existingUser = await User.findOne({ 
-            tenantId: req.user.tenantId, 
-            email: normalizedEmail
-        });
-        if (existingUser) {
-            return sendError(res, 409, 'Email already exists for this school.');
+        if (needsLogin) {
+            const existingUser = await User.findOne({
+                tenantId: req.user.tenantId,
+                email: normalizedEmail
+            });
+            if (existingUser) {
+                return sendError(res, 409, 'Email already exists for this school.');
+            }
         }
 
         const profileFields = buildProfileFields(withoutCompensationFields(req.body), role.toLowerCase());
@@ -273,12 +288,11 @@ exports.createBranchUser = async (req, res) => {
             tenantId: req.user.tenantId,
             branchId: req.user.branchId, // Enforce branch
             name,
-            email: normalizedEmail,
-            passwordHash: password, // Pre-save hook will hash this
+            ...(needsLogin ? { email: normalizedEmail, passwordHash: password } : { passwordHash: generateUnusablePassword() }), // Pre-save hook hashes it
             role: role.toLowerCase(),
             scope: 'branch',
             authorizedBranchIds: role.toLowerCase() === 'teacher' ? [req.user.branchId] : [],
-            mustChangePassword: true,
+            mustChangePassword: needsLogin,
             isActive: true,
             createdBy: req.user._id,
             updatedBy: req.user._id,
@@ -295,7 +309,7 @@ exports.createBranchUser = async (req, res) => {
             action: 'BRANCH_USER_CREATED',
             entityType: 'User',
             entityId: newUser._id.toString(),
-            after: { name, email, role, scope: 'branch' },
+            after: { name, email: normalizedEmail || null, role, scope: 'branch' },
             ip: req.ip,
             userAgent: req.get('User-Agent')
         });
@@ -316,7 +330,7 @@ exports.getBranchUsers = async (req, res) => {
     try {
         const { role } = req.query;
         const normalizedRole = String(role || '').trim().toLowerCase();
-        if (normalizedRole && !['teacher', 'cashier', 'registrar'].includes(normalizedRole)) {
+        if (normalizedRole && !['teacher', 'cashier', 'registrar', 'general_staff'].includes(normalizedRole)) {
             return sendError(res, 403, 'This branch role cannot be managed here');
         }
         const query = {
@@ -370,7 +384,7 @@ exports.updateBranchUser = async (req, res) => {
         // But double check the role being edited isn't equivalent or higher if that logic existed.
         // For now, prompt: "Branch Admin can create and manage only... TEACHER, CASHIER, REGISTRAR"
         
-        const validRoles = ['teacher', 'cashier', 'registrar'];
+        const validRoles = ['teacher', 'cashier', 'registrar', 'general_staff'];
         if (!validRoles.includes(userToUpdate.role)) {
              return sendError(res, 403, 'Permission denied: Cannot edit this user role');
         }

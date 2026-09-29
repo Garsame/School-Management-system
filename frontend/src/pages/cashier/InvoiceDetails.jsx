@@ -82,8 +82,10 @@ const InvoiceDetails = () => {
                                     <tbody>
                                         {(invoice.items || []).map((item, idx) => (
                                             <tr key={idx} className="border-b last:border-0 hover:bg-[#f5f7fa]">
-                                                <td className="px-4 py-3 text-[#141824]">{item.name}</td>
-                                                <td className="px-4 py-3 text-right font-medium text-[#141824]">${item.amount.toFixed(2)}</td>
+                                                <td className={`px-4 py-3 ${item.amount < 0 ? 'font-semibold text-emerald-700' : 'text-[#141824]'}`}>{item.name}</td>
+                                                <td className={`px-4 py-3 text-right font-medium ${item.amount < 0 ? 'text-emerald-700' : 'text-[#141824]'}`}>
+                                                    {item.amount < 0 ? `−$${Math.abs(item.amount).toFixed(2)}` : `$${item.amount.toFixed(2)}`}
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>

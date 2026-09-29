@@ -821,6 +821,9 @@
   max-height: calc(100vh - 2rem);
   flex-direction: column;
   overflow: hidden;
+  /* `clip` cuts the same way but can never be scrolled, so focusing something inside cannot
+     push the header and footer out of view. Only the body scrolls. */
+  overflow: clip;
   border: 1px solid var(--phoenix-border);
   border-radius: 8px;
   background: #ffffff;
@@ -1397,6 +1400,64 @@
 
 .school-sidebar-logout:hover svg {
   color: #ffffff !important;
+}
+
+/* The pages of a sidebar section, as tabs above the page. Compact: as wide as the tabs need,
+   never the full page width. Wraps on desktop; scrolls sideways on a phone. */
+.section-tabs {
+  position: relative;
+  display: flex;
+  width: fit-content;
+  max-width: 100%;
+  gap: 0.25rem;
+  margin-bottom: 1.25rem;
+  padding: 0.25rem;
+  overflow-x: auto;
+  border: 1px solid var(--phoenix-border-soft);
+  border-radius: 8px;
+  background: #ffffff;
+  scrollbar-width: none;
+}
+
+.section-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.section-tab {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 6px;
+  color: var(--phoenix-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+.section-tab:hover {
+  background: var(--phoenix-surface-soft);
+  color: var(--phoenix-ink);
+}
+
+.section-tab:focus-visible {
+  outline: 2px solid var(--primary, var(--phoenix-primary));
+  outline-offset: 1px;
+}
+
+.section-tab-active,
+.section-tab-active:hover {
+  background: var(--primary, var(--phoenix-primary));
+  color: #ffffff;
+}
+
+@media (min-width: 640px) {
+  .section-tabs {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
 }
 
 .platform-phoenix-sidebar {

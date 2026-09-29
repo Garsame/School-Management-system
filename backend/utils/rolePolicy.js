@@ -9,20 +9,25 @@ const ROLE_SCOPE = Object.freeze({
     dugsi_teacher: 'branch',
     cashier: 'branch',
     registrar: 'branch',
-    student: 'branch'
+    student: 'branch',
+    // Support staff who never open the app — a watchman, driver, cook. One branch each, like
+    // a teacher. Held for payroll only: zero permissions, no email, no password.
+    general_staff: 'branch'
 });
 
 const TENANT_ADMIN_CREATABLE_ROLES = new Set([
     'finance_director',
     'hr_payroll_manager',
-    'branch_admin'
+    'branch_admin',
+    'general_staff'
 ]);
 
 const BRANCH_ADMIN_CREATABLE_ROLES = new Set([
     'teacher',
     'dugsi_teacher',
     'cashier',
-    'registrar'
+    'registrar',
+    'general_staff'
 ]);
 
 const normalizeRole = (value = '') => String(value).trim().toLowerCase();

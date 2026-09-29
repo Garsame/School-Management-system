@@ -140,7 +140,7 @@ const Dashboard = () => {
                                             )}
                                         </div>
                                         <div className="text-xs text-slate-500">
-                                            Ref: {p.reference || 'N/A'} • {new Date(p.createdAt).toLocaleTimeString()}
+                                            {p.reference ? `Ref: ${p.reference} • ` : ''}{new Date(p.createdAt).toLocaleTimeString()}
                                         </div>
                                     </div>
                                     <button 

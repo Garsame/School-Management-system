@@ -34,20 +34,52 @@ const sum = (rows, pick) => fromCents(rows.reduce((total, row) => total + cents(
 const nameOf = (student) => [student?.firstName, student?.lastName].filter(Boolean).join(' ');
 const currentMonthKey = (now = new Date()) => now.toISOString().slice(0, 7);
 
-const monthLine = (invoice, now) => ({
-    invoiceId: invoice._id,
-    key: invoice.billingPeriodKey,
-    label: invoice.billingPeriodLabel || 'School fees',
-    periodStart: invoicePeriodStart(invoice),
-    academicYearId: idOf(invoice.academicYearId),
-    billed: Number(invoice.totalAmount || 0),
-    paid: Number(invoice.paidAmount || 0),
-    balance: Number(invoice.balance ?? invoice.totalAmount ?? 0),
-    status: invoice.status,
-    dueDate: invoice.dueDate || null,
-    late: isLate(invoice, now),
-    items: invoice.items || []
-});
+/**
+ * The discount or scholarship a student holds now, or null. One that is switched off, or has no
+ * value, is not shown anywhere. It only changes bills made after it was granted; months that
+ * were already billed keep their amount.
+ */
+const activeDiscount = (discount) => (discount && discount.enabled && Number(discount.value) > 0
+    ? { enabled: true, type: discount.type, value: Number(discount.value), reason: discount.reason || '' }
+    : null);
+
+/**
+ * What a bill charged before and after any discount, read from the bill itself. The bill is the
+ * truth for a month: a discount granted later does not appear on a month already billed.
+ * Discount lines are the negative ones (see calculateStudentInvoice).
+ */
+const discountFromItems = (items = []) => {
+    const lines = Array.isArray(items) ? items : [];
+    const fee = lines.filter((item) => cents(item.amount) > 0).reduce((total, item) => total + cents(item.amount), 0);
+    const off = lines.filter((item) => cents(item.amount) < 0).reduce((total, item) => total - cents(item.amount), 0);
+    return {
+        fee: fromCents(fee),
+        discount: fromCents(off),
+        label: lines.find((item) => cents(item.amount) < 0)?.name || ''
+    };
+};
+
+const monthLine = (invoice, now) => {
+    const { fee, discount, label } = discountFromItems(invoice.items);
+    return {
+        invoiceId: invoice._id,
+        key: invoice.billingPeriodKey,
+        label: invoice.billingPeriodLabel || 'School fees',
+        periodStart: invoicePeriodStart(invoice),
+        academicYearId: idOf(invoice.academicYearId),
+        // The fee before any discount, how much the discount took off, and what was billed.
+        fee,
+        discount,
+        discountLabel: label,
+        billed: Number(invoice.totalAmount || 0),
+        paid: Number(invoice.paidAmount || 0),
+        balance: Number(invoice.balance ?? invoice.totalAmount ?? 0),
+        status: invoice.status,
+        dueDate: invoice.dueDate || null,
+        late: isLate(invoice, now),
+        items: invoice.items || []
+    };
+};
 
 /**
  * Split a student's bills into "this month" and everything before it. "This month" is the
@@ -103,7 +135,7 @@ const getStudentPaymentRecord = async ({ tenantId, studentId, branchId = null, n
             name: nameOf(student),
             admissionNumber: student.admissionNumber,
             status: student.status,
-            discount: student.discount || null,
+            discount: activeDiscount(student.discount),
             leftOn: student.status === 'Left' ? student.withdrawalDate || null : null,
             className: enrollment?.classId?.name || null,
             academicYear: enrollment?.academicYearId?.name || null,
@@ -115,6 +147,7 @@ const getStudentPaymentRecord = async ({ tenantId, studentId, branchId = null, n
             billed: sum(lines, (line) => line.billed),
             paid: sum(lines, (line) => line.paid),
             owed: sum(lines, (line) => line.balance),
+            discounts: sum(lines, (line) => line.discount),
             late: sum(lateLines, (line) => line.balance),
             lateMonths: lateLines.map((line) => line.label)
         },
@@ -178,7 +211,7 @@ const getMonthlyCollection = async ({
     const studentIds = invoices.map((invoice) => invoice.studentId);
 
     const [students, enrollments, others, branches] = await Promise.all([
-        Student.find({ _id: { $in: studentIds }, tenantId }).select('firstName lastName admissionNumber status').lean(),
+        Student.find({ _id: { $in: studentIds }, tenantId }).select('firstName lastName admissionNumber status discount').lean(),
         Enrollment.find({ tenantId, academicYearId, studentId: { $in: studentIds } })
             .sort({ isCurrent: 1, createdAt: 1 })
             .populate('classId', 'name gradeLevel')
@@ -222,6 +255,9 @@ const getMonthlyCollection = async ({
             branchName: branchNames.get(idOf(invoice.branchId)) || '',
             invoiceId: invoice._id,
             billed: Number(invoice.totalAmount || 0),
+            // What this month's bill took off, and the scholarship the student holds today.
+            discount: discountFromItems(invoice.items).discount,
+            scholarship: activeDiscount(student?.discount),
             paid: Number(invoice.paidAmount || 0),
             balance,
             status: invoice.status,
@@ -241,6 +277,7 @@ const getMonthlyCollection = async ({
     const totals = {
         students: rows.length,
         billed,
+        discounts: sum(rows, (row) => row.discount),
         collected,
         outstanding: sum(rows, (row) => row.balance),
         earlierDebt: sum(rows, (row) => row.earlierDebt),
@@ -270,6 +307,8 @@ const getMonthlyCollection = async ({
 };
 
 module.exports = {
+    activeDiscount,
+    discountFromItems,
     getMonthlyCollection,
     getStudentPaymentRecord,
     splitCurrentAndEarlier

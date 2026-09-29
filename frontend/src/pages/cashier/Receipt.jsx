@@ -5,6 +5,7 @@ import { Spinner, Button, Toast } from '../../components/ui';
 import { Printer, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { hasPermission } from '../../utils/permissions';
+import { invoiceDiscount } from '../../utils/discounts';
 
 const Receipt = () => {
     const { user } = useAuth();
@@ -107,7 +108,7 @@ const Receipt = () => {
                     <div>
                         <p><span className="font-bold">Date:</span> {new Date(dateTime).toLocaleString()}</p>
                         <p><span className="font-bold">Receipt #:</span> {receiptNo ? receiptNo.slice(-8).toUpperCase() : 'N/A'}</p>
-                        <p><span className="font-bold">Ref:</span> {payment.reference || 'N/A'}</p>
+                        {payment.reference && <p><span className="font-bold">Ref:</span> {payment.reference}</p>}
                     </div>
                     <div className="text-right">
                         <p><span className="font-bold">Received From:</span></p>
@@ -154,9 +155,15 @@ const Receipt = () => {
                 {!(data.batch && data.batch.lines.length > 1) && <div className="mb-6">
                     <h3 className="font-bold border-b pb-1 mb-2 text-xs text-slate-500">Account status (Inv #{invoice.invoiceId.slice(-6)})</h3>
                     <div className="grid grid-cols-2 gap-y-1 text-slate-600">
+                        {invoiceDiscount(invoice.items) && (
+                            <>
+                                <span>{invoiceDiscount(invoice.items).scholarship ? 'Full scholarship:' : 'Discount taken off:'}</span>
+                                <span className="text-right text-green-700">−${invoiceDiscount(invoice.items).amount.toFixed(2)}</span>
+                            </>
+                        )}
                         <span>Total Invoice:</span>
                         <span className="text-right">${Number(invoice.totalAmount).toFixed(2)}</span>
-                        
+
                         <span>Total Paid:</span>
                         <span className="text-right font-medium text-green-700">${Number(invoice.paidAmount).toFixed(2)}</span>
                         

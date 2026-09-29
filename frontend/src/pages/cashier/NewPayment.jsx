@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { AlertTriangle, CheckCircle2, Loader2, Printer, Search } from 'lucide-react';
+import { AlertTriangle, Award, CheckCircle2, Loader2, Printer, Search } from 'lucide-react';
 import { createStudentPayment, getInvoiceById, getStudentAccount, searchStudentAccounts } from '../../services/api/cashier.api';
 import { Badge, Button, Input, Select, Spinner, Toast } from '../../components/ui';
+import { describeDiscount, invoiceDiscount } from '../../utils/discounts';
+import DiscountBadge from '../../components/finance/DiscountBadge';
 
 // Must match the methods the server accepts (paymentService ALLOWED_METHODS).
 const METHODS = [
@@ -13,14 +15,20 @@ const METHODS = [
     { label: 'Card / POS', value: 'CARD' },
     { label: 'Other', value: 'OTHER' }
 ];
+const STATUS = {
+    PAID: { label: 'Paid', variant: 'success' },
+    PARTIALLY_PAID: { label: 'Part paid', variant: 'warning' },
+    UNPAID: { label: 'Not paid', variant: 'danger' }
+};
 const money = (value) => `$${Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const cents = (value) => Math.round(Number(value || 0) * 100);
 const dueText = (value) => (value ? new Date(value).toLocaleDateString(undefined, { day: 'numeric', month: 'short', timeZone: 'UTC' }) : '');
+const emptyForm = { amount: '', method: 'CASH' };
 
-// The same split the server makes: the oldest unpaid month is filled first.
-const splitOldestFirst = (unpaid, amount) => {
+// The same split the server makes: the oldest month among those being paid is filled first.
+const splitOldestFirst = (months, amount) => {
     let remaining = cents(amount);
-    return unpaid.map((line) => {
+    return months.map((line) => {
         const part = Math.max(0, Math.min(cents(line.balance), remaining));
         remaining -= part;
         return { ...line, pays: part / 100, after: (cents(line.balance) - part) / 100 };
@@ -28,8 +36,10 @@ const splitOldestFirst = (unpaid, amount) => {
 };
 
 /**
- * Take money from a student. One amount can cover several months: it fills the oldest unpaid
- * month first, then the next. The split is shown before anything is recorded, and one
+ * Take money from a student. It shows every month billed for them, oldest first, with what
+ * each one charged (and any discount taken off), paid and still owes. The finance officer
+ * ticks the months this payment is for. With no month ticked, the amount fills the oldest
+ * unpaid month first, then the next. The split is shown before anything is recorded, and one
  * receipt lists every month it paid.
  */
 const NewPayment = () => {
@@ -42,18 +52,24 @@ const NewPayment = () => {
     const [searching, setSearching] = useState(false);
     const [account, setAccount] = useState(null);
     const [loadingAccount, setLoadingAccount] = useState(false);
-    const [form, setForm] = useState({ amount: '', method: 'CASH', reference: '' });
+    const [chosen, setChosen] = useState([]);
+    const [form, setForm] = useState(emptyForm);
     const [submitting, setSubmitting] = useState(false);
     const [completed, setCompleted] = useState(null);
     const [toast, setToast] = useState(null);
 
-    const openAccount = async (studentId) => {
+    // Arriving from an invoice (?invoiceId) opens its student with that month already ticked.
+    const openAccount = async (studentId, preselectInvoiceId = null) => {
         setLoadingAccount(true);
         setCompleted(null);
         try {
             const res = await getStudentAccount(studentId);
+            const line = preselectInvoiceId
+                ? (res.data.unpaid || []).find((item) => String(item.invoiceId) === String(preselectInvoiceId))
+                : null;
             setAccount(res.data);
-            setForm({ amount: '', method: 'CASH', reference: '' });
+            setChosen(line ? [String(line.invoiceId)] : []);
+            setForm({ ...emptyForm, amount: line ? String(line.balance) : '' });
         } catch (error) {
             setToast({ type: 'error', message: error.response?.data?.message || 'Could not open this student.' });
         } finally {
@@ -61,7 +77,6 @@ const NewPayment = () => {
         }
     };
 
-    // Arriving from a student record (?studentId) or an invoice (?invoiceId) opens that account.
     useEffect(() => {
         const studentId = searchParams.get('studentId');
         const invoiceId = searchParams.get('invoiceId');
@@ -69,7 +84,7 @@ const NewPayment = () => {
             openAccount(studentId);
         } else if (invoiceId) {
             getInvoiceById(invoiceId)
-                .then((res) => openAccount(res.data?.studentId?._id || res.data?.studentId))
+                .then((res) => openAccount(res.data?.studentId?._id || res.data?.studentId, invoiceId))
                 .catch(() => setToast({ type: 'error', message: 'Could not load the selected invoice.' }));
         }
     }, [searchParams]);
@@ -90,18 +105,40 @@ const NewPayment = () => {
         }
     };
 
+    const months = useMemo(() => account?.months || [], [account]);
     const unpaid = useMemo(() => account?.unpaid || [], [account]);
     const owed = account?.totals?.owed || 0;
-    const split = useMemo(() => splitOldestFirst(unpaid, form.amount), [unpaid, form.amount]);
-    const tooMuch = cents(form.amount) > cents(owed);
-    const needsReference = form.method !== 'CASH';
+    const discount = describeDiscount(account?.student?.discount);
+
+    // The months this payment is for: the ticked ones, or every unpaid month when none is ticked.
+    const payable = useMemo(
+        () => (chosen.length ? unpaid.filter((line) => chosen.includes(String(line.invoiceId))) : unpaid),
+        [unpaid, chosen]
+    );
+    const payableOwed = payable.reduce((total, line) => total + cents(line.balance), 0) / 100;
+    const split = useMemo(() => splitOldestFirst(payable, form.amount), [payable, form.amount]);
+    const tooMuch = cents(form.amount) > cents(payableOwed);
+
+    // Ticking months fills the amount with what they owe; it can then be lowered for a part payment.
+    const chooseMonths = (ids) => {
+        setChosen(ids);
+        const total = unpaid.filter((line) => ids.includes(String(line.invoiceId))).reduce((sum, line) => sum + cents(line.balance), 0);
+        setForm((current) => ({ ...current, amount: ids.length ? String(total / 100) : '' }));
+    };
+    const toggleMonth = (line) => {
+        const id = String(line.invoiceId);
+        chooseMonths(chosen.includes(id) ? chosen.filter((item) => item !== id) : [...chosen, id]);
+    };
+    const allUnpaidIds = unpaid.map((line) => String(line.invoiceId));
+    const allTicked = allUnpaidIds.length > 0 && allUnpaidIds.every((id) => chosen.includes(id));
 
     const handleSubmit = async (event) => {
         event.preventDefault();
         const amount = Number(form.amount);
         if (!(amount > 0)) return setToast({ type: 'error', message: 'Enter an amount greater than zero.' });
-        if (tooMuch) return setToast({ type: 'error', message: `This student owes ${money(owed)}. The amount cannot be more.` });
-        if (needsReference && !form.reference.trim()) return setToast({ type: 'error', message: 'Enter the transaction reference for this payment method.' });
+        if (tooMuch) {
+            return setToast({ type: 'error', message: `${chosen.length ? 'The ticked months owe' : 'This student owes'} ${money(payableOwed)}. The amount cannot be more.` });
+        }
         setSubmitting(true);
         setToast(null);
         try {
@@ -109,11 +146,13 @@ const NewPayment = () => {
                 studentId: account.student._id,
                 amount,
                 method: form.method,
-                reference: form.reference.trim()
+                ...(chosen.length ? { invoiceIds: chosen } : {})
             });
             setCompleted({ ...res.data, student: account.student, method: form.method });
         } catch (error) {
             setToast({ type: 'error', message: error.response?.data?.message || 'Payment failed.' });
+            // Someone else may have paid a ticked month while this screen was open.
+            if (error.response?.status === 409) openAccount(account.student._id);
         } finally {
             setSubmitting(false);
         }
@@ -125,7 +164,8 @@ const NewPayment = () => {
         setResults([]);
         setQuery('');
         setSearched(false);
-        setForm({ amount: '', method: 'CASH', reference: '' });
+        setChosen([]);
+        setForm(emptyForm);
         requestAnimationFrame(() => searchInputRef.current?.focus());
     };
 
@@ -136,7 +176,7 @@ const NewPayment = () => {
             <div className="phoenix-page-header">
                 <div>
                     <h1 className="phoenix-page-title">Receive payment</h1>
-                    <p className="phoenix-page-subtitle">Find the student, enter the amount. It pays the oldest unpaid month first.</p>
+                    <p className="phoenix-page-subtitle">Find the student, tick the months you are paying and enter the amount. With no month ticked, it pays the oldest unpaid month first.</p>
                 </div>
             </div>
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
@@ -165,7 +205,7 @@ const NewPayment = () => {
                                             className="flex w-full flex-col gap-2 rounded-lg border border-slate-200 bg-white p-4 text-left hover:border-[var(--primary)] sm:flex-row sm:items-center sm:justify-between"
                                         >
                                             <div>
-                                                <p className="font-bold text-slate-900">{item.name}</p>
+                                                <p className="flex flex-wrap items-center gap-2 font-bold text-slate-900">{item.name} <DiscountBadge discount={item.discount} /></p>
                                                 <p className="mt-0.5 text-xs text-slate-500">{item.admissionNumber}{item.status !== 'Active' ? ` · ${item.status}` : ''}</p>
                                             </div>
                                             <div className="text-right">
@@ -187,35 +227,115 @@ const NewPayment = () => {
                         <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
                             <div>
                                 <p className="text-xs font-semibold text-slate-500">Student</p>
-                                <h2 className="mt-1 text-xl font-bold text-slate-900">{account.student.name}</h2>
+                                <h2 className="mt-1 flex flex-wrap items-center gap-2 text-xl font-bold text-slate-900">{account.student.name} <DiscountBadge discount={account.student.discount} className="!py-1 text-xs" /></h2>
                                 <p className="text-sm text-slate-500">{account.student.admissionNumber}{account.student.className ? ` · ${account.student.className}` : ''}</p>
                             </div>
                             <div className="text-right">
                                 <p className="text-xs text-slate-500">Total owed</p>
-                                <p className={`text-2xl font-bold ${owed > 0 ? 'text-rose-700' : 'text-emerald-700'}`}>{money(owed)}</p>
+                                <p className={`text-2xl font-bold tabular-nums ${owed > 0 ? 'text-rose-700' : 'text-emerald-700'}`}>{money(owed)}</p>
+                                <p className="mt-0.5 text-xs text-slate-500">
+                                    {months.length} month{months.length === 1 ? '' : 's'} billed · {unpaid.length} unpaid
+                                </p>
                             </div>
                         </div>
+
+                        {discount && (
+                            <div className="mt-4 flex items-start gap-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-emerald-900">
+                                <Award size={18} className="mt-0.5 shrink-0 text-emerald-600" />
+                                <div className="text-sm">
+                                    <p className="font-semibold">{discount.scholarship ? 'This student has a full scholarship' : 'This student has a discount'}</p>
+                                    <p className="text-xs">{discount.long}. It applies to months billed after it was granted; months already billed keep their amount.</p>
+                                </div>
+                            </div>
+                        )}
                         {account.totals.late > 0 && (
                             <p className="mt-4 flex items-center gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
                                 <AlertTriangle size={16} /> Late: {account.totals.lateMonths.join(', ')} ({money(account.totals.late)})
                             </p>
                         )}
-                        <h3 className="mt-5 text-xs font-bold uppercase tracking-wider text-slate-500">Unpaid months, oldest first</h3>
-                        {unpaid.length === 0 ? (
-                            <p className="mt-2 text-sm text-emerald-700">Nothing is owed.</p>
+
+                        <div className="mt-5 flex flex-wrap items-baseline justify-between gap-2">
+                            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Billed months, oldest first</h3>
+                            {unpaid.length > 0 && <p className="text-xs text-slate-500">Tick the months you are paying</p>}
+                        </div>
+                        {months.length === 0 ? (
+                            <p className="mt-2 text-sm text-slate-500">No bill has been generated for this student yet.</p>
                         ) : (
-                            <ul className="mt-2 divide-y divide-slate-100">
-                                {unpaid.map((line) => (
-                                    <li key={line.invoiceId} className="flex items-center justify-between py-2 text-sm">
-                                        <span className="flex items-center gap-2">
-                                            <span className="font-semibold text-slate-800">{line.label}</span>
-                                            {line.late && <Badge variant="danger" className="!py-0.5 text-[10px]">Late</Badge>}
-                                            {line.dueDate && <span className="text-xs text-slate-400">due {dueText(line.dueDate)}</span>}
-                                        </span>
-                                        <span className="font-semibold tabular-nums text-rose-700">{money(line.balance)}</span>
-                                    </li>
-                                ))}
-                            </ul>
+                            <div className="mt-2 overflow-x-auto">
+                                <table className="w-full border-collapse text-sm">
+                                    <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                                        <tr>
+                                            <th className="w-8 py-2 pr-2">
+                                                {unpaid.length > 1 && (
+                                                    <input
+                                                        type="checkbox"
+                                                        className="h-4 w-4 cursor-pointer accent-[var(--primary)]"
+                                                        checked={allTicked}
+                                                        onChange={() => chooseMonths(allTicked ? [] : allUnpaidIds)}
+                                                        aria-label="Tick every unpaid month"
+                                                    />
+                                                )}
+                                            </th>
+                                            <th className="py-2 pr-3">Month</th>
+                                            <th className="py-2 pr-3 text-right">Billed</th>
+                                            <th className="py-2 pr-3 text-right">Paid</th>
+                                            <th className="py-2 pr-3 text-right">Owed</th>
+                                            <th className="py-2">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {months.map((line) => {
+                                            const id = String(line.invoiceId);
+                                            const open = line.balance > 0 && line.status !== 'VOID';
+                                            const ticked = chosen.includes(id);
+                                            const taken = invoiceDiscount(line.items);
+                                            const status = STATUS[line.status] || { label: line.status, variant: 'default' };
+                                            return (
+                                                <tr
+                                                    key={id}
+                                                    onClick={open ? () => toggleMonth(line) : undefined}
+                                                    className={`${open ? 'cursor-pointer hover:bg-slate-50' : ''} ${ticked ? 'bg-[var(--primary-soft)]' : ''}`}
+                                                >
+                                                    <td className="py-2.5 pr-2">
+                                                        {open ? (
+                                                            <input
+                                                                type="checkbox"
+                                                                className="h-4 w-4 cursor-pointer accent-[var(--primary)]"
+                                                                checked={ticked}
+                                                                onChange={() => toggleMonth(line)}
+                                                                onClick={(event) => event.stopPropagation()}
+                                                                aria-label={`Pay ${line.label}`}
+                                                            />
+                                                        ) : (
+                                                            <CheckCircle2 size={16} className="text-emerald-500" aria-hidden="true" />
+                                                        )}
+                                                    </td>
+                                                    <td className="py-2.5 pr-3">
+                                                        <span className="font-semibold text-slate-800">{line.label}</span>
+                                                        {line.dueDate && <span className="block text-xs text-slate-400">due {dueText(line.dueDate)}</span>}
+                                                    </td>
+                                                    <td className="py-2.5 pr-3 text-right tabular-nums">
+                                                        {money(line.billed)}
+                                                        {taken && (
+                                                            <span className="block text-[11px] font-semibold text-emerald-700">
+                                                                {taken.scholarship ? 'Full scholarship' : `${money(line.fee)} less ${money(taken.amount)} discount`}
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                    <td className="py-2.5 pr-3 text-right tabular-nums text-emerald-700">{money(line.paid)}</td>
+                                                    <td className={`py-2.5 pr-3 text-right font-semibold tabular-nums ${line.balance > 0 ? 'text-rose-700' : 'text-slate-400'}`}>{money(line.balance)}</td>
+                                                    <td className="py-2.5">
+                                                        <span className="inline-flex flex-wrap gap-1">
+                                                            <Badge variant={status.variant} className="!py-0.5 text-[10px]">{status.label}</Badge>
+                                                            {line.late && <Badge variant="danger" className="!py-0.5 text-[10px]">Late</Badge>}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
                         )}
                         <button type="button" className="mt-4 text-xs font-semibold text-[var(--primary)] hover:underline" onClick={() => setAccount(null)}>Choose another student</button>
                     </article>
@@ -223,21 +343,35 @@ const NewPayment = () => {
                     <article className="phoenix-card p-5 lg:col-span-2">
                         <h2 className="text-base font-bold text-slate-900">Payment</h2>
                         {owed <= 0 ? (
-                            <p className="mt-4 text-sm text-slate-500">This student has nothing to pay.</p>
+                            <p className="mt-4 text-sm text-slate-500">
+                                {discount?.scholarship && months.length > 0
+                                    ? 'This student has a full scholarship, so there is nothing to pay.'
+                                    : 'This student has nothing to pay.'}
+                            </p>
                         ) : (
                             <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-                                <Input label="Amount" type="number" min="0.01" step="0.01" value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} required />
+                                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                                    {chosen.length ? (
+                                        <>
+                                            <p className="font-semibold text-slate-700">Paying for {payable.map((line) => line.label).join(', ')}</p>
+                                            <button type="button" className="mt-1 font-semibold text-[var(--primary)] hover:underline" onClick={() => chooseMonths([])}>Clear the ticked months</button>
+                                        </>
+                                    ) : (
+                                        <p>No month ticked. The money fills the oldest unpaid month first.</p>
+                                    )}
+                                </div>
+                                <Input label="Amount" type="number" min="0.01" step="0.01" value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} placeholder="Enter amount..." required />
                                 <div className="flex flex-wrap gap-2 text-xs">
-                                    <button type="button" onClick={() => setForm({ ...form, amount: String(unpaid[0].balance) })} className="rounded-full border border-slate-200 px-3 py-1 font-semibold text-slate-600 hover:border-[var(--primary)]">
+                                    <button type="button" onClick={() => chooseMonths([String(unpaid[0].invoiceId)])} className="rounded-full border border-slate-200 px-3 py-1 font-semibold text-slate-600 hover:border-[var(--primary)]">
                                         {unpaid[0].label}: {money(unpaid[0].balance)}
                                     </button>
                                     {unpaid.length > 1 && (
-                                        <button type="button" onClick={() => setForm({ ...form, amount: String(owed) })} className="rounded-full border border-slate-200 px-3 py-1 font-semibold text-slate-600 hover:border-[var(--primary)]">
+                                        <button type="button" onClick={() => chooseMonths(allUnpaidIds)} className="rounded-full border border-slate-200 px-3 py-1 font-semibold text-slate-600 hover:border-[var(--primary)]">
                                             Everything: {money(owed)}
                                         </button>
                                     )}
                                 </div>
-                                {tooMuch && <p className="text-xs font-semibold text-rose-700">That is more than the {money(owed)} owed.</p>}
+                                {tooMuch && <p className="text-xs font-semibold text-rose-700">That is more than the {money(payableOwed)} {chosen.length ? 'owed on the ticked months' : 'owed'}.</p>}
                                 {!tooMuch && split.length > 0 && (
                                     <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs">
                                         <p className="mb-1.5 font-semibold text-slate-600">This payment covers</p>
@@ -250,7 +384,6 @@ const NewPayment = () => {
                                     </div>
                                 )}
                                 <Select label="Payment method" options={METHODS} value={form.method} onChange={(event) => setForm({ ...form, method: event.target.value })} />
-                                <Input label={needsReference ? 'Reference number' : 'Reference (optional)'} value={form.reference} onChange={(event) => setForm({ ...form, reference: event.target.value })} placeholder={needsReference ? 'Transaction number' : 'Optional for cash'} required={needsReference} />
                                 <Button type="submit" className="w-full" disabled={submitting || tooMuch || !(Number(form.amount) > 0)}>
                                     {submitting ? <><Loader2 size={16} className="animate-spin" /> Recording</> : `Take ${money(form.amount)}`}
                                 </Button>

@@ -7,7 +7,9 @@
  * school can now edit them.
  *
  * Safe to re-run: roles are upserted by (tenantId, key) and only users missing a roleId
- * are touched. Re-running never overwrites a name or permission set a school has edited.
+ * are touched. Re-running never overwrites a name or permission set a school has edited. It
+ * adds a default feature the role was never offered (a new one from a release), and never
+ * brings back one the school switched off.
  *
  *   node scripts/seedSystemRoles.js           apply
  *   node scripts/seedSystemRoles.js --dry-run report only, change nothing
@@ -15,7 +17,7 @@
 const mongoose = require('mongoose');
 require('dotenv').config();
 
-const { DEFAULT_ROLE_PERMISSIONS } = require('../utils/permissions');
+const { DEFAULT_ROLE_PERMISSIONS, syncSystemRoleDefaults } = require('../utils/permissions');
 const { ROLE_SCOPE } = require('../utils/rolePolicy');
 
 // How the seeded roles present themselves to a school. Keys must match ROLE_SCOPE.
@@ -29,6 +31,7 @@ const ROLE_PRESENTATION = {
     cashier: { name: 'Cashier', description: 'Records payments and issues receipts.' },
     teacher: { name: 'Teacher', description: 'Teaching schedule, attendance, and results.' },
     dugsi_teacher: { name: 'Dugsi Teacher', description: 'Quran study circles, Dugsi attendance, and memorization progress.' },
+    general_staff: { name: 'General Staff', description: "Staff who don't use the app — a watchman, driver, cook, or similar. Recorded for payroll only; no email or login." },
     student: { name: 'Student', description: 'Student portal access.' },
     parent: { name: 'Parent', description: 'Parent portal access for linked children.' }
 };
@@ -62,14 +65,7 @@ const seedRolesForTenant = async (tenantId) => {
         const existing = await Role.findOne({ tenantId, key });
         const defaultPerms = DEFAULT_ROLE_PERMISSIONS[key] || [];
         if (existing) {
-            if (existing.isSystem) {
-                const currentSet = new Set(existing.permissions || []);
-                const missing = defaultPerms.filter((perm) => !currentSet.has(perm));
-                if (missing.length > 0) {
-                    existing.permissions = [...(existing.permissions || []), ...missing];
-                    await existing.save();
-                }
-            }
+            if (syncSystemRoleDefaults(existing)) await existing.save();
             continue;
         }
         created.push(await Role.create({
@@ -79,6 +75,7 @@ const seedRolesForTenant = async (tenantId) => {
             description: ROLE_PRESENTATION[key].description,
             scope: ROLE_SCOPE[key],
             permissions: defaultPerms,
+            seededPermissions: defaultPerms,
             dataScope: dataScopeFor(key),
             isSystem: true,
             isActive: true
@@ -115,16 +112,11 @@ const seedSystemRoles = async ({ dryRun = false } = {}) => {
             const defaultPerms = DEFAULT_ROLE_PERMISSIONS[key] || [];
             if (existing) {
                 stats.rolesExisting += 1;
-                if (existing.isSystem) {
-                    const currentSet = new Set(existing.permissions || []);
-                    const missing = defaultPerms.filter((perm) => !currentSet.has(perm));
-                    if (missing.length > 0) {
-                        stats.rolesUpdated += 1;
-                        if (!dryRun) {
-                            existing.permissions = [...(existing.permissions || []), ...missing];
-                            await existing.save();
-                        }
-                    }
+                // Adds only defaults this role was never offered; a feature the school switched
+                // off stays off. On a dry run the change stays in memory and is not saved.
+                if (syncSystemRoleDefaults(existing)) {
+                    stats.rolesUpdated += 1;
+                    if (!dryRun) await existing.save();
                 }
                 continue;
             }
@@ -137,6 +129,7 @@ const seedSystemRoles = async ({ dryRun = false } = {}) => {
                 description: ROLE_PRESENTATION[key].description,
                 scope: ROLE_SCOPE[key],
                 permissions: defaultPerms,
+                seededPermissions: defaultPerms,
                 dataScope: dataScopeFor(key),
                 isSystem: true,
                 isActive: true

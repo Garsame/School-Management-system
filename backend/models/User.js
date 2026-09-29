@@ -8,17 +8,26 @@ const userSchema = new mongoose.Schema({
     authorizedBranchIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Branch' }],
     studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Student' }, // Nullable for non-students
     name: { type: String, required: true },
-    email: { 
-        type: String, 
+    email: {
+        type: String,
         trim: true,
         lowercase: true,
-        required: function() { return this.role !== 'student'; } // Email optional for students
+        // Optional for students (they sign in with their student code) and for general staff,
+        // who never sign in at all — see role below.
+        required: function() { return !['student', 'general_staff'].includes(this.role); }
     },
     username: { type: String, trim: true, uppercase: true }, // Used as login identifier for students (studentCode)
+    // Always set, even for an account that never logs in: general_staff gets a random value
+    // nobody is given, so the field stays a real password hash rather than a special case.
     passwordHash: { type: String, required: true, minlength: 8 },
     role: {
         type: String,
-        enum: ['super_admin', 'finance_director', 'hr_payroll_manager', 'branch_admin', 'teacher', 'dugsi_teacher', 'cashier', 'registrar', 'platform_owner', 'student', 'parent'],
+        enum: [
+            'super_admin', 'finance_director', 'hr_payroll_manager', 'branch_admin', 'teacher', 'dugsi_teacher',
+            'cashier', 'registrar', 'platform_owner', 'student', 'parent',
+            // A record for payroll only — a watchman, driver, cook. No permissions, no login.
+            'general_staff'
+        ],
         required: true
     },
     // The Role record backing `role`. `role` stays the authoritative string so existing

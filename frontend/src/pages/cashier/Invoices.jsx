@@ -2,6 +2,7 @@ import React, { useCallback, useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { searchInvoices } from '../../services/api/cashier.api';
 import { Card, Button, Input, Table, Badge, Spinner } from '../../components/ui';
+import DiscountNote from '../../components/finance/DiscountNote';
 
 const Invoices = () => {
     const [searchParams] = useSearchParams();
@@ -102,7 +103,7 @@ const Invoices = () => {
                                                     <div className="text-xs text-slate-500">{inv.studentId?.admissionNumber}</div>
                                                 </td>
                                                 <td className="px-4 py-3">{inv.academicYearId?.name}</td>
-                                                <td className="px-4 py-3 font-bold">${inv.totalAmount}</td>
+                                                <td className="px-4 py-3 font-bold">${inv.totalAmount}<DiscountNote items={inv.items} /></td>
                                                 <td className="px-4 py-3 text-green-600">${inv.paidAmount}</td>
                                                 <td className="px-4 py-3 text-red-600 font-bold">${inv.balance}</td>
                                                 <td className="px-4 py-3">

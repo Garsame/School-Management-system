@@ -51,6 +51,8 @@ import { hasAnyPermission, hasAllPermissions, hasPermission } from '../utils/per
  *   feature                      pages that do the same job in several areas (payroll,
  *                                attendance, leave). The first one reached is shown and the
  *                                rest are skipped, so nobody sees Payroll twice.
+ *   alsoActive                   other addresses that belong to this page (a receipt opens from
+ *                                Payment History), so its menu entry and tabs stay lit there
  *   homeOnly                     only in the person's own area (their profile)
  *   quietFor                     roles that hold the page's permission only so their own
  *                                pages can read data. It stays out of their menu unless they
@@ -154,7 +156,7 @@ export const STAFF_AREAS = [
                 children: [
                     { label: 'Record Payment', path: '/cashier/payments/new', icon: Receipt, permission: 'cashier.payments.create', keywords: ['pay', 'new', 'payment', 'record', 'collect', 'receive'] },
                     { label: 'Invoice Lookup', path: '/cashier/invoices', icon: FileText, permission: 'cashier.invoices.search', keywords: ['invoice', 'search', 'find', 'lookup'] },
-                    { label: 'Payment History', path: '/cashier/payments', icon: History, permission: 'cashier.payments.view', keywords: ['history', 'log', 'payments', 'past', 'receipts'] },
+                    { label: 'Payment History', path: '/cashier/payments', alsoActive: ['/cashier/receipts'], icon: History, permission: 'cashier.payments.view', keywords: ['history', 'log', 'payments', 'past', 'receipts'] },
                     { label: 'Monthly Collection', path: '/finance/monthly', icon: CalendarRange, permission: 'finance.invoices.view', keywords: ['month', 'monthly', 'who paid', 'partial', 'unpaid', 'late', 'debt', 'excel', 'collection'] },
                     { label: 'Outstanding', path: '/finance/outstanding', icon: AlertCircle, permission: 'finance.outstanding.view', keywords: ['debtors', 'debt', 'unpaid', 'balances'] },
                     { label: 'Payments Ledger', path: '/finance/payments', icon: History, permission: 'finance.payments.view', keywords: ['ledger', 'history', 'received', 'transactions'] }
@@ -201,7 +203,7 @@ export const STAFF_AREAS = [
                 children: [
                     { label: 'Record Payment', path: '/cashier/payments/new', icon: Receipt, permission: 'cashier.payments.create', keywords: ['pay', 'new', 'payment', 'record', 'collect', 'receive'] },
                     { label: 'Invoice Lookup', path: '/cashier/invoices', icon: FileText, permission: 'cashier.invoices.search', keywords: ['invoice', 'search', 'find', 'lookup'] },
-                    { label: 'Payment History', path: '/cashier/payments', icon: History, permission: 'cashier.payments.view', keywords: ['history', 'log', 'payments', 'past', 'receipts'] }
+                    { label: 'Payment History', path: '/cashier/payments', alsoActive: ['/cashier/receipts'], icon: History, permission: 'cashier.payments.view', keywords: ['history', 'log', 'payments', 'past', 'receipts'] }
                 ]
             },
             {
@@ -412,7 +414,30 @@ export const buildStaffMenu = (user) => {
     };
 };
 
-export const homePathForRole = (role) => STAFF_AREAS.find((area) => area.key === HOME_AREA_BY_ROLE[role])?.home || null;
+export const flattenMenu = (groups) => groups.flatMap((group) => group.items.flatMap((item) => item.children || [item]));
+
+// The page the current address belongs to: the longest matching path. An area's home
+// ("/finance") only matches itself, or it would light up for every page in the area.
+export const activePathFor = (pathname, pages) => pages
+    .flatMap((page) => [page.path, ...(page.alsoActive || [])].map((match) => ({ match, path: page.path })))
+    .filter(({ match }) => pathname === match || (match.split('/').length > 2 && pathname.startsWith(`${match}/`)))
+    .sort((a, b) => b.match.length - a.match.length)[0]?.path || null;
+
+/**
+ * The parent entry (with its child pages) that holds the current page, or null when the page
+ * stands alone. Parents show as one sidebar link; their children show as tabs above the page.
+ * When two areas list the same page, the first one wins, so the sidebar and tabs agree.
+ */
+export const findActiveSection = (groups, activePath) => {
+    if (!activePath) return null;
+    for (const group of groups) {
+        const item = group.items.find((entry) => entry.children?.some((child) => child.path === activePath));
+        if (item) return { key: `${group.key}.${item.key}`, item };
+    }
+    return null;
+};
+
+export const homePathForRole =(role) => STAFF_AREAS.find((area) => area.key === HOME_AREA_BY_ROLE[role])?.home || null;
 
 // The school's own name for the role when it has one ("Finance Officer"), else the key.
 export const roleDisplayName = (user) => user?.roleName || String(user?.role || '').replace(/_/g, ' ');
